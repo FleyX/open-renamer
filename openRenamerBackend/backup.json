@@ -1,0 +1,13 @@
+{ "name": "nas_backup", "script": "./dist/index.js",
+  "cwd": "./",
+  "env": {
+    "PORT": 8082,
+    "MYSQL_HOST":"localhost",
+    "MYSQL_PORT":3306,
+    "MYSQL_USER":"root",
+    "MYSQL_PASS":"123456"
+  },
+  "log_file": "./log/combined.log",
+  "out_file": "./log/out.log",
+  "error_file": "./error.log"
+}

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "noImplicitAny": false,
+    "module": "commonjs",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl":".",
+    "rootDir": "./",
+    "watch": false,
+    "strict": true,
+    "strictNullChecks": false,
+    "esModuleInterop": true
+  }
+}
