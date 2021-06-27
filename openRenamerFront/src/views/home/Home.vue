@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <el-button type="primary" @click="dialogVisible = true" size="small"
       >新增文件</el-button
     >
@@ -39,6 +39,16 @@
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>文件列表</div>
+      <div class="fileBlock">
+        <div v-for="(item, index) in fileList" :key="index">
+          {{ item.name }}
+        </div>
+      </div>
+      <div class="fileBlock">
+        <div v-for="(item, index) in changedFileList" :key="index">
+          {{ item.name }}
+        </div>
+      </div>
     </div>
   </div>
   <el-dialog
@@ -62,6 +72,7 @@
 
 <script>
 // @ is an alias to /src
+import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import Rule from "@/components/Rule";
 export default {
@@ -69,9 +80,11 @@ export default {
   components: { FileChose, Rule },
   data() {
     return {
+      loading: false, //遮罩
       dialogVisible: false,
-      ruleDialogShow: true, //规则弹床
+      ruleDialogShow: false, //规则弹床
       fileList: [],
+      changedFileList: [],
       ruleList: [],
       editRule: null,
     };
@@ -109,9 +122,15 @@ export default {
     deleteRule() {
       this.ruleList = this.ruleList.filter((item) => !item.checked);
     },
+    //编辑规则
     editClick() {
       this.editRule = this.checkedRules[0];
       this.ruleDialogShow = true;
+    },
+    //预览结果
+    showResult() {
+      this.loading = true;
+      HttpUtil.post();
     },
   },
 };
@@ -132,5 +151,11 @@ export default {
     flex-direction: column;
     align-items: baseline;
   }
+}
+
+.fileBlock {
+  text-align: left;
+  display: inline-block;
+  width: 50%;
 }
 </style>
