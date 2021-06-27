@@ -1,0 +1,82 @@
+<template>
+  <div class="main">
+    <el-menu
+      style="width: 8em"
+      mode="vertical"
+      :default-active="currentIndex"
+      @select="menuChange"
+    >
+      <el-menu-item :disabled="editRule" index="insert">插入</el-menu-item>
+      <el-menu-item :disabled="editRule" index="delete">删除</el-menu-item>
+      <!-- <el-menu-item index="replace">替换</el-menu-item> -->
+      <el-menu-item :disabled="editRule" index="serialization"
+        >序列化</el-menu-item
+      >
+    </el-menu>
+    <div class="rule">
+      <insert-rule
+        ref="rule"
+        :editRule="editRule"
+        v-if="currentIndex == 'insert'"
+      />
+      <delete-rule
+        ref="rule"
+        :editRule="editRule"
+        v-else-if="currentIndex == 'delete'"
+      />
+      <serialization-rule
+        ref="rule"
+        :editRule="editRule"
+        v-else-if="currentIndex == 'serialization'"
+      />
+    </div>
+  </div>
+
+  <el-button type="primary" @click="submit">确定</el-button>
+</template>
+
+<script>
+import InsertRule from "./rules/InsertRule.vue";
+import DeleteRule from "./rules/DeleteRule.vue";
+import SerializationRule from "./rules/SerializationRule.vue";
+export default {
+  components: { InsertRule, DeleteRule, SerializationRule },
+  props: ["editRule"],
+  name: "Rule",
+  data() {
+    return {
+      currentIndex: "insert",
+      options: [{ label: "插入", value: "insert" }],
+    };
+  },
+  created() {
+    if (this.editRule) {
+      this.currentIndex = this.editRule.type;
+    }
+  },
+  methods: {
+    menuChange(index) {
+      this.currentIndex = index;
+    },
+    submit() {
+      let data = this.$refs["rule"].exportObj();
+      if (data != null) {
+        this.$emit("ruleAdd", data);
+      }
+    },
+  },
+};
+</script>
+
+<style lang="less" scoped>
+.main {
+  display: flex;
+  height: 65vh;
+  text-align: left;
+
+  .rule {
+    padding: 5px;
+    flex: 1;
+  }
+}
+</style>

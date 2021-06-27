@@ -4,6 +4,10 @@ export default class FileObj {
 	 */
 	name: string;
 	/**
+	 * 所属路径
+	 */
+	path: string;
+	/**
 	 * 是否文件夹
 	 */
 	isFolder: boolean;
@@ -17,8 +21,9 @@ export default class FileObj {
 	updatedTime: number;
 
 
-	constructor(name, isFolder, createdTime, updatedTime) {
+	constructor(name, path, isFolder, createdTime, updatedTime) {
 		this.name = name;
+		this.path = path;
 		this.isFolder = isFolder;
 		this.createdTime = createdTime;
 		this.updatedTime = updatedTime;

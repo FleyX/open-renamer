@@ -1,10 +1,26 @@
 <template>
-  <div id="nav">
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </div>
+  <el-menu
+    :default-active="activeIndex"
+    class="el-menu-demo"
+    mode="horizontal"
+    @select="handleSelect"
+  >
+    <el-menu-item index="dealCenter">处理中心</el-menu-item>
+    <el-menu-item index="history">历史记录</el-menu-item>
+  </el-menu>
   <router-view />
 </template>
+
+<script>
+export default {
+  name: "Home",
+  data() {
+    return {
+      activeIndex: "dealCenter",
+    };
+  },
+};
+</script>
 
 <style lang="less">
 #app {

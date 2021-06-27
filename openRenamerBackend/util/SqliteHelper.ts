@@ -11,7 +11,7 @@ const HISTORY_NAME = "history.json";
 class MysqlUtil {
     public static pool: Database = null;
 
-    static async createPool(mysqlConfig: any) {
+    static async createPool() {
         MysqlUtil.pool = await open({
             filename: path.join(config.rootPath, "database.db"),
             driver: sqlite3.Database

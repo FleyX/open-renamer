@@ -29,8 +29,11 @@ app.use(handleError);
 
 app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
 (async () => {
-  await SqliteUtil.createPool(config.mysqlConfig);
+  await SqliteUtil.createPool();
   app.listen(config.port);
   log.info(`server listened `, config.port);
 })();
 
+app.on("error", (error) => {
+  console.error(error);
+})
