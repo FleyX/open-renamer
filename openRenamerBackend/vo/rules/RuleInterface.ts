@@ -2,5 +2,5 @@ import FileObj from "../FileObj";
 
 export default interface RuleInterface {
 
-	deal(file: FileObj): string;
+	deal(file: FileObj): void;
 }

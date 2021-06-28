@@ -1,5 +1,6 @@
 import RuleInterface from "./RuleInterface";
 import FileObj from "../FileObj";
+import path from 'path';
 
 export default class InsertRule implements RuleInterface {
 
@@ -33,7 +34,33 @@ export default class InsertRule implements RuleInterface {
 	}
 
 
-	deal(file: FileObj): string {
-		return null;
+	deal(file: FileObj): void {
+		let str = this.ignorePostfix ? file.realName : file.name;
+		switch (this.type) {
+			case "front":
+				str = this.insertContent + str;
+				break;
+			case "backend":
+				str = str + this.insertContent;
+				break;
+			case "at":
+				let index = this.atIsRightToleft ? str.length - this.atInput + 1 : this.atInput - 1;
+				str = str.substring(0, index) + this.insertContent + str.substring(index);
+				break;
+			case "replace":
+				str = this.insertContent;
+				break;
+		}
+		if (this.ignorePostfix) {
+			file.realName = str;
+		} else {
+			file.expandName = path.extname(str);
+			if (file.expandName.length > 0) {
+				file.realName = str.substring(0, str.lastIndexOf("."));
+			} else {
+				file.realName = str;
+			}
+		}
+		file.name = file.realName + file.expandName;
 	}
 }

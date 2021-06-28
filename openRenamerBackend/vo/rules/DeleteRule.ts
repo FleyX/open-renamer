@@ -1,5 +1,6 @@
 import RuleInterface from "./RuleInterface";
 import FileObj from "../FileObj";
+import path from 'path';
 
 export default class DeleteRule implements RuleInterface {
 	/**
@@ -29,8 +30,33 @@ export default class DeleteRule implements RuleInterface {
 
 
 
-	deal(file: FileObj): string {
-		return null;
+	deal(file: FileObj): void {
+		if (this.type === 'deleteAll') {
+			file.realName = "";
+			if (!this.ignorePostfix) {
+				file.expandName = "";
+			}
+		} else {
+			let str = file.realName + (this.ignorePostfix ? "" : file.expandName);
+			let startIndex = this.start.calIndex(str);
+			let endIndex = this.end.calIndex(str);
+			if (startIndex < 0 || endIndex < 0) {
+				return;
+			}
+			str = str.substring(0, startIndex) + str.substring(endIndex + 1);
+			if (this.ignorePostfix) {
+				file.realName = str;
+			} else {
+				file.expandName = path.extname(str);
+				if (file.expandName.length > 0) {
+					file.realName = str.substring(0, str.lastIndexOf("."));
+				} else {
+					file.realName = str;
+				}
+			}
+		}
+
+		file.name = file.realName + file.expandName;
 	}
 
 }
@@ -48,5 +74,19 @@ class DeleteRuleItem {
 	constructor(data: any) {
 		this.type = data.type;
 		this.value = data.value;
+	}
+
+	/**
+	 * 计算位置
+	 */
+	calIndex(str: string): number {
+		if (this.type === 'location') {
+			return parseInt(this.value) - 1;
+		} else if (this.type === 'text') {
+			return str.indexOf(this.value);
+		} else if (this.type === 'end') {
+			return str.length - 1;
+		}
+		return -1;
 	}
 }

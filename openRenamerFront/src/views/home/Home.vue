@@ -4,6 +4,7 @@
       >新增文件</el-button
     >
     <el-button type="primary" @click="showResult" size="small">预览</el-button>
+    <el-button type="primary" @click="submit" size="small">重命名</el-button>
     <!-- 规则列表 -->
     <div class="ruleList">
       <div class="menu">
@@ -86,7 +87,8 @@ export default {
       fileList: [],
       changedFileList: [],
       ruleList: [],
-      editRule: null,
+      editRule: null, //当前编辑的规则
+      needPreview: false, //需要点击预览
     };
   },
   computed: {
@@ -95,12 +97,16 @@ export default {
     },
   },
   methods: {
-    addData(data) {
+    //新增文件
+    async addData(data) {
       console.log(data);
       this.fileList.push(...data);
       this.dialogVisible = false;
+      this.needPreview = true;
+      await this.showResult();
     },
-    ruleAdd(data) {
+    //新增规则
+    async ruleAdd(data) {
       data.checked = false;
       data.blocked = false;
       if (this.editRule != null) {
@@ -111,16 +117,23 @@ export default {
         this.ruleList.push(data);
       }
       this.ruleDialogShow = false;
+
+      this.needPreview = true;
+      await this.showResult();
     },
     //禁用/启用
-    block() {
+    async block() {
       this.ruleList
         .filter((item) => item.checked)
         .forEach((item) => (item.blocked = !item.blocked));
+      this.needPreview = true;
+      await this.showResult();
     },
     //删除规则
-    deleteRule() {
+    async deleteRule() {
       this.ruleList = this.ruleList.filter((item) => !item.checked);
+      this.needPreview = true;
+      await this.showResult();
     },
     //编辑规则
     editClick() {
@@ -128,9 +141,42 @@ export default {
       this.ruleDialogShow = true;
     },
     //预览结果
-    showResult() {
+    async showResult() {
+      if (this.fileList.length == 0) {
+        this.$message({ message: "请选择文件", type: "warning" });
+        return;
+      }
+      if (this.ruleList.filter((item) => !item.blocked).length == 0) {
+        this.$message({ message: "无生效规则", type: "warning" });
+        return;
+      }
+
       this.loading = true;
-      HttpUtil.post();
+      let body = {
+        fileList: this.fileList,
+        ruleList: this.ruleList,
+      };
+      this.changedFileList = await HttpUtil.post(
+        "/renamer/preview",
+        null,
+        body
+      );
+      this.needPreview = false;
+      this.loading = false;
+    },
+    async submit() {
+      if (this.changedFileList.filter((item) => item.errorMessage).length > 0) {
+        this.$message({ message: "存在错误，无法执行操作", type: "error" });
+        return;
+      }
+      this.loading = true;
+      let body = {
+        fileList: this.fileList,
+        changedFileList: this.changedFileList,
+      };
+      await HttpUtil.post("/renamer/submit", null, body);
+      this.loading = false;
+      this.$message({ message: "重命名成功", type: "success" });
     },
   },
 };

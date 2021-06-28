@@ -56,7 +56,7 @@
           <el-radio
             v-model="ruleObj.data.end.type"
             label="end"
-            :disabled="untilEnd"
+            :disabled="deleteAll"
             >直到末尾</el-radio
           >
         </div>
