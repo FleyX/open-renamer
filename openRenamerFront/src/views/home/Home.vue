@@ -39,11 +39,24 @@
     </div>
     <!-- 文件预览列表 -->
     <div class="fileList">
-      <div>文件列表</div>
+      <div>
+        文件列表
+
+        <el-button type="primary" size="mini" @click="selectAllFiles"
+          >反选</el-button
+        >
+        <el-button type="danger" size="mini" @click="deleteCheckedFiles"
+          >删除</el-button
+        >
+      </div>
       <div class="fileBlock">
-        <div v-for="(item, index) in fileList" :key="index">
-          {{ item.name }}
-        </div>
+        <el-checkbox
+          style="display: block"
+          v-for="(item, index) in fileList"
+          :key="index"
+          v-model="item.checked"
+          >{{ item.name }}</el-checkbox
+        >
       </div>
       <div class="fileBlock">
         <div v-for="(item, index) in changedFileList" :key="index">
@@ -99,7 +112,7 @@ export default {
   methods: {
     //新增文件
     async addData(data) {
-      console.log(data);
+      data.forEach((item) => (item.checked = false));
       this.fileList.push(...data);
       this.dialogVisible = false;
       this.needPreview = true;
@@ -177,6 +190,14 @@ export default {
       await HttpUtil.post("/renamer/submit", null, body);
       this.loading = false;
       this.$message({ message: "重命名成功", type: "success" });
+    },
+    //删除选中的文件名
+    deleteCheckedFiles() {
+      this.fileList = this.fileList.filter((item) => !item.checked);
+    },
+    //全选
+    selectAllFiles() {
+      this.fileList.forEach((item) => (item.checked = !item.checked));
     },
   },
 };
