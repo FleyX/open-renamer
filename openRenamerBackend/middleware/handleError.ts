@@ -1,7 +1,7 @@
 let f = async (ctx, next) => {
     try {
         await next();
-    } catch (error) {
+    } catch (error: any) {
         if (error.status != undefined) {
             ctx.status = error.status;
         } else {
