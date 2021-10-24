@@ -50,15 +50,29 @@
         >
       </div>
       <div class="fileBlock">
+        <!-- 左侧原始文件名 -->
         <el-checkbox
           style="display: block"
           v-for="(item, index) in fileList"
           :key="index"
           v-model="item.checked"
-          >{{ item.name }}</el-checkbox
-        >
+          ><div class="oneFileName">
+            {{ item.name }}
+            <ArrowDownBold
+              style="width: 20px; padding-left: 10px"
+              v-if="index < fileList.length - 1"
+              @click.stop.prevent="moveIndex(index + 1, index)"
+            />
+            <ArrowUpBold
+              style="width: 20px; padding-left: 10px"
+              v-if="index > 0"
+              @click.stop.prevent="moveIndex(index - 1, index)"
+            />
+          </div>
+        </el-checkbox>
       </div>
       <div class="fileBlock">
+        <!-- 右侧修改后的文件名-->
         <div v-for="(item, index) in changedFileList" :key="index">
           {{ item.name }}
         </div>
@@ -86,12 +100,13 @@
 
 <script>
 // @ is an alias to /src
+import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import Rule from "@/components/Rule";
 export default {
   name: "Home",
-  components: { FileChose, Rule },
+  components: { FileChose, Rule, ArrowDownBold, ArrowUpBold },
   data() {
     return {
       loading: false, //遮罩
@@ -155,15 +170,9 @@ export default {
     },
     //预览结果
     async showResult() {
-      if (this.fileList.length == 0) {
-        this.$message({ message: "请选择文件", type: "warning" });
+      if (!this.checkRuleAndFile()) {
         return;
       }
-      if (this.ruleList.filter((item) => !item.blocked).length == 0) {
-        this.$message({ message: "无生效规则", type: "warning" });
-        return;
-      }
-
       this.loading = true;
       let body = {
         fileList: this.fileList,
@@ -178,6 +187,9 @@ export default {
       this.loading = false;
     },
     async submit() {
+      if (!this.checkRuleAndFile()) {
+        return;
+      }
       if (this.changedFileList.filter((item) => item.errorMessage).length > 0) {
         this.$message({ message: "存在错误，无法执行操作", type: "error" });
         return;
@@ -192,12 +204,35 @@ export default {
       this.$message({ message: "重命名成功", type: "success" });
     },
     //删除选中的文件名
-    deleteCheckedFiles() {
+    async deleteCheckedFiles() {
       this.fileList = this.fileList.filter((item) => !item.checked);
+      this.needPreview = true;
+      await this.showResult();
     },
-    //全选
+    //反选
     selectAllFiles() {
       this.fileList.forEach((item) => (item.checked = !item.checked));
+    },
+    //检查规则和文件
+    checkRuleAndFile() {
+      if (this.fileList.length == 0) {
+        this.$message({ message: "请选择文件", type: "warning" });
+        return false;
+      }
+      if (this.ruleList.filter((item) => !item.blocked).length == 0) {
+        this.$message({ message: "无生效规则", type: "warning" });
+        return false;
+      }
+      return true;
+    },
+    //移动文件顺序
+    async moveIndex(newIndex, index) {
+      let temp = this.fileList[index];
+      this.fileList[index] = this.fileList[newIndex];
+      this.fileList[newIndex] = temp;
+      this.fileList = [...this.fileList];
+      this.needPreview = true;
+      await this.showResult();
     },
   },
 };
@@ -220,9 +255,19 @@ export default {
   }
 }
 
-.fileBlock {
+.fileList {
+  margin-top: 20px;
   text-align: left;
-  display: inline-block;
-  width: 50%;
+
+  .fileBlock {
+    text-align: left;
+    display: inline-block;
+    width: 50%;
+
+    .oneFileName {
+      display: flex;
+      align-items: center;
+    }
+  }
 }
 </style>

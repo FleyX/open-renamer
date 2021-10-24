@@ -16,6 +16,13 @@
 
     <div class="fileList">
       <div>
+        <el-input
+          style="display: inline-block; width: 150px"
+          type="text"
+          size="small"
+          placeholder="关键词过滤"
+          v-model="filterText"
+        />
         <el-button type="primary" @click="selectAll(true)" size="mini"
           >全选</el-button
         >
@@ -23,7 +30,7 @@
           >全不选</el-button
         >
       </div>
-      <div v-for="(item, index) in fileList" :key="index">
+      <div v-for="(item, index) in filterFileList" :key="index">
         <span class="folder" v-if="item.isFolder" @click="fileClick(item)">{{
           item.name
         }}</span>
@@ -48,7 +55,16 @@ export default {
       chosedFileList: [], //选中的文件节点
       pathList: [], //选择的路径
       loading: false, //加载
+      filterText: "", //关键字过滤
     };
+  },
+  computed: {
+    filterFileList() {
+      let text = this.filterText.trim();
+      return text === ""
+        ? this.fileList
+        : this.fileList.filter((item) => item.name.indexOf(text) > -1);
+    },
   },
   async mounted() {
     this.isWindows = await HttpUtil.get("/file/isWindows");
