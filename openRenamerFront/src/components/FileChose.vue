@@ -95,7 +95,7 @@ export default {
     },
     //全选
     selectAll(status) {
-      this.fileList
+      this.filterFileList
         .filter((item) => !item.isFolder)
         .forEach((item) => (item.checked = status));
     },
