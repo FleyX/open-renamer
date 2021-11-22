@@ -11,6 +11,9 @@ class ErrorHelper {
     static Error403(message){
         return getError(message,403);
     }
+	static Error404(message){
+        return getError(message,404);
+    }
     static Error406(message){
         return getError(message,406);
     }

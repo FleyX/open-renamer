@@ -11,7 +11,7 @@ router["POST /renamer/preview"] = async function (ctx: Context) {
 };
 
 /**
- * 预览文件修改后的状态 
+ * 提交修改
  */
 router["POST /renamer/submit"] = async function (ctx: Context) {
 	ctx.body = await RenamerService.rename(ctx.request.body.fileList, ctx.request.body.changedFileList);

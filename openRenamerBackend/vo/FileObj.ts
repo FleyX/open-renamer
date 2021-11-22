@@ -29,7 +29,7 @@ export default class FileObj {
 	 */
 	createdTime: number;
 	/**
-	 * 更新时间
+	 * 更新时间ms
 	 */
 	updatedTime: number;
 

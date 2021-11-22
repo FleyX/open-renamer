@@ -1,4 +1,4 @@
-import * as http from "axios";
+import * as http from 'axios';
 
 /**
  * 请求
@@ -13,15 +13,12 @@ import * as http from "axios";
 async function request(url, method, params, body, isForm) {
   let options = {
     url,
-    baseURL: "/openRenamer/api",
+    baseURL: '/openRenamer/api',
     method,
     params,
-    // headers: {
-    //   "jwt-token": vuex.state.globalConfig.token,
-    // },
   };
   if (isForm) {
-    options.headers["Content-Type"] = "multipart/form-data";
+    options.headers['Content-Type'] = 'multipart/form-data';
   }
   if (body) {
     options.data = body;
@@ -30,9 +27,8 @@ async function request(url, method, params, body, isForm) {
   try {
     res = await http.default.request(options);
   } catch (err) {
-    window.vueInstance.$message.error("发生了某些异常问题");
-    console.error(err);
-    return;
+    window.vueInstance.config.globalProperties.$message.error('发生了某些异常问题');
+    throw err;
   }
   return res.data;
 }
@@ -44,7 +40,7 @@ async function request(url, method, params, body, isForm) {
  * @param {*} redirect 未登陆是否跳转到登陆页
  */
 async function get(url, params = null) {
-  return request(url, "get", params, null, false);
+  return request(url, 'get', params, null, false);
 }
 
 /**
@@ -56,7 +52,7 @@ async function get(url, params = null) {
  * @param {*} redirect 是否重定向
  */
 async function post(url, params, body, isForm = false) {
-  return request(url, "post", params, body, isForm);
+  return request(url, 'post', params, body, isForm);
 }
 
 /**
@@ -68,7 +64,7 @@ async function post(url, params, body, isForm = false) {
  * @param {*} redirect 是否重定向
  */
 async function put(url, params, body, isForm = false) {
-  return request(url, "put", params, body, isForm);
+  return request(url, 'put', params, body, isForm);
 }
 
 /**
@@ -78,7 +74,7 @@ async function put(url, params, body, isForm = false) {
  * @param {*} redirect 是否重定向
  */
 async function deletes(url, params = null) {
-  return request(url, "delete", params, null);
+  return request(url, 'delete', params, null);
 }
 
 export default {

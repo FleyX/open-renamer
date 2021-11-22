@@ -8,11 +8,11 @@ import log from './LogUtil';
 const HISTORY_NAME = "history.json";
 
 
-class MysqlUtil {
+class SqliteHelper {
     public static pool: Database = null;
 
     static async createPool() {
-        MysqlUtil.pool = await open({
+        SqliteHelper.pool = await open({
             filename: path.join(config.rootPath, "database.db"),
             driver: sqlite3.Database
         });
@@ -32,13 +32,13 @@ class MysqlUtil {
                 log.info("sql无需重复执行:", files[i]);
                 continue;
             }
-            let sqlLines = (await fs.readFile(path.join(basePath, files[i]), 'utf-8')).split(/[\r\n]/g);
+            let sqlLines = (await fs.readFile(path.join(basePath, files[i]), 'utf-8')).split(/[\r\n]/g).map(item=>item.trim()).filter(item=>!item.startsWith("--"));
             try {
                 let sql = "";
                 for (let j = 0; j < sqlLines.length; j++) {
                     sql = sql + sqlLines[j];
                     if (sqlLines[j].endsWith(";")) {
-                        await MysqlUtil.pool.exec(sql);
+                        await SqliteHelper.pool.run(sql);
                         sql = "";
                     }
                 }
@@ -56,4 +56,4 @@ class MysqlUtil {
     }
 }
 
-export default MysqlUtil;
+export default SqliteHelper;

@@ -1,10 +1,12 @@
 <template>
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <el-button type="primary" @click="dialogVisible = true" size="small"
-      >新增文件</el-button
+      >1.新增文件</el-button
     >
-    <el-button type="primary" @click="showResult" size="small">预览</el-button>
-    <el-button type="primary" @click="submit" size="small">重命名</el-button>
+    <el-button type="primary" @click="showResult" size="small"
+      >2.预览</el-button
+    >
+    <el-button type="primary" @click="submit" size="small">3.重命名</el-button>
     <!-- 规则列表 -->
     <div class="ruleList">
       <div class="menu">
@@ -24,6 +26,12 @@
         >
         <el-button type="danger" size="mini" @click="deleteRule"
           >删除</el-button
+        >
+        <el-button type="primary" size="mini" @click="saveOrUpdate"
+          >保存模板</el-button
+        >
+        <el-button type="primary" size="mini" @click="ruleTemplateShow = true"
+          >选择模板</el-button
         >
       </div>
       <div class="ruleBlock">
@@ -78,24 +86,18 @@
         </div>
       </div>
     </div>
-  </div>
-  <el-dialog
-    title="新增文件"
-    v-model="dialogVisible"
-    width="70%"
-    :before-close="handleClose"
-  >
-    <file-chose v-if="dialogVisible" @addData="addData" />
-  </el-dialog>
+    <!-- 新增文件弹窗 -->
+    <el-dialog title="新增规则" v-model="ruleDialogShow" width="70%">
+      <rule :editRule="editRule" v-if="ruleDialogShow" @ruleAdd="ruleAdd" />
+    </el-dialog>
+    <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
+      <file-chose @addData="addData" />
+    </el-dialog>
 
-  <el-dialog
-    title="新增规则"
-    v-model="ruleDialogShow"
-    width="70%"
-    :before-close="handleClose"
-  >
-    <rule :editRule="editRule" v-if="ruleDialogShow" @ruleAdd="ruleAdd" />
-  </el-dialog>
+    <el-dialog title="选择规则模板" v-model="ruleTemplateShow" width="70%">
+      <application-rule-list />
+    </el-dialog>
+  </div>
 </template>
 
 <script>
@@ -103,23 +105,33 @@
 import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
+import ApplicationRuleList from "./components/ApplicationRuleList";
 import Rule from "@/components/Rule";
 export default {
   name: "Home",
-  components: { FileChose, Rule, ArrowDownBold, ArrowUpBold },
+  components: {
+    FileChose,
+    Rule,
+    ArrowDownBold,
+    ArrowUpBold,
+    ApplicationRuleList,
+  },
   data() {
     return {
       loading: false, //遮罩
-      dialogVisible: false,
-      ruleDialogShow: false, //规则弹床
+      dialogVisible: false, //新增文件弹窗
+      ruleDialogShow: false, //规则弹窗
+      ruleTemplateShow: false, //选择规则模板弹窗是否展示
       fileList: [],
       changedFileList: [],
       ruleList: [],
       editRule: null, //当前编辑的规则
       needPreview: false, //需要点击预览
+      applicationRule: null, //当前应用的应用规则模板
     };
   },
   computed: {
+    //选中的规则
     checkedRules() {
       return this.ruleList.filter((item) => item.checked);
     },
@@ -176,7 +188,7 @@ export default {
       this.loading = true;
       let body = {
         fileList: this.fileList,
-        ruleList: this.ruleList,
+        ruleList: this.ruleList.filter((item) => !item.blocked),
       };
       this.changedFileList = await HttpUtil.post(
         "/renamer/preview",
@@ -199,9 +211,12 @@ export default {
         fileList: this.fileList,
         changedFileList: this.changedFileList,
       };
-      await HttpUtil.post("/renamer/submit", null, body);
-      this.loading = false;
-      this.$message({ message: "重命名成功", type: "success" });
+      try {
+        await HttpUtil.post("/renamer/submit", null, body);
+        this.$message({ message: "重命名成功", type: "success" });
+      } finally {
+        this.loading = false;
+      }
     },
     //删除选中的文件名
     async deleteCheckedFiles() {
