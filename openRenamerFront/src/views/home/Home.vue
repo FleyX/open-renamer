@@ -1,45 +1,21 @@
 <template>
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
-    <el-button type="primary" @click="dialogVisible = true" size="small"
-      >1.新增文件</el-button
-    >
-    <el-button type="primary" @click="showResult" size="small"
-      >2.预览</el-button
-    >
+    <el-button type="primary" @click="dialogVisible = true" size="small">1.新增文件</el-button>
+    <el-button type="primary" @click="showResult" size="small">2.预览</el-button>
     <el-button type="primary" @click="submit" size="small">3.重命名</el-button>
     <!-- 规则列表 -->
     <div class="ruleList">
       <div class="menu">
         <span>应用规则</span>
-        <el-button type="primary" size="mini" @click="ruleDialogShow = true"
-          >新增</el-button
-        >
-        <el-button
-          type="primary"
-          size="mini"
-          v-if="checkedRules.length == 1"
-          @click="editClick"
-          >编辑</el-button
-        >
-        <el-button type="warning" size="mini" @click="block"
-          >禁用/启用</el-button
-        >
-        <el-button type="danger" size="mini" @click="deleteRule"
-          >删除</el-button
-        >
-        <el-button type="primary" size="mini" @click="saveOrUpdate"
-          >保存模板</el-button
-        >
-        <el-button type="primary" size="mini" @click="ruleTemplateShow = true"
-          >选择模板</el-button
-        >
+        <el-button type="primary" size="mini" @click="ruleDialogShow = true">新增</el-button>
+        <el-button type="primary" size="mini" v-if="checkedRules.length == 1" @click="editClick">编辑</el-button>
+        <el-button type="warning" size="mini" @click="block">禁用/启用</el-button>
+        <el-button type="danger" size="mini" @click="deleteRule">删除</el-button>
+        <el-button type="primary" size="mini" @click="saveOrUpdate">保存模板</el-button>
+        <el-button type="primary" size="mini" @click="ruleTemplateShow = true">选择模板</el-button>
       </div>
       <div class="ruleBlock">
-        <el-checkbox
-          v-model="item.checked"
-          v-for="(item, index) in ruleList"
-          :key="index"
-        >
+        <el-checkbox v-model="item.checked" v-for="(item, index) in ruleList" :key="index">
           <s v-if="item.blocked">{{ item.message }}</s>
           <span v-else>{{ item.message }}</span>
         </el-checkbox>
@@ -50,32 +26,20 @@
       <div>
         文件列表
 
-        <el-button type="primary" size="mini" @click="selectAllFiles"
-          >反选</el-button
-        >
-        <el-button type="danger" size="mini" @click="deleteCheckedFiles"
-          >删除</el-button
-        >
+        <el-button type="primary" size="mini" @click="selectAllFiles">反选</el-button>
+        <el-button type="danger" size="mini" @click="deleteCheckedFiles">删除</el-button>
       </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
-        <el-checkbox
-          style="display: block"
-          v-for="(item, index) in fileList"
-          :key="index"
-          v-model="item.checked"
-          ><div class="oneFileName">
+        <el-checkbox style="display: block" v-for="(item, index) in fileList" :key="index" v-model="item.checked">
+          <div class="oneFileName">
             {{ item.name }}
             <ArrowDownBold
               style="width: 20px; padding-left: 10px"
               v-if="index < fileList.length - 1"
               @click.stop.prevent="moveIndex(index + 1, index)"
             />
-            <ArrowUpBold
-              style="width: 20px; padding-left: 10px"
-              v-if="index > 0"
-              @click.stop.prevent="moveIndex(index - 1, index)"
-            />
+            <ArrowUpBold style="width: 20px; padding-left: 10px" v-if="index > 0" @click.stop.prevent="moveIndex(index - 1, index)" />
           </div>
         </el-checkbox>
       </div>
@@ -93,7 +57,6 @@
     <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
       <file-chose @addData="addData" />
     </el-dialog>
-
     <el-dialog title="选择规则模板" v-model="ruleTemplateShow" width="70%">
       <application-rule-list />
     </el-dialog>
@@ -142,6 +105,7 @@ export default {
       data.forEach((item) => (item.checked = false));
       this.fileList.push(...data);
       this.dialogVisible = false;
+      console.log("asdffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
       this.needPreview = true;
       await this.showResult();
     },
@@ -163,9 +127,7 @@ export default {
     },
     //禁用/启用
     async block() {
-      this.ruleList
-        .filter((item) => item.checked)
-        .forEach((item) => (item.blocked = !item.blocked));
+      this.ruleList.filter((item) => item.checked).forEach((item) => (item.blocked = !item.blocked));
       this.needPreview = true;
       await this.showResult();
     },
@@ -190,11 +152,7 @@ export default {
         fileList: this.fileList,
         ruleList: this.ruleList.filter((item) => !item.blocked),
       };
-      this.changedFileList = await HttpUtil.post(
-        "/renamer/preview",
-        null,
-        body
-      );
+      this.changedFileList = await HttpUtil.post("/renamer/preview", null, body);
       this.needPreview = false;
       this.loading = false;
     },
