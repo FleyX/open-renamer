@@ -102,5 +102,3 @@ dist
 
 # TernJS port file
 .tern-port
-openRenamerBackend/database.db
-openRenamerBackend/database.db

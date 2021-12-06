@@ -13,3 +13,4 @@ log
 sqls/history.json
 static/*
 !static/.gitkeep
+database.db

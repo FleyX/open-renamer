@@ -1,38 +1,20 @@
 <template>
   <div class="main">
-    <el-menu
-      style="width: 8em"
-      mode="vertical"
-      :default-active="currentIndex"
-      @select="menuChange"
-    >
+    <el-menu style="width: 8em" mode="vertical" :default-active="currentIndex" @select="menuChange">
       <el-menu-item :disabled="editRule" index="insert">插入</el-menu-item>
       <el-menu-item :disabled="editRule" index="delete">删除</el-menu-item>
       <!-- <el-menu-item index="replace">替换</el-menu-item> -->
-      <el-menu-item :disabled="editRule" index="serialization"
-        >序列化</el-menu-item
-      >
+      <el-menu-item :disabled="editRule" index="serialization">序列化</el-menu-item>
     </el-menu>
     <div class="rule">
-      <insert-rule
-        ref="rule"
-        :editRule="editRule"
-        v-if="currentIndex == 'insert'"
-      />
-      <delete-rule
-        ref="rule"
-        :editRule="editRule"
-        v-else-if="currentIndex == 'delete'"
-      />
-      <serialization-rule
-        ref="rule"
-        :editRule="editRule"
-        v-else-if="currentIndex == 'serialization'"
-      />
+      <insert-rule ref="rule" :editRule="editRule" v-if="currentIndex == 'insert'" />
+      <delete-rule ref="rule" :editRule="editRule" v-else-if="currentIndex == 'delete'" />
+      <serialization-rule ref="rule" :editRule="editRule" v-else-if="currentIndex == 'serialization'" />
     </div>
   </div>
-
-  <el-button type="primary" @click="submit">确定</el-button>
+  <div style="text-align: center">
+    <el-button type="primary" @click="submit">确定</el-button>
+  </div>
 </template>
 
 <script>

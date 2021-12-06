@@ -6,7 +6,7 @@
     @select="handleSelect"
   >
     <el-menu-item index="dealCenter">处理中心</el-menu-item>
-    <el-menu-item index="history">历史记录</el-menu-item>
+    <!-- <el-menu-item index="history">历史记录</el-menu-item> -->
   </el-menu>
   <router-view />
 </template>
