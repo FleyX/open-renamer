@@ -12,12 +12,16 @@ class SqliteHelper {
     public static pool: Database = null;
 
     static async createPool() {
+        let dataFolder = path.join(config.rootPath, "data");
+        if (!fs.existsSync(dataFolder)) {
+            fs.mkdir(dataFolder);
+        }
         SqliteHelper.pool = await open({
-            filename: path.join(config.rootPath, "database.db"),
+            filename: path.join(dataFolder, "database.db"),
             driver: sqlite3.Database
         });
         let basePath = path.join(config.rootPath, "sqls");
-        let hisPath = path.join(basePath, HISTORY_NAME);
+        let hisPath = path.join(dataFolder, HISTORY_NAME);
         let history: Array<string>;
         if (fs.existsSync(hisPath)) {
             history = JSON.parse(await fs.readFile(hisPath, "utf-8"));
@@ -32,7 +36,7 @@ class SqliteHelper {
                 log.info("sql无需重复执行:", files[i]);
                 continue;
             }
-            let sqlLines = (await fs.readFile(path.join(basePath, files[i]), 'utf-8')).split(/[\r\n]/g).map(item=>item.trim()).filter(item=>!item.startsWith("--"));
+            let sqlLines = (await fs.readFile(path.join(basePath, files[i]), 'utf-8')).split(/[\r\n]/g).map(item => item.trim()).filter(item => !item.startsWith("--"));
             try {
                 let sql = "";
                 for (let j = 0; j < sqlLines.length; j++) {
