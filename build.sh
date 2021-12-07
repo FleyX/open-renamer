@@ -10,4 +10,4 @@ mv openRenamerFront/dist/*  openRenamerBackend/static
 docker run -it --rm --name buildOpenRenamer --user ${UID} -v $base/openRenamerBackend:/opt/backend node:lts-buster-slim  bash -c "cd /opt/backend &&   yarn config set  registry https://registry.npm.taobao.org && yarn global add typescript && yarn && tsc"
 
 # docker镜像打包
-# docker build -t fleyx:open-renamer:0.3 .
+# docker build -t fleyx/open-renamer:0.3 .
