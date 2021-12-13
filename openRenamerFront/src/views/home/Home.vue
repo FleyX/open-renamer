@@ -14,22 +14,29 @@
         <el-button type="danger" size="mini" @click="deleteCheckedFiles">删除</el-button>
       </div>
       <div class="fileBlock">
-        <div class="oneLine" v-for="(item, index) in fileList" :key="index">
-          <!-- 左侧原始文件名 -->
-          <el-checkbox v-model="item.checked" class="left">
-            <div class="oneFileName">
-              {{ item.name }}
+        <!-- 左侧原始文件名 -->
+        <div style="flex: 4">
+          <div v-for="(item, index) in fileList" :key="index" class="oneLine">
+            <el-checkbox v-model="item.checked" style="height: 1.2em">{{ item.name }}</el-checkbox>
+            <div style="display: flex; align-items: center; padding-right: 4em">
               <ArrowDownBold
-                style="width: 20px; padding-left: 10px"
+                style="width: 20px; padding-left: 10px; cursor: pointer"
                 v-if="index < fileList.length - 1"
                 @click.stop.prevent="moveIndex(index + 1, index)"
               />
-              <ArrowUpBold style="width: 20px; padding-left: 10px" v-if="index > 0" @click.stop.prevent="moveIndex(index - 1, index)" />
+              <ArrowUpBold
+                style="width: 20px; padding-left: 10px; cursor: pointer"
+                v-if="index > 0"
+                @click.stop.prevent="moveIndex(index - 1, index)"
+              />
             </div>
-          </el-checkbox>
-          <!-- 修改后的文件名 -->
-          <div class="right">
-            {{ changedFileList.length > index ? changedFileList[index].name : "" }}
+          </div>
+        </div>
+        <!-- 右边的预览文件名 -->
+        <div style="flex: 4">
+          <div v-for="(item, index) in changedFileList" :key="index" class="oneLine">
+            <div style="flex: 4">{{ item.name }}</div>
+            <div style="color: red; flex: 1">{{ item.errorMessage }}</div>
           </div>
         </div>
       </div>
@@ -61,8 +68,8 @@ export default {
       loading: false, //遮罩
       dialogVisible: false, //新增文件弹窗
       ruleList: [], //当前生效的规则
-      fileList: [],
-      changedFileList: [],
+      fileList: [], //选择的文件
+      changedFileList: [], //执行修改后的文件
       needPreview: false, //需要点击预览
       applicationRule: null, //当前应用的应用规则模板
     };
@@ -160,17 +167,16 @@ export default {
 
   .fileBlock {
     margin-top: 20px;
+    display: flex;
     .oneLine {
       display: flex;
-      border-top: 1px solid rgb(228, 224, 224);
-      .left {
-        flex: 1;
-      }
-      .right {
-        flex: 1;
-        display: flex;
-        align-items: center;
-      }
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgb(214, 212, 212);
+      height: 1.5em;
+      padding-top: 0.1em;
+      padding-bottom: 0.1em;
+      padding-right: 0.2em;
     }
 
     .oneFileName {
