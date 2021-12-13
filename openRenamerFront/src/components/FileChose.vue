@@ -13,6 +13,7 @@
         <el-input style="display: inline-block; width: 150px" type="text" size="small" placeholder="关键词过滤" v-model="filterText" />
         <el-button type="primary" @click="selectAll(true)" size="mini">全选</el-button>
         <el-button type="primary" @click="selectAll(false)" size="mini">全不选</el-button>
+        <el-button type="primary" @click="refresh" size="mini">刷新</el-button>
       </div>
       <div v-for="(item, index) in filterFileList" :key="index">
         <span class="folder" v-if="item.isFolder" @click="fileClick(item)">{{ item.name }}</span>
@@ -34,7 +35,6 @@ export default {
     return {
       isWindows: false,
       fileList: [], //路径下的文件节点
-      chosedFileList: [], //选中的文件节点
       pathList: [], //选择的路径
       loading: false, //加载
       filterText: "", //关键字过滤
@@ -50,7 +50,11 @@ export default {
     this.isWindows = await HttpUtil.get("/file/isWindows");
     await this.breadcrumbClick(-1);
   },
+
   methods: {
+    async refresh() {
+      await this.breadcrumbClick(this.pathList.length - 1);
+    },
     //点击面包蟹
     async breadcrumbClick(index) {
       this.loading = true;
@@ -98,6 +102,7 @@ export default {
         return;
       }
       this.$emit("addData", chosedFiles);
+      this.fileList.forEach((item) => (item.checked = false));
     },
   },
 };

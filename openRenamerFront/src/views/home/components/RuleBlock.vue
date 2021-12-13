@@ -22,7 +22,7 @@
     </div>
     <!-- 弹窗 -->
     <el-dialog title="新增规则" v-model="addRuleDialogShow" width="70%">
-      <rule :editRule="editRule" @ruleAdd="ruleAdd" />
+      <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" />
     </el-dialog>
     <el-dialog title="选择规则模板" v-model="ruleTemplateShow" width="70%">
       <application-rule-list v-if="ruleTemplateShow" v-model="chosedTemplate" @close="ruleTemplateShow = false" />
@@ -115,8 +115,6 @@ export default {
     },
     //新增规则
     async ruleAdd(data) {
-      data.checked = false;
-      data.blocked = false;
       if (this.editRule != null) {
         let index = this.ruleList.indexOf(this.editRule);
         this.ruleList.splice(index, 1, data);
@@ -124,12 +122,18 @@ export default {
       } else {
         this.ruleList.push(data);
       }
+      data.checked = false;
       this.ruleUpdate();
       this.addRuleDialogShow = false;
     },
     //禁用/启用
     async block() {
-      this.ruleList.filter((item) => item.checked).forEach((item) => (item.blocked = !item.blocked));
+      this.ruleList
+        .filter((item) => item.checked)
+        .forEach((item) => {
+          item.blocked = !item.blocked;
+          item.checked = false;
+        });
       this.ruleUpdate();
     },
     //删除规则
@@ -140,7 +144,7 @@ export default {
     //编辑规则
     editClick() {
       this.editRule = this.checkedRules[0];
-      this.ruleDialogShow = true;
+      this.addRuleDialogShow = true;
     },
   },
 };
