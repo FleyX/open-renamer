@@ -55,6 +55,9 @@ import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import RuleBlock from "./components/RuleBlock.vue";
+
+let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+
 export default {
   name: "Home",
   components: {
@@ -80,6 +83,7 @@ export default {
     async addData(data) {
       data.forEach((item) => (item.checked = false));
       this.fileList.push(...data);
+      this.fileList = [...this.fileList.sort((a, b) => compareStr(a.name, b.name))];
       this.dialogVisible = false;
       this.needPreview = true;
       await this.showResult();
@@ -158,6 +162,55 @@ export default {
     },
   },
 };
+
+/**
+ * 数字字母混合排序
+ * @param a str
+ * @param b str
+ */
+function compareStr(a, b) {
+  let an = a.length;
+  let bn = b.length;
+  for (let i = 0; i < an; ) {
+    let charA = readChar(a, i, an);
+    let charB = readChar(b, i, bn);
+    if (charB.length == 0) {
+      return 1;
+    }
+    if (charA !== charB) {
+      //读取字符串不相等说明可以得到排序结果
+      //如果都为数字，按照数字的比较方法，否则按照字符串比较
+      return numberSet.has(charA.charAt(0)) && numberSet.has(charB.charAt(0)) ? Number(charA) - Number(charB) : charA.localeCompare(charB);
+    }
+    i += charA.length;
+  }
+  //排到最后都没分结果说明相等
+  return 0;
+}
+
+/**
+ * 读取字符，如果字符为数字就读取整个数字
+ * @param a a
+ * @param n 数字长度
+ */
+function readChar(a, i, n) {
+  let res = "";
+  for (; i < n; i++) {
+    let char = a.charAt(i);
+    if (numberSet.has(char)) {
+      //如果当前字符是数字，添加到结果中
+      res += char;
+    } else {
+      //如果不为数字，但是为第一个字符，直接返回，否则返回res
+      if (res.length == 0) {
+        return char;
+      } else {
+        return res;
+      }
+    }
+  }
+  return res;
+}
 </script>
 
 <style lang="less" scoped>

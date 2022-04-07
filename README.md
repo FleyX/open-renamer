@@ -1,7 +1,21 @@
 # open-renamer
 
+![](https://qiniupic.fleyx.com/blog/202204071632882.png)
+
 renamer 的开源实现版本，BS 应用，支持全平台部署使用
 已打包镜像到 dockerhub 中:[hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer)
+
+已实现如下三种处理规则：
+
+- 插入
+- 删除
+- 序列化
+
+特点：
+
+- 不限制规则数量
+- 支持将规则保存为模板，方便下次使用
+- 全平台支持，可直接部署在 nas 中，通过浏览器访问
 
 ## 运行方式：
 
@@ -34,9 +48,3 @@ version: "3.6"
 		# 使用宿主机网络.即可通过"宿主机ip:11004"访问程序
     network_mode: host
 ```
-
-已实现如下三种处理规则：
-
-- 插入
-- 删除
-- 序列化
