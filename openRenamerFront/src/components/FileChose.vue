@@ -10,7 +10,7 @@
 
     <div class="fileList">
       <div>
-        <el-input style="display: inline-block; width: 150px" type="text" size="small" placeholder="关键词过滤" v-model="filterText" />
+        <el-input style="display: inline-block; width: 150px" type="text" size="small" placeholder="关键词过滤" v-model="filterText" clearable />
         <el-button type="primary" @click="selectAll(true)" size="mini">全选</el-button>
         <el-button type="primary" @click="selectAll(false)" size="mini">全不选</el-button>
         <el-button type="primary" @click="refresh" size="mini">刷新</el-button>
@@ -65,6 +65,7 @@ export default {
       });
       fileList.forEach((item) => (item.checked = false));
       this.fileList = fileList;
+      this.filterText = "";
       this.loading = false;
       return false;
     },
@@ -103,6 +104,8 @@ export default {
       }
       this.$emit("addData", chosedFiles);
       this.fileList.forEach((item) => (item.checked = false));
+      this.fileList = [...this.fileList];
+      this.filterText = "";
     },
   },
 };

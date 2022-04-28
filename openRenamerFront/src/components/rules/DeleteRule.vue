@@ -5,60 +5,26 @@
       <div>
         <div>开始</div>
         <div class="line">
-          <el-radio
-            v-model="ruleObj.data.start.type"
-            label="location"
-            :disabled="deleteAll"
-            >位置：</el-radio
-          >
-          <el-input-number
-            :min="1"
-            size="small"
-            :disabled="deleteAll"
-            v-model="startIndex"
-          />
+          <el-radio v-model="ruleObj.data.start.type" label="location" :disabled="deleteAll">位置：</el-radio>
+          <el-input-number :min="1" size="small" :disabled="deleteAll" v-model="startIndex" />
         </div>
         <div class="line">
-          <el-radio
-            v-model="ruleObj.data.start.type"
-            label="text"
-            :disabled="deleteAll"
-            >文本:</el-radio
-          >
+          <el-radio v-model="ruleObj.data.start.type" label="text" :disabled="deleteAll">文本:</el-radio>
           <el-input v-model="startText" size="small" :disabled="deleteAll" />
         </div>
       </div>
       <div style="margin-left: 4em">
         <div>结束</div>
         <div class="line">
-          <el-radio
-            v-model="ruleObj.data.end.type"
-            label="location"
-            :disabled="deleteAll"
-            >位置：</el-radio
-          >
-          <el-input-number
-            size="small"
-            :disabled="deleteAll"
-            v-model="endIndex"
-          />
+          <el-radio v-model="ruleObj.data.end.type" label="location" :disabled="deleteAll">位置：</el-radio>
+          <el-input-number size="small" :disabled="deleteAll" v-model="endIndex" />
         </div>
         <div class="line">
-          <el-radio
-            v-model="ruleObj.data.end.type"
-            label="text"
-            :disabled="deleteAll"
-            >文本:</el-radio
-          >
+          <el-radio v-model="ruleObj.data.end.type" label="text" :disabled="deleteAll">文本:</el-radio>
           <el-input v-model="endText" size="small" :disabled="deleteAll" />
         </div>
         <div class="line">
-          <el-radio
-            v-model="ruleObj.data.end.type"
-            label="end"
-            :disabled="deleteAll"
-            >直到末尾</el-radio
-          >
+          <el-radio v-model="ruleObj.data.end.type" label="end" :disabled="deleteAll">直到末尾</el-radio>
         </div>
       </div>
     </div>
@@ -93,7 +59,7 @@ export default {
             type: "location",
             value: "",
           },
-          ignorePostfix: false,
+          ignorePostfix: true,
         },
       },
       startIndex: 1,
@@ -130,8 +96,7 @@ export default {
       }
       if (this.ruleObj.data.type == "deletePart") {
         if (
-          (this.ruleObj.data.start.type == "text" &&
-            this.startText.length == 0) ||
+          (this.ruleObj.data.start.type == "text" && this.startText.length == 0) ||
           (this.ruleObj.data.start.type == "text" && this.startText.length == 0)
         ) {
           this.$message({
@@ -141,23 +106,13 @@ export default {
           return null;
         }
       }
-      this.ruleObj.data.start.value =
-        this.ruleObj.data.start.type == "location"
-          ? this.startIndex.toString()
-          : this.startText;
-      this.ruleObj.data.end.value =
-        this.ruleObj.data.end.type == "location"
-          ? this.endIndex.toString()
-          : this.endText;
+      this.ruleObj.data.start.value = this.ruleObj.data.start.type == "location" ? this.startIndex.toString() : this.startText;
+      this.ruleObj.data.end.value = this.ruleObj.data.end.type == "location" ? this.endIndex.toString() : this.endText;
       let message = `删除:`;
       if (this.deleteAll) {
         message += "全部删除";
       } else {
-        message += `从"${this.ruleObj.data.start.value}"到"${
-          this.ruleObj.data.end.type == "untilEnd"
-            ? "末尾"
-            : this.ruleObj.data.end.value
-        }"`;
+        message += `从"${this.ruleObj.data.start.value}"到"${this.ruleObj.data.end.type == "untilEnd" ? "末尾" : this.ruleObj.data.end.value}"`;
       }
       this.ruleObj.message = message;
       return this.ruleObj;
