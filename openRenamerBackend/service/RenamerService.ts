@@ -4,7 +4,6 @@ import * as fs from 'fs-extra';
 
 import FileObj from '../vo/FileObj';
 import RuleObj from '../vo/RuleObj';
-import DeleteRule from '../vo/rules/DeleteRule';
 import RuleInterface from '../vo/rules/RuleInterface';
 
 

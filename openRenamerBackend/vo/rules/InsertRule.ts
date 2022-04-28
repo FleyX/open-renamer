@@ -2,6 +2,8 @@ import RuleInterface from "./RuleInterface";
 import FileObj from "../FileObj";
 import path from 'path';
 
+
+let pattern = new RegExp(/s(eason)?(\d+)/);
 export default class InsertRule implements RuleInterface {
 
 	/**
@@ -24,6 +26,10 @@ export default class InsertRule implements RuleInterface {
 	 * 忽略拓展名，true:忽略，false：不忽略
 	 */
 	ignorePostfix: boolean;
+	/**
+	自动识别季号
+	 */
+	autoSeason: boolean;
 
 	constructor(data: any) {
 		this.insertContent = data.insertContent;
@@ -31,6 +37,7 @@ export default class InsertRule implements RuleInterface {
 		this.atInput = data.atInput;
 		this.atIsRightToleft = data.atIsRightToleft;
 		this.ignorePostfix = data.ignorePostfix;
+		this.autoSeason = data.autoSeason;
 	}
 
 
@@ -51,6 +58,13 @@ export default class InsertRule implements RuleInterface {
 				str = this.insertContent;
 				break;
 		}
+		if (this.autoSeason) {
+			let patternRes = path.basename(file.path).replace(/[ ]+/, "").toLocaleLowerCase().match(pattern);
+			if (patternRes[2]) {
+				str += patternRes[2];
+			}
+		}
+
 		if (this.ignorePostfix) {
 			file.realName = str;
 		} else {
@@ -61,6 +75,7 @@ export default class InsertRule implements RuleInterface {
 				file.realName = str;
 			}
 		}
+
 		file.name = file.realName + file.expandName;
 	}
 }
