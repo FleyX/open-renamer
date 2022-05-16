@@ -1,9 +1,6 @@
 <template>
   <div class="app">
     <div class="content">
-      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
-        <el-menu-item index="dealCenter">处理中心</el-menu-item>
-      </el-menu>
       <router-view />
     </div>
     <div class="footer">版本：{{ version }}&nbsp;&nbsp;开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a></div>
@@ -18,6 +15,14 @@ export default {
       activeIndex: "dealCenter",
       version: "0.6",
     };
+  },
+  created() {
+    let token = localStorage.getItem("token");
+    if (token) {
+      window.token = token;
+    } else if (this.$route.path.indexOf("/public/login") == -1) {
+      this.$router.replace("/public/login");
+    }
   },
 };
 </script>
