@@ -6,6 +6,7 @@ const rootPath = path.resolve(__dirname, '..');
 let config = {
   rootPath,
   port: process.env.PORT ? parseInt(process.env.PORT) : 8089,
+  token: process.env.TOKEN ? process.env.TOKEN : null,
   urlPrefix: '/openRenamer/api',
   //是否为windows平台
   isWindows: process.platform.toLocaleLowerCase().includes("win"),
@@ -18,7 +19,8 @@ let config = {
       keepExtenstions: true,
       maxFieldsSize: 1024 * 1024
     }
-  }
+  },
+  publicPath: new Set(["POST/public/checkToken"])
 };
 
 export default config;
