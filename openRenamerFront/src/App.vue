@@ -8,6 +8,7 @@
 </template>
 
 <script>
+import httpUtil from "./utils/HttpUtil";
 export default {
   name: "Home",
   data() {
@@ -16,13 +17,10 @@ export default {
       version: "0.6",
     };
   },
-  created() {
+  async created() {
     let token = localStorage.getItem("token");
-    if (token) {
-      window.token = token;
-    } else if (this.$route.path.indexOf("/public/login") == -1) {
-      this.$router.replace("/public/login");
-    }
+    window.token = token;
+    await httpUtil.get("/file/isWindows");
   },
 };
 </script>
