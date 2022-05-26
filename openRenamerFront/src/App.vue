@@ -1,9 +1,6 @@
 <template>
   <div class="app">
     <div class="content">
-      <el-menu :default-active="activeIndex" class="el-menu-demo" mode="horizontal" @select="handleSelect">
-        <el-menu-item index="dealCenter">处理中心</el-menu-item>
-      </el-menu>
       <router-view />
     </div>
     <div class="footer">版本：{{ version }}&nbsp;&nbsp;开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a></div>
@@ -11,6 +8,7 @@
 </template>
 
 <script>
+import httpUtil from "./utils/HttpUtil";
 export default {
   name: "Home",
   data() {
@@ -18,6 +16,11 @@ export default {
       activeIndex: "dealCenter",
       version: "0.7",
     };
+  },
+  async created() {
+    let token = localStorage.getItem("token");
+    window.token = token;
+    await httpUtil.get("/file/isWindows");
   },
 };
 </script>
