@@ -14,7 +14,7 @@ export default {
   data() {
     return {
       activeIndex: "dealCenter",
-      version: "0.6",
+      version: "0.7",
     };
   },
   async created() {
