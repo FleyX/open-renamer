@@ -25,7 +25,7 @@ renamer 的开源实现版本，BS 应用，支持全平台部署使用
 
 ```bash
 # 管理/mnt/vdisk目录中的文件，通过8089端口访问服务
-docker run -itd  --name openRenamer -v /mnt/vdisk:/data -p 8089:8089 fleyx/open-renamer
+docker run -itd  --name openRenamer -v /mnt/vdisk:/data -p 8089:8089 -e PORT="8089" -e TOKEN="123456" fleyx/open-renamer
 ```
 
 - docker-compose 运行：
@@ -40,6 +40,8 @@ version: "3.6"
     environment:
 		# 指定启动端口
       - PORT=11004
+		# 指定认证token，不设置此项无需认证
+			- TOKEN=123456
     volumes:
 		  # 关键，把想要管理的文件夹映射到容器的data目录中，即可在程序中选择data目录进行重命名操作
       - /mnt/vdisk:/data
