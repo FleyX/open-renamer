@@ -4,6 +4,8 @@ import * as fs from 'fs-extra';
 
 import ProcessHelper from '../util/ProcesHelper';
 import FileObj from '../vo/FileObj';
+import SavePathDao from '../dao/SavePathDao';
+import SavePath from '../entity/dto/SavePath';
 
 let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
@@ -54,6 +56,33 @@ class FileService {
 
 	static async checkExist(pathStr: string) {
 		return await fs.pathExists(pathStr);
+	}
+
+	/**
+	 * 收藏路径
+	 * @param saveObj 
+	 * @returns 
+	 */
+	static async savePath(saveObj: SavePath) {
+		await SavePathDao.addOne(saveObj);
+		return saveObj;
+	}
+
+	/**
+	 * 获取保存列表
+	 * @returns 
+	 */
+	static async getSaveList() {
+		return await SavePathDao.getAll();
+	}
+
+	/**
+	 * 删除
+	 * @param id 
+	 * @returns 
+	 */
+	static async deleteOne(id) {
+		return await SavePathDao.delete(id);
 	}
 
 	/**

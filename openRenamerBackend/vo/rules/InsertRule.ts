@@ -43,27 +43,29 @@ export default class InsertRule implements RuleInterface {
 
 	deal(file: FileObj): void {
 		let str = this.ignorePostfix ? file.realName : file.name;
+		let season = '';
+		if (this.autoSeason) {
+			let patternRes = path.basename(file.path).replace(/[ ]+/, "").toLocaleLowerCase().match(pattern);
+			if (patternRes && patternRes[2]) {
+				season = patternRes[2];
+			}
+		}
 		switch (this.type) {
 			case "front":
-				str = this.insertContent + str;
+				str = this.insertContent + season + str;
 				break;
 			case "backend":
-				str = str + this.insertContent;
+				str = str + this.insertContent + season;
 				break;
 			case "at":
 				let index = this.atIsRightToleft ? str.length - this.atInput + 1 : this.atInput - 1;
-				str = str.substring(0, index) + this.insertContent + str.substring(index);
+				str = str.substring(0, index) + this.insertContent + season + str.substring(index);
 				break;
 			case "replace":
-				str = this.insertContent;
+				str = this.insertContent + season;
 				break;
 		}
-		if (this.autoSeason) {
-			let patternRes = path.basename(file.path).replace(/[ ]+/, "").toLocaleLowerCase().match(pattern);
-			if (patternRes[2]) {
-				str += patternRes[2];
-			}
-		}
+
 
 		if (this.ignorePostfix) {
 			file.realName = str;
