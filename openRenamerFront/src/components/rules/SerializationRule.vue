@@ -24,7 +24,7 @@
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="front">前缀</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="backend">后缀</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="at"
-        >位置:<el-input-number size="mini" :min="1" :disabled="ruleObj.data.insertType !== 'at'" v-model="ruleObj.data.insertValue" />
+        >位置:<el-input-number size="small" :min="1" :disabled="ruleObj.data.insertType !== 'at'" v-model="ruleObj.data.insertValue" />
       </el-radio>
     </div>
   </div>

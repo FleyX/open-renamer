@@ -1,10 +1,10 @@
 <template>
   <div class="main">
     <el-menu style="width: 8em" mode="vertical" :default-active="currentIndex" @select="menuChange">
-      <el-menu-item :disabled="editRule" index="insert">插入</el-menu-item>
-      <el-menu-item :disabled="editRule" index="delete">删除</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="insert">插入</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="delete">删除</el-menu-item>
       <!-- <el-menu-item index="replace">替换</el-menu-item> -->
-      <el-menu-item :disabled="editRule" index="serialization">序列化</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="serialization">序列化</el-menu-item>
     </el-menu>
     <div class="rule">
       <insert-rule ref="rule" :editRule="editRule" v-if="currentIndex == 'insert'" />

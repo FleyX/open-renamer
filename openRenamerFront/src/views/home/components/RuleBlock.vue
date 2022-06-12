@@ -2,12 +2,12 @@
   <div class="main">
     <div class="menu">
       <span>应用规则</span>
-      <el-button type="primary" size="mini" @click="addRuleDialogShow = true">新增</el-button>
-      <el-button type="primary" size="mini" v-if="checkedRules.length == 1" @click="editClick">编辑</el-button>
-      <el-button type="warning" size="mini" @click="block">禁用/启用</el-button>
-      <el-button type="danger" size="mini" @click="deleteRule">删除</el-button>
-      <el-button type="primary" size="mini" v-if="chosedTemplate" @click="templateSubmit">保存规则</el-button>
-      <el-button type="primary" size="mini" v-if="chosedTemplate == null && ruleList.length > 0" @click="saveTemplateDilalogShow = true"
+      <el-button type="primary" size="small" @click="addRuleDialogShow = true">新增</el-button>
+      <el-button type="primary" size="small" v-if="checkedRules.length == 1" @click="editClick">编辑</el-button>
+      <el-button type="warning" size="small" @click="block">禁用/启用</el-button>
+      <el-button type="danger" size="small" @click="deleteRule">删除</el-button>
+      <el-button type="primary" size="small" v-if="chosedTemplate" @click="templateSubmit">保存规则</el-button>
+      <el-button type="primary" size="small" v-if="chosedTemplate == null && ruleList.length > 0" @click="saveTemplateDilalogShow = true"
         >存为模板</el-button
       >
     </div>
@@ -17,7 +17,7 @@
         <span v-else>{{ item.message }}</span>
       </el-checkbox>
       <div v-if="ruleList.length == 0 && chosedTemplate == null" class="choseTemplate">
-        <el-button type="primary" size="mini" @click="ruleTemplateShow = true">选择模板</el-button>
+        <el-button type="primary" size="small" @click="ruleTemplateShow = true">选择模板</el-button>
       </div>
     </div>
     <!-- 弹窗 -->

@@ -4,10 +4,10 @@
       <el-table-column prop="createdDate" label="创建时间" width="180" />
       <el-table-column prop="name" label="名称" width="180" />
       <el-table-column prop="comment" label="备注" />
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="150">
         <template #default="scope">
-          <el-button type="text" size="small" @click="ruleTemplateAction('chose', scope.row)">选择</el-button>
-          <el-button type="text" size="small" @click="ruleTemplateAction('delete', scope.row)">删除</el-button>
+          <el-button text type="primary" size="small" @click="ruleTemplateAction('chose', scope.row)">选择</el-button>
+          <el-button text type="warning" size="small" @click="ruleTemplateAction('delete', scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
