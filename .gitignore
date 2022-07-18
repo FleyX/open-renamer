@@ -104,3 +104,7 @@ dist
 .tern-port
 
 data
+/.idea/.gitignore
+/.idea/modules.xml
+/.idea/open-renamer.iml
+/.idea/vcs.xml
