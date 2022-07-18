@@ -1,0 +1,1 @@
+yarn config set  registry https://registry.npm.taobao.org && yarn global add typescript && yarn && tsc && node dist/index.js
