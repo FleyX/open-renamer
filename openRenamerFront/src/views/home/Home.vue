@@ -9,9 +9,10 @@
     <div class="fileList">
       <div>
         文件列表
-        <el-button type="primary" @click="dialogVisible = true" size="small">新增</el-button>
-        <el-button type="primary" size="mini" @click="selectAllFiles">反选</el-button>
-        <el-button type="danger" size="mini" @click="deleteCheckedFiles">删除</el-button>
+        <el-button type="primary" @click="showFileAdd" size="small">新增</el-button>
+        <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
+        <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
+        收藏路径:<el-button v-for="item in savePathList" :key="item.id" @click="clickSavePath(item)" type="primary" text>{{ item.name }}</el-button>
       </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
@@ -44,7 +45,7 @@
     <!-- 新增文件弹窗 -->
 
     <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
-      <file-chose @addData="addData" />
+      <file-chose ref="fileChose" :curSavePath="curSavePath" @addData="addData" @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
   </div>
 </template>
@@ -75,9 +76,14 @@ export default {
       changedFileList: [], //执行修改后的文件
       needPreview: false, //需要点击预览
       applicationRule: null, //当前应用的应用规则模板
+      savePathList: [], //收藏的路径列表
+      curSavePath: null, //当前选择的收藏路径
     };
   },
-
+  async created() {
+    this.savePathList = await HttpUtil.get("/file/path");
+    window.isWindows = await HttpUtil.get("/file/isWindows");
+  },
   methods: {
     //新增文件
     async addData(data) {
@@ -159,6 +165,20 @@ export default {
       this.fileList = [...this.fileList];
       this.needPreview = true;
       await this.showResult();
+    },
+    showFileAdd() {
+      this.dialogVisible = true;
+    },
+    //点击收藏路径
+    clickSavePath(item) {
+      this.dialogVisible = true;
+      console.log(item);
+      this.$nextTick(() => {
+        this.$refs["fileChose"].changePath(item);
+      });
+    },
+    async refreshSavePathList() {
+      this.savePathList = await HttpUtil.get("/file/path");
     },
   },
 };
