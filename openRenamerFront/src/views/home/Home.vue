@@ -12,7 +12,18 @@
         <el-button type="primary" @click="showFileAdd" size="small">新增</el-button>
         <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
         <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
-        收藏路径:<el-button v-for="item in savePathList" :key="item.id" @click="clickSavePath(item)" type="primary" text>{{ item.name }}</el-button>
+        收藏路径:<el-tag
+          v-for="item in savePathList"
+          :round="true"
+          class="savePath"
+          closable
+          :key="item.id"
+          @click="clickSavePath(item)"
+          @close="deleteSavePath(item)"
+          type="primary"
+          text
+          >{{ item.name }}</el-tag
+        >
       </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
@@ -177,6 +188,11 @@ export default {
         this.$refs["fileChose"].changePath(item);
       });
     },
+    async deleteSavePath(item) {
+      console.log(item);
+      await HttpUtil.delete("/file/path/delete", { id: item.id });
+      await this.refreshSavePathList();
+    },
     async refreshSavePathList() {
       this.savePathList = await HttpUtil.get("/file/path");
     },
@@ -234,6 +250,10 @@ function readChar(a, i, n) {
 </script>
 
 <style lang="less" scoped>
+.savePath {
+  cursor: pointer;
+  margin-right: 0.5em;
+}
 .fileList {
   margin-top: 20px;
   text-align: left;

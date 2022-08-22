@@ -137,12 +137,14 @@ export default {
       this.showSave = false;
       this.$message.success("操作成功");
     },
+    //取消收藏路径
     async cancelSavePath() {
       await HttpUtil.delete("/file/path/delete", { id: this.curSavePathId });
       this.refreshSavePathList();
       this.$emit("refreshSavePathList");
       this.$message.success("操作成功");
     },
+    //变更路径
     changePath(item) {
       this.pathList = JSON.parse(item.content);
       this.breadcrumbClick(this.pathList.length - 1);
