@@ -5,7 +5,7 @@
 renamer 的开源实现版本，BS 应用，支持全平台部署使用
 已打包镜像到 dockerhub 中:[hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer)
 
-已实现如下三种处理规则：
+已实现如下三种处理规则 ：
 
 - 插入(支持季号识别)
 - 删除
