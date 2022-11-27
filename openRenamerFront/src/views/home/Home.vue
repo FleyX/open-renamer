@@ -1,7 +1,7 @@
 <template>
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <br />
-    <el-button type="primary" @click="submit" size="default">重命名</el-button>
+    <el-button type="success" @click="submit" size="default">开始重命名</el-button>
     <br /><br />
     <!-- 规则列表 -->
     <rule-block @ruleUpdate="ruleUpdate" />
@@ -20,7 +20,6 @@
           :key="item.id"
           @click="clickSavePath(item)"
           @close="deleteSavePath(item)"
-          type="primary"
           text
           >{{ item.name }}</el-tag
         >
@@ -56,17 +55,18 @@
     <!-- 新增文件弹窗 -->
 
     <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
-      <file-chose ref="fileChose" :curSavePath="curSavePath" @addData="addData" @refreshSavePathList="refreshSavePathList" />
+      <file-chose ref="fileChose" :curChoosePath="curChoosePath" @addData="addData" @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons";
+import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons-vue";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import RuleBlock from "./components/RuleBlock.vue";
+import Bus from "../../utils/Bus";
 
 let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
@@ -88,12 +88,13 @@ export default {
       needPreview: false, //需要点击预览
       applicationRule: null, //当前应用的应用规则模板
       savePathList: [], //收藏的路径列表
-      curSavePath: null, //当前选择的收藏路径
+      curChoosePath: null, //当前选择的收藏路径
     };
   },
   async created() {
     this.savePathList = await HttpUtil.get("/file/path");
     window.isWindows = await HttpUtil.get("/file/isWindows");
+    Bus.$on("refreshSavePathList", this.refreshSavePathList);
   },
   methods: {
     //新增文件
@@ -181,17 +182,14 @@ export default {
       this.dialogVisible = true;
     },
     //点击收藏路径
-    clickSavePath(item) {
+    async clickSavePath(item) {
+      this.curChoosePath = JSON.parse(item.content);
       this.dialogVisible = true;
-      console.log(item);
-      this.$nextTick(() => {
-        this.$refs["fileChose"].changePath(item);
-      });
     },
     async deleteSavePath(item) {
       console.log(item);
       await HttpUtil.delete("/file/path/delete", { id: item.id });
-      await this.refreshSavePathList();
+      Bus.$emit("refreshSavePathList");
     },
     async refreshSavePathList() {
       this.savePathList = await HttpUtil.get("/file/path");

@@ -12,7 +12,7 @@
       >
     </div>
     <div class="ruleBlock">
-      <el-checkbox v-model="item.checked" v-for="(item, index) in ruleList" :key="index">
+      <el-checkbox v-model="item.checked" v-for="(item, index) in ruleList" :key="index" @dblclick="editClick(item)">
         <s v-if="item.blocked">{{ item.message }}</s>
         <span v-else>{{ item.message }}</span>
       </el-checkbox>
@@ -21,7 +21,7 @@
       </div>
     </div>
     <!-- 弹窗 -->
-    <el-dialog title="新增规则" v-model="addRuleDialogShow" width="70%">
+    <el-dialog title="新增规则" v-model="addRuleDialogShow" width="70%" @close="ruleDialogClose">
       <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" />
     </el-dialog>
     <el-dialog title="选择规则模板" v-model="ruleTemplateShow" width="70%">
@@ -142,9 +142,13 @@ export default {
       this.ruleUpdate();
     },
     //编辑规则
-    editClick() {
-      this.editRule = this.checkedRules[0];
+    editClick(rule) {
+      this.editRule = rule && rule.data ? rule : this.checkedRules[0];
       this.addRuleDialogShow = true;
+    },
+    ruleDialogClose() {
+      this.editRule = null;
+      this.addRuleDialogShow = false;
     },
   },
 };

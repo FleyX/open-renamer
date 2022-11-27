@@ -36,8 +36,10 @@
 
 <script>
 import HttpUtil from "../utils/HttpUtil";
+import Bus from "../utils/Bus";
 export default {
   name: "FileChose",
+  props: ["curChoosePath"],
   data() {
     return {
       isWindows: false,
@@ -61,9 +63,20 @@ export default {
       return targetList.length > 0 ? targetList[0].id : null;
     },
   },
+  watch: {
+    async curChoosePath(newVal) {
+      console.log("变更路径:", newVal);
+      this.pathList = newVal;
+      await this.breadcrumbClick(this.pathList.length - 1);
+    },
+  },
   async created() {
+    if (this.curChoosePath && this.curChoosePath.length > 0) {
+      this.pathList = this.curChoosePath;
+    }
     await this.breadcrumbClick(this.pathList.length - 1);
     await this.refreshSavePathList();
+    Bus.$on("refreshSavePathList", this.refreshSavePathList);
   },
 
   methods: {
@@ -77,15 +90,18 @@ export default {
     //点击面包蟹
     async breadcrumbClick(index) {
       this.loading = true;
-      let path = this.createPath(index);
-      let fileList = await HttpUtil.get("/file/query", {
-        path: encodeURIComponent(path),
-        showHidden: false,
-      });
-      fileList.forEach((item) => (item.checked = false));
-      this.fileList = fileList;
-      this.filterText = "";
-      this.loading = false;
+      try {
+        let path = this.createPath(index);
+        let fileList = await HttpUtil.get("/file/query", {
+          path: encodeURIComponent(path),
+          showHidden: false,
+        });
+        fileList.forEach((item) => (item.checked = false));
+        this.fileList = fileList;
+        this.filterText = "";
+      } finally {
+        this.loading = false;
+      }
       return false;
     },
     //文件列表点击
@@ -130,9 +146,8 @@ export default {
     },
     //收藏路径
     async savePath() {
-      let res = await HttpUtil.post("/file/path/save", null, { name: this.saveName, content: JSON.stringify(this.pathList) });
-      this.$emit("refreshSavePathList");
-      this.refreshSavePathList();
+      await HttpUtil.post("/file/path/save", null, { name: this.saveName, content: JSON.stringify(this.pathList) });
+      Bus.$emit("refreshSavePathList");
       this.saveName = "";
       this.showSave = false;
       this.$message.success("操作成功");
@@ -140,14 +155,8 @@ export default {
     //取消收藏路径
     async cancelSavePath() {
       await HttpUtil.delete("/file/path/delete", { id: this.curSavePathId });
-      this.refreshSavePathList();
-      this.$emit("refreshSavePathList");
+      Bus.$emit("refreshSavePathList");
       this.$message.success("操作成功");
-    },
-    //变更路径
-    changePath(item) {
-      this.pathList = JSON.parse(item.content);
-      this.breadcrumbClick(this.pathList.length - 1);
     },
   },
 };
