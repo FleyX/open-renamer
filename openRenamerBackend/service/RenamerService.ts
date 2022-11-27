@@ -2,9 +2,9 @@ import config from '../config';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
-import FileObj from '../vo/FileObj';
-import RuleObj from '../vo/RuleObj';
-import RuleInterface from '../vo/rules/RuleInterface';
+import FileObj from '../entity/vo/FileObj';
+import RuleObj from '../entity/vo/RuleObj';
+import RuleInterface from '../entity/bo/rules/RuleInterface';
 
 
 class RenamerService {

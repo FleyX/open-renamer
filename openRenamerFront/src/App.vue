@@ -1,5 +1,6 @@
 <template>
   <div class="app">
+    <div class="head">菜单栏</div>
     <div class="content">
       <router-view />
     </div>

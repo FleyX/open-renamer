@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 
 import ProcessHelper from '../util/ProcesHelper';
-import FileObj from '../vo/FileObj';
+import FileObj from '../entity/vo/FileObj';
 import SavePathDao from '../dao/SavePathDao';
 import SavePath from '../entity/dto/SavePath';
 
@@ -28,6 +28,9 @@ class FileService {
 				fileList = await fs.readdir(pathStr);
 			}
 		} else {
+			if (!(fs.pathExists(pathStr))) {
+				throw new Error("路径不存在");
+			}
 			fileList = await fs.readdir(pathStr);
 		}
 		let folderList: Array<FileObj> = new Array();
