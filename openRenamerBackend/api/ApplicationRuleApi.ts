@@ -1,6 +1,5 @@
 import { Context } from "koa";
 import ApplicationRuleService from "../service/ApplicationRuleService";
-import config from "../config";
 
 const router = {};
 
@@ -9,6 +8,14 @@ const router = {};
  */
 router["GET /applicationRule"] = async function (ctx: Context) {
 	ctx.body = await ApplicationRuleService.getAll();
+};
+
+/**
+ * 获取默认模板
+ */
+router["GET /applicationRule/default"] = async function (ctx: Context) {
+	;
+	ctx.body = await ApplicationRuleService.getDefault();
 };
 
 /**
@@ -25,5 +32,7 @@ router["DELETE /applicationRule/:id"] = async function (ctx: Context) {
 	await ApplicationRuleService.deleteById(ctx.params.id);
 	ctx.body = "";
 };
+
+
 
 export default router;

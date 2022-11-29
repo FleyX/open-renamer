@@ -5,7 +5,7 @@
     "module": "commonjs",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl":".",
+    "baseUrl": ".",
     "rootDir": "./",
     "watch": false,
     "strict": true,

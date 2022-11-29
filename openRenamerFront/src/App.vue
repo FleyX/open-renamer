@@ -1,6 +1,8 @@
 <template>
   <div class="app">
-    <div class="head">菜单栏</div>
+    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" router>
+      <el-menu-item index="">重命名</el-menu-item>
+    </el-menu>
     <div class="content">
       <router-view />
     </div>
@@ -14,8 +16,8 @@ export default {
   name: "Home",
   data() {
     return {
-      activeIndex: "dealCenter",
       version: "1.0",
+      activeIndex: this.$route.hash,
     };
   },
   async created() {
@@ -32,6 +34,7 @@ body {
   padding: 0;
   border: 0;
   margin: 0;
+  background-color: #e8e8e5;
 }
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
@@ -46,8 +49,14 @@ body {
   display: flex;
   flex-direction: column;
 
+  width: 80%;
+  min-width: 800px;
+  margin: 0 auto;
+  background-color: white;
+
   .content {
     flex: 1;
+    padding: 0 10px 0 10px;
   }
 }
 
@@ -62,5 +71,11 @@ body {
       color: #42b983;
     }
   }
+}
+
+.head-text {
+  font-size: 1.5em;
+  font-weight: 600;
+  padding-right: 0.5em;
 }
 </style>

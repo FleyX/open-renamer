@@ -2,16 +2,14 @@
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <br />
     <el-button type="success" @click="submit" size="default">开始重命名</el-button>
-    <br /><br />
+    <el-divider content-position="left"><div class="head-text">规则设置</div></el-divider>
     <!-- 规则列表 -->
     <rule-block @ruleUpdate="ruleUpdate" />
+    <el-divider content-position="left"><div class="head-text">文件预览</div></el-divider>
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>
-        文件列表
         <el-button type="primary" @click="showFileAdd" size="small">新增</el-button>
-        <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
-        <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
         收藏路径:<el-tag
           v-for="item in savePathList"
           :round="true"
@@ -24,23 +22,27 @@
           >{{ item.name }}</el-tag
         >
       </div>
+      <div>
+        <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
+        <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
+        <template v-if="showMove">
+          <el-button type="primary" size="small" @click="moveIndex('top')">
+            <el-tooltip effect="dark" content="上移规则" placement="top">
+              <el-icon><top /></el-icon>
+            </el-tooltip>
+          </el-button>
+          <el-button type="primary" size="small" @click="moveIndex('bottom')">
+            <el-tooltip effect="dark" content="下移规则" placement="top"
+              ><el-icon><bottom /></el-icon
+            ></el-tooltip>
+          </el-button>
+        </template>
+      </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
         <div style="flex: 4">
           <div v-for="(item, index) in fileList" :key="index" class="oneLine">
             <el-checkbox v-model="item.checked" style="height: 1.2em">{{ item.name }}</el-checkbox>
-            <div style="display: flex; align-items: center; padding-right: 4em">
-              <ArrowDownBold
-                style="width: 20px; padding-left: 10px; cursor: pointer"
-                v-if="index < fileList.length - 1"
-                @click.stop.prevent="moveIndex(index + 1, index)"
-              />
-              <ArrowUpBold
-                style="width: 20px; padding-left: 10px; cursor: pointer"
-                v-if="index > 0"
-                @click.stop.prevent="moveIndex(index - 1, index)"
-              />
-            </div>
           </div>
         </div>
         <!-- 右边的预览文件名 -->
@@ -62,7 +64,7 @@
 
 <script>
 // @ is an alias to /src
-import { ArrowDownBold, ArrowUpBold } from "@element-plus/icons-vue";
+import { Top, Bottom } from "@element-plus/icons-vue";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import RuleBlock from "./components/RuleBlock.vue";
@@ -74,9 +76,9 @@ export default {
   name: "Home",
   components: {
     FileChose,
-    ArrowDownBold,
-    ArrowUpBold,
     RuleBlock,
+    Top,
+    Bottom,
   },
   data() {
     return {
@@ -89,7 +91,13 @@ export default {
       applicationRule: null, //当前应用的应用规则模板
       savePathList: [], //收藏的路径列表
       curChoosePath: null, //当前选择的收藏路径
+      timer: null, //修改顺序计时器
     };
+  },
+  computed: {
+    showMove() {
+      return this.fileList.filter((item) => item.checked == true).length == 1;
+    },
   },
   async created() {
     this.savePathList = await HttpUtil.get("/file/path");
@@ -113,6 +121,7 @@ export default {
     },
     //预览结果
     async showResult() {
+      this.changedFileList = [];
       if (!this.checkRuleAndFile()) {
         return;
       }
@@ -170,13 +179,32 @@ export default {
       return true;
     },
     //移动文件顺序
-    async moveIndex(newIndex, index) {
-      let temp = this.fileList[index];
+    async moveIndex(type) {
+      let temp = this.fileList.filter((item) => item.checked == true)[0];
+      let index = this.fileList.indexOf(temp);
+      let newIndex;
+      if (type == "top") {
+        if (index == 0) {
+          return;
+        }
+        newIndex = index - 1;
+      } else {
+        if (index == this.fileList.length - 1) {
+          return;
+        }
+        newIndex = index + 1;
+      }
       this.fileList[index] = this.fileList[newIndex];
       this.fileList[newIndex] = temp;
       this.fileList = [...this.fileList];
       this.needPreview = true;
-      await this.showResult();
+      if (this.timer != null) {
+        clearTimeout(this.timer);
+      }
+      this.timer = setTimeout(() => {
+        this.showResult();
+        this.timer = null;
+      }, 1000);
     },
     showFileAdd() {
       this.dialogVisible = true;
