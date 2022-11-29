@@ -1,1 +1,1 @@
-npm config set registry=https://registry.npmmirror.com &&  npm install &&  tsc && node dist/index.js
+npm install && node dist/index.js
