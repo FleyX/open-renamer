@@ -1,1 +1,1 @@
-yarn config set registry=https://registry.npmmirror.com && yarn && node dist/index.js
+npm config set registry=https://registry.npmmirror.com && npm install typescript -g && npm install &&  tsc && node dist/index.js
