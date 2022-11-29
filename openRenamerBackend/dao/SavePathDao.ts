@@ -1,5 +1,5 @@
 import ErrorHelper from "../util/ErrorHelper";
-import SavePath from "../entity/dto/SavePath";
+import SavePath from "../entity/po/SavePath";
 import SqliteHelper from "../util/SqliteHelper";
 
 export default class SavePathDao {

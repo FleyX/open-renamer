@@ -40,7 +40,7 @@ class SqliteHelper {
             try {
                 let sql = "";
                 for (let j = 0; j < sqlLines.length; j++) {
-                    sql = sql + sqlLines[j];
+                    sql = sql + " " + sqlLines[j];
                     if (sqlLines[j].endsWith(";")) {
                         await SqliteHelper.pool.run(sql);
                         sql = "";

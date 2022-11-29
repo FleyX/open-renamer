@@ -1,9 +1,9 @@
-import config from '../config';
-import * as path from 'path';
-import * as fs from 'fs-extra';
-import ApplicationRule from '../entity/dto/ApplicationRule';
+import ApplicationRule from '../entity/po/ApplicationRule';
 import ApplicationRuleDao from '../dao/ApplicationRuleDao';
+import GlobalConfigDao from '../dao/GlobalConfigDao';
 
+import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant';
+import GlobalConfig from '../entity/po/GlobalConfig';
 
 
 class ApplicationRuleService {
@@ -28,6 +28,39 @@ class ApplicationRuleService {
 		await ApplicationRuleDao.delete(id);
 	}
 
+	/**
+	 * 获取默认模板
+	 */
+	static async getDefault(): Promise<ApplicationRule> {
+		let res: ApplicationRule;
+		let idStr = await GlobalConfigDao.getByCode(DEFAULT_TEMPLETE_ID);
+		if (idStr == null) {
+			let templteList = await ApplicationRuleDao.getAll();
+			if (templteList.length == 0) {
+				res = new ApplicationRule("默认模板", "此模板为系统创建", "[]");
+				await ApplicationRuleService.saveOrAdd(res);
+			} else {
+				res = templteList[0];
+			}
+			await GlobalConfigDao.addOne(new GlobalConfig(DEFAULT_TEMPLETE_ID, res.id.toString(), "默认模板id"));
+		} else {
+			let templteList = await ApplicationRuleDao.getAll();
+			if (templteList.length == 0) {
+				res = new ApplicationRule("默认模板", "此模板为系统创建", "[]");
+				await ApplicationRuleService.saveOrAdd(res);
+				await GlobalConfigDao.updateOne(DEFAULT_TEMPLETE_ID, res.id.toString());
+			} else {
+				let temp = templteList.filter(item => item.id.toString() === idStr);
+				if (temp.length > 0) {
+					res = temp[0];
+				} else {
+					res = templteList[0];
+					await GlobalConfigDao.updateOne(DEFAULT_TEMPLETE_ID, res.id.toString());
+				}
+			}
+		}
+		return res;
+	}
 }
 
 export default ApplicationRuleService;

@@ -1,5 +1,5 @@
 import ErrorHelper from "../util/ErrorHelper";
-import ApplicationRule from "../entity/dto/ApplicationRule";
+import ApplicationRule from "../entity/po/ApplicationRule";
 import SqliteHelper from "../util/SqliteHelper";
 
 export default class ApplicationRuleDao {
@@ -12,6 +12,18 @@ export default class ApplicationRuleDao {
 		let res = await SqliteHelper.pool.all('select id,createdDate,updatedDate,name,comment,content from application_rule');
 		return res;
 	}
+
+	/**
+		 * 查询id
+		 * @param id id
+		 * @returns 
+		 */
+	static async getById(id: number): Promise<ApplicationRule> {
+		let res = await SqliteHelper.pool.get('select * from application_rule where id=?', id);
+		return res;
+	}
+
+
 
 
 	/**

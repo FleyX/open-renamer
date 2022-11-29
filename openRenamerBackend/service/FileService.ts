@@ -5,7 +5,7 @@ import * as fs from 'fs-extra';
 import ProcessHelper from '../util/ProcesHelper';
 import FileObj from '../entity/vo/FileObj';
 import SavePathDao from '../dao/SavePathDao';
-import SavePath from '../entity/dto/SavePath';
+import SavePath from '../entity/po/SavePath';
 
 let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
