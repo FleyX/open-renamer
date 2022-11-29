@@ -41,6 +41,7 @@ import HttpUtil from "../../../utils/HttpUtil";
 import dayjs from "dayjs";
 export default {
   name: "ApplicationRuleList",
+  props: ["curId"],
   emits: ["templateUpdate"],
   data() {
     return {
@@ -79,6 +80,10 @@ export default {
         this.templateForm.comment = rowData.comment;
         this.showEditAddModal = true;
       } else {
+        if (this.curId == rowData.id) {
+          this.$message({ message: "当前模板使用中，无法删除", type: "warning" });
+          return;
+        }
         await HttpUtil.delete("/applicationRule/" + rowData.id);
         await this.init();
       }

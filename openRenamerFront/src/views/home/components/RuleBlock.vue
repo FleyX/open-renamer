@@ -36,7 +36,7 @@
       <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" />
     </el-dialog>
     <el-dialog title="模板管理" v-model="ruleTemplateShow" width="70%">
-      <application-rule-list v-if="ruleTemplateShow" @templateUpdate="templateUpdate" />
+      <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate" />
     </el-dialog>
   </div>
 </template>
