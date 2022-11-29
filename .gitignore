@@ -108,3 +108,5 @@ data
 /.idea/modules.xml
 /.idea/open-renamer.iml
 /.idea/vcs.xml
+
+package-lock.json
