@@ -1,11 +1,13 @@
 # open-renamer
 
-![](https://qiniupic.fleyx.com/blog/202204071632882.png)
+![预览图](https://s3.fleyx.com/picbed/2022/11/18386180128d01eb1a59b8eacf652895.png)
 
-renamer 的开源实现版本，BS 应用，支持全平台部署使用
-已打包镜像到 dockerhub 中:[hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer)
+renamer 的开源实现版本，BS 应用，支持arm/x86部署使用
+已打包镜像到 dockerhub 中:[hub.docker.com/r/fleyx/open-renamer](https://hub.docker.com/r/fleyx/open-renamer)
 
-已实现如下三种处理规则 ：
+开源地址:[github.com/FleyX/open-renamer](https://github.com/FleyX/open-renamer)
+
+已实现如下四种处理规则：
 
 - 插入(支持季号识别,支持后缀过滤)
 - 删除
