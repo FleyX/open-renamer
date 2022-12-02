@@ -16,7 +16,7 @@ export default {
   name: "Home",
   data() {
     return {
-      version: "1.1",
+      version: "1.2",
       activeIndex: this.$route.hash,
     };
   },
