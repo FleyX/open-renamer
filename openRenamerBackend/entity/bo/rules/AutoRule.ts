@@ -4,6 +4,9 @@ import path from 'path';
 
 
 let pattern = new RegExp(/s(eason)?(\d+)/);
+let eNumPatternArr = [new RegExp(/e(\d+)/), new RegExp(/\((\d+)\)/), new RegExp(/（(\d+)）/), new RegExp(/\.(\d+)\./), new RegExp(/-(\d+)-/), new RegExp(/(\d+)/)];
+let resolutionPattern = new RegExp(/(\d+[pP])/);
+let resolutionArr = ['1k', '1K', '2k', '2K', '4k', '4K', '8k', '8K'];
 let charSet = new Set([' ', '[', '.', '(', '（']);
 export default class InsertRule implements RuleInterface {
 
@@ -19,6 +22,7 @@ export default class InsertRule implements RuleInterface {
 	 * 后面追加
 	 */
 	endAdd: string;
+	eNumWidth: number;
 
 	constructor(data: any) {
 		this.type = data.type;
@@ -52,11 +56,34 @@ export default class InsertRule implements RuleInterface {
 				}
 				getStr += char;
 			}
+		} else if (this.type === 'eNum') {
+			let lowName = file.originName.toLocaleLowerCase();
+			for (let i in eNumPatternArr) {
+				let patternRes = lowName.match(eNumPatternArr[i]);
+				if (patternRes && patternRes.length > 1) {
+					getStr = patternRes[1];
+					for (let i = 0; i < this.eNumWidth - getStr.length; i++) {
+						getStr = '0' + getStr;
+					}
+					break;
+				}
+			}
+		} else if (this.type === 'resolution') {
+			let res = file.originName.match(resolutionPattern);
+			if (res && res.length > 1) {
+				getStr = res[1];
+			} else {
+				for (let i = 0; i < resolutionArr.length; i++) {
+					if (file.originName.indexOf(resolutionArr[i]) > -1) {
+						getStr = resolutionArr[i];
+						break;
+					}
+				}
+			}
 		}
 		if (getStr && getStr.length > 0) {
 			file.realName = file.realName + this.frontAdd + getStr + this.endAdd;
 			file.name = file.realName + file.expandName;
 		}
-
 	}
 }
