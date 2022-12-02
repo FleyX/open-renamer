@@ -25,18 +25,16 @@
       <div>
         <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
         <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
-        <template v-if="showMove">
-          <el-button type="primary" size="small" @click="moveIndex('top')">
-            <el-tooltip effect="dark" content="上移规则" placement="top">
-              <el-icon><top /></el-icon>
-            </el-tooltip>
-          </el-button>
-          <el-button type="primary" size="small" @click="moveIndex('bottom')">
-            <el-tooltip effect="dark" content="下移规则" placement="top"
-              ><el-icon><bottom /></el-icon
-            ></el-tooltip>
-          </el-button>
-        </template>
+        <el-button type="primary" size="small" @click="moveIndex('top')">
+          <el-tooltip effect="dark" content="上移规则" placement="top">
+            <el-icon><top /></el-icon>
+          </el-tooltip>
+        </el-button>
+        <el-button type="primary" size="small" @click="moveIndex('bottom')">
+          <el-tooltip effect="dark" content="下移规则" placement="top"
+            ><el-icon><bottom /></el-icon
+          ></el-tooltip>
+        </el-button>
       </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
@@ -94,11 +92,7 @@ export default {
       timer: null, //修改顺序计时器
     };
   },
-  computed: {
-    showMove() {
-      return this.fileList.filter((item) => item.checked == true).length == 1;
-    },
-  },
+  computed: {},
   async created() {
     this.savePathList = await HttpUtil.get("/file/path");
     window.isWindows = await HttpUtil.get("/file/isWindows");
@@ -180,22 +174,30 @@ export default {
     },
     //移动文件顺序
     async moveIndex(type) {
-      let temp = this.fileList.filter((item) => item.checked == true)[0];
-      let index = this.fileList.indexOf(temp);
-      let newIndex;
-      if (type == "top") {
-        if (index == 0) {
-          return;
-        }
-        newIndex = index - 1;
-      } else {
-        if (index == this.fileList.length - 1) {
-          return;
-        }
-        newIndex = index + 1;
+      let temps = this.fileList.filter((item) => item.checked == true);
+      if (temps.length == 0) {
+        this.$message({ type: "warning", message: "未选中文件，无法移动" });
+        return;
       }
-      this.fileList[index] = this.fileList[newIndex];
-      this.fileList[newIndex] = temp;
+      if (type == "top") {
+        if (this.fileList.indexOf(temps[0]) == 0) {
+          this.$message({ type: "warning", message: "无法上移" });
+          return;
+        }
+      } else {
+        if (this.fileList.indexOf(temps[temps.length - 1]) == this.fileList.length - 1) {
+          this.$message({ type: "warning", message: "无法下移" });
+          return;
+        }
+        temps = temps.reverse();
+      }
+      for (let i in temps) {
+        let temp = temps[i];
+        let index = this.fileList.indexOf(temp);
+        let newIndex = index + (type == "top" ? -1 : 1);
+        this.fileList[index] = this.fileList[newIndex];
+        this.fileList[newIndex] = temp;
+      }
       this.fileList = [...this.fileList];
       this.needPreview = true;
       if (this.timer != null) {
