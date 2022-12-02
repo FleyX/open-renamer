@@ -43,7 +43,26 @@ export default class GlobalConfigDao {
 	static async getByCode(code: string): Promise<string> {
 		let res = await SqliteHelper.pool.get('select val from global_config where code=?', code);
 		return res ? res.val : null;
+	}
 
+	/**
+	 * 查询多个code
+	 * @param code
+	 */
+	static async getByMulCode(codes: Array<string>): Promise<Array<GlobalConfig>> {
+		if (codes.length == 0) {
+			return new Array();
+		}
+		let codeStr = codes.map(item => `'${item}'`).join(',');
+		return await SqliteHelper.pool.all(`select * from global_config where code in (${codeStr})`);
+	}
+
+	/**
+	 * 插入一条
+	 * @param body body
+	 */
+	static async insertOrReplace(body: GlobalConfig): Promise<void> {
+		await SqliteHelper.pool.run(`insert or replace into global_config values (?,?,?)`, body.code, body.val, body.description);
 	}
 
 

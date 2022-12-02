@@ -7,8 +7,11 @@ const routes = [
     path: "/",
     name: "Home",
     component: Home,
-  },
-  {
+  }, {
+    path: "/download/config",
+    name: "downloadConfig",
+    component: () => import("@/views/download/config/index"),
+  }, {
     path: "/public/login",
     name: "login",
     component: Login,
