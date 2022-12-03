@@ -57,7 +57,7 @@ export default class InsertRule implements RuleInterface {
 				getStr += char;
 			}
 		} else if (this.type === 'eNum') {
-			let lowName = file.originName.toLocaleLowerCase();
+			let lowName = file.originName.toLocaleLowerCase().replace(/ /g, '');
 			for (let i in eNumPatternArr) {
 				let patternRes = lowName.match(eNumPatternArr[i]);
 				if (patternRes && patternRes.length > 1) {
