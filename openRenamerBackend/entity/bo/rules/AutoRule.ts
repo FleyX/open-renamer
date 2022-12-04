@@ -5,7 +5,7 @@ import path from 'path';
 
 let pattern = new RegExp(/s(eason)?(\d+)/);
 let eNumPatternArr = [new RegExp(/e(\d+)/), new RegExp(/\((\d+)\)/), new RegExp(/（(\d+)）/), new RegExp(/\.(\d+)\./), new RegExp(/-(\d+)-/), new RegExp(/(\d+)/)];
-let resolutionPattern = new RegExp(/(\d+[pP])/);
+let resolutionPattern = new RegExp(/(\d{3,}[pP])/);
 let resolutionArr = ['1k', '1K', '2k', '2K', '4k', '4K', '8k', '8K'];
 let charSet = new Set([' ', '[', '.', '(', '（']);
 export default class InsertRule implements RuleInterface {
@@ -57,7 +57,7 @@ export default class InsertRule implements RuleInterface {
 				getStr += char;
 			}
 		} else if (this.type === 'eNum') {
-			let lowName = file.originName.toLocaleLowerCase();
+			let lowName = file.originName.toLocaleLowerCase().replace(/ /g, '');
 			for (let i in eNumPatternArr) {
 				let patternRes = lowName.match(eNumPatternArr[i]);
 				if (patternRes && patternRes.length > 1) {
