@@ -1,13 +1,20 @@
 import { Context } from "koa";
-import service from "../service/GlobalService";
+import service from "../service/GlobalConfigService";
 
 const router = {};
 
 /**
- * 预览文件修改后的状态 
+ * 获取单个配置
  */
 router["GET /config/code"] = async function (ctx: Context) {
 	ctx.body = await service.getVal(ctx.request.query.code as string);
+};
+
+/**
+ * 获取多个配置项
+ */
+router["POST /config/multCode"] = async function (ctx: Context) {
+	ctx.body = await service.getMultVal(ctx.request.body);
 };
 
 /**

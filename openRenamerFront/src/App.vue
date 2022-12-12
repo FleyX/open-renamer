@@ -1,7 +1,12 @@
 <template>
   <div class="app">
     <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" router>
-      <el-menu-item index="">重命名</el-menu-item>
+      <el-menu-item index="/">重命名</el-menu-item>
+      <el-sub-menu index="/download">
+        <template #title>bt下载</template>
+        <el-menu-item index="/download/center">下载中心</el-menu-item>
+        <el-menu-item index="/download/config">配置</el-menu-item>
+      </el-sub-menu>
     </el-menu>
     <div class="content">
       <router-view />
@@ -17,7 +22,7 @@ export default {
   data() {
     return {
       version: "1.2",
-      activeIndex: this.$route.hash,
+      activeIndex: this.$route.path,
     };
   },
   async created() {
