@@ -8,6 +8,10 @@ const routes = [
     name: "Home",
     component: Home,
   }, {
+    path: "/auto",
+    name: "Auto",
+    component: () => import("@/views/auto/index"),
+  }, {
     path: "/download/config",
     name: "downloadConfig",
     component: () => import("@/views/download/config/index"),

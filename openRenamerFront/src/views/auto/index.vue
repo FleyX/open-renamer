@@ -1,18 +1,8 @@
 <template>
-  <div>配置qb</div>
-  <div class="item">
-    <div class="left">qb信息</div>
-    <div class="right">{{ qbInfo }}<el-button @click="editInfo = true">编辑</el-button></div>
+  <div>自动化</div>
+  <div>
+    <el-button type="primary" @click="submit"> 保存自动化配置 </el-button>
   </div>
-  <el-form v-if="editInfo" :model="qbBody" label-width="4em">
-    <el-form-item label="qb地址"><el-input type="text" v-model="qbBody.address" placeholder="例如:http://192.168.1.4:8080" /></el-form-item>
-    <el-form-item label="用户名"><el-input type="text" v-model="qbBody.username" placeholder="qb访问用户名" /></el-form-item>
-    <el-form-item label="密码"><el-input type="password" v-model="qbBody.password" placeholder="qb访问密码" /></el-form-item>
-    <div style="text-align: center">
-      <el-button type="" @click="editInfo = false">取消</el-button>
-      <el-button type="primary" @click="submitQb">提交</el-button>
-    </div>
-  </el-form>
 </template>
 
 <script setup>
@@ -42,7 +32,7 @@ onMounted(async () => {
   downloadConfig = reactive(await http.post("/config/multCode", null, ["qbAddress", "qbUsername", "qbPassword"]));
 });
 
-async function submitQb() {
+async function submit() {
   let res = await http.post("");
 }
 </script>
