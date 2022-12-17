@@ -27,6 +27,9 @@ class RenamerService {
             let old = fileList[i];
             let oldPath = path.join(fileList[i].path, fileList[i].name);
             let newPath = path.join(changedFileList[i].path, changedFileList[i].name);
+            if (oldPath === newPath) {
+                continue;
+            }
             if ((await fs.pathExists(newPath))) {
                 throw new Error("此路径已存在:" + newPath);
             }
