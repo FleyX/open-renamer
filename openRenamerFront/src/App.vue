@@ -1,9 +1,10 @@
 <template>
   <div class="app">
-    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" router>
+    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff"
+      active-text-color="#ffd04b" router>
       <el-menu-item index="/">重命名</el-menu-item>
-      <!-- <el-menu-item index="/auto">自动化</el-menu-item>
-      <el-sub-menu index="/download">
+      <el-menu-item index="/auto">自动化</el-menu-item>
+      <!-- <el-sub-menu index="/download">
         <template #title>bt下载</template>
         <el-menu-item index="/download/center">下载中心</el-menu-item>
         <el-menu-item index="/download/config">配置</el-menu-item>
@@ -12,7 +13,8 @@
     <div class="content">
       <router-view />
     </div>
-    <div class="footer">版本：{{ version }}&nbsp;&nbsp;开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a></div>
+    <div class="footer">版本：{{ version }}&nbsp;&nbsp;开源地址:<a
+        href="https://github.com/FleyX/open-renamer">open-renamer</a></div>
   </div>
 </template>
 
@@ -20,20 +22,20 @@
 import httpUtil from "./utils/HttpUtil";
 export default {
   name: "Home",
-  data() {
+  data () {
     return {
       version: "1.2",
       activeIndex: location.pathname,
     };
   },
-  async created() {
+  async created () {
     let token = localStorage.getItem("token");
     window.token = token;
-    await httpUtil.get("/file/isWindows");
+    window.isWindows = await httpUtil.get("/file/isWindows");
     console.log(this.$route);
     console.log(this.activeIndex);
   },
-  async mounted() {
+  async mounted () {
     console.log(this.$route);
     console.log(location);
   },
@@ -48,6 +50,7 @@ body {
   margin: 0;
   background-color: #e8e8e5;
 }
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

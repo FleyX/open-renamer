@@ -1,12 +1,12 @@
 <template>
-  <div>自动化</div>
   <div>
-    <el-button type="primary" @click="submit"> 保存自动化配置 </el-button>
+    <edit-form />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
+import editForm from "./components/editForm.vue";
 import http from "@/utils/HttpUtil";
 //表单
 const qbBody = reactive({
@@ -32,7 +32,7 @@ onMounted(async () => {
   downloadConfig = reactive(await http.post("/config/multCode", null, ["qbAddress", "qbUsername", "qbPassword"]));
 });
 
-async function submit() {
+async function submit () {
   let res = await http.post("");
 }
 </script>
@@ -42,10 +42,12 @@ async function submit() {
   display: flex;
   text-align: left;
   padding-bottom: 0.5em;
+
   .left {
     width: 6em;
     font-weight: 600;
   }
+
   .right {
     flex: 1;
   }

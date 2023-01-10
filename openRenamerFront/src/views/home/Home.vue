@@ -2,38 +2,35 @@
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <br />
     <el-button type="success" @click="submit" size="default">开始重命名</el-button>
-    <el-divider content-position="left"><div class="head-text">规则设置</div></el-divider>
+    <el-divider content-position="left">
+      <div class="head-text">规则设置</div>
+    </el-divider>
     <!-- 规则列表 -->
     <rule-block @ruleUpdate="ruleUpdate" />
-    <el-divider content-position="left"><div class="head-text">文件预览</div></el-divider>
+    <el-divider content-position="left">
+      <div class="head-text">文件预览</div>
+    </el-divider>
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>
         <el-button type="primary" @click="showFileAdd" size="small">新增</el-button>
-        收藏路径:<el-tag
-          v-for="item in savePathList"
-          :round="true"
-          class="savePath"
-          closable
-          :key="item.id"
-          @click="clickSavePath(item)"
-          @close="deleteSavePath(item)"
-          text
-          >{{ item.name }}</el-tag
-        >
+        收藏路径:<el-tag v-for="item in savePathList" :round="true" class="savePath" closable :key="item.id"
+          @click="clickSavePath(item)" @close="deleteSavePath(item)" text>{{ item.name }}</el-tag>
       </div>
       <div>
         <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
         <el-button type="danger" size="small" @click="deleteCheckedFiles">删除</el-button>
         <el-button type="primary" size="small" @click="moveIndex('top')">
           <el-tooltip effect="dark" content="上移规则" placement="top">
-            <el-icon><top /></el-icon>
+            <el-icon>
+              <top />
+            </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="moveIndex('bottom')">
-          <el-tooltip effect="dark" content="下移规则" placement="top"
-            ><el-icon><bottom /></el-icon
-          ></el-tooltip>
+          <el-tooltip effect="dark" content="下移规则" placement="top"><el-icon>
+              <bottom />
+            </el-icon></el-tooltip>
         </el-button>
       </div>
       <div class="fileBlock">
@@ -55,7 +52,8 @@
     <!-- 新增文件弹窗 -->
 
     <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
-      <file-chose ref="fileChose" :curChoosePath="curChoosePath" @addData="addData" @refreshSavePathList="refreshSavePathList" />
+      <file-chose ref="fileChose" type="file" :curChoosePath="curChoosePath" @addData="addData"
+        @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
   </div>
 </template>
@@ -65,7 +63,7 @@
 import { Top, Bottom } from "@element-plus/icons-vue";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
-import RuleBlock from "./components/RuleBlock.vue";
+import RuleBlock from "@/components/rules/RuleBlock.vue";
 import Bus from "../../utils/Bus";
 
 let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
@@ -78,7 +76,7 @@ export default {
     Top,
     Bottom,
   },
-  data() {
+  data () {
     return {
       loading: false, //遮罩
       dialogVisible: false, //新增文件弹窗
@@ -93,14 +91,14 @@ export default {
     };
   },
   computed: {},
-  async created() {
+  async created () {
     this.savePathList = await HttpUtil.get("/file/path");
     window.isWindows = await HttpUtil.get("/file/isWindows");
     Bus.$on("refreshSavePathList", this.refreshSavePathList);
   },
   methods: {
     //新增文件
-    async addData(data) {
+    async addData (data) {
       data.forEach((item) => (item.checked = false));
       this.fileList.push(...data);
       this.fileList = [...this.fileList.sort((a, b) => compareStr(a.name, b.name))];
@@ -108,13 +106,13 @@ export default {
       this.needPreview = true;
       await this.showResult();
     },
-    async ruleUpdate(rules) {
+    async ruleUpdate (rules) {
       this.ruleList = rules;
       this.needPreview = true;
       await this.showResult();
     },
     //预览结果
-    async showResult() {
+    async showResult () {
       this.changedFileList = [];
       if (!this.checkRuleAndFile()) {
         return;
@@ -130,7 +128,7 @@ export default {
       this.loading = false;
     },
     //提交
-    async submit() {
+    async submit () {
       if (!this.checkRuleAndFile()) {
         return;
       }
@@ -151,17 +149,17 @@ export default {
       }
     },
     //删除选中的文件名
-    async deleteCheckedFiles() {
+    async deleteCheckedFiles () {
       this.fileList = this.fileList.filter((item) => !item.checked);
       this.needPreview = true;
       await this.showResult();
     },
     //反选
-    selectAllFiles() {
+    selectAllFiles () {
       this.fileList.forEach((item) => (item.checked = !item.checked));
     },
     //检查规则和文件
-    checkRuleAndFile() {
+    checkRuleAndFile () {
       if (this.fileList.length == 0) {
         this.$message({ message: "请选择文件", type: "warning" });
         return false;
@@ -173,7 +171,7 @@ export default {
       return true;
     },
     //移动文件顺序
-    async moveIndex(type) {
+    async moveIndex (type) {
       let temps = this.fileList.filter((item) => item.checked == true);
       if (temps.length == 0) {
         this.$message({ type: "warning", message: "未选中文件，无法移动" });
@@ -208,20 +206,20 @@ export default {
         this.timer = null;
       }, 1000);
     },
-    showFileAdd() {
+    showFileAdd () {
       this.dialogVisible = true;
     },
     //点击收藏路径
-    async clickSavePath(item) {
+    async clickSavePath (item) {
       this.curChoosePath = JSON.parse(item.content);
       this.dialogVisible = true;
     },
-    async deleteSavePath(item) {
+    async deleteSavePath (item) {
       console.log(item);
       await HttpUtil.delete("/file/path/delete", { id: item.id });
       Bus.$emit("refreshSavePathList");
     },
-    async refreshSavePathList() {
+    async refreshSavePathList () {
       this.savePathList = await HttpUtil.get("/file/path");
     },
   },
@@ -232,10 +230,10 @@ export default {
  * @param a str
  * @param b str
  */
-function compareStr(a, b) {
+function compareStr (a, b) {
   let an = a.length;
   let bn = b.length;
-  for (let i = 0; i < an; ) {
+  for (let i = 0; i < an;) {
     let charA = readChar(a, i, an);
     let charB = readChar(b, i, bn);
     if (charB.length == 0) {
@@ -257,7 +255,7 @@ function compareStr(a, b) {
  * @param a a
  * @param n 数字长度
  */
-function readChar(a, i, n) {
+function readChar (a, i, n) {
   let res = "";
   for (; i < n; i++) {
     let char = a.charAt(i);
@@ -282,6 +280,7 @@ function readChar(a, i, n) {
   cursor: pointer;
   margin-right: 0.5em;
 }
+
 .fileList {
   margin-top: 20px;
   text-align: left;
@@ -289,6 +288,7 @@ function readChar(a, i, n) {
   .fileBlock {
     margin-top: 20px;
     display: flex;
+
     .oneLine {
       display: flex;
       justify-content: space-between;

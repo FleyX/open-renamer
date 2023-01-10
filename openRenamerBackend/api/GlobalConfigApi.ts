@@ -24,6 +24,13 @@ router["POST /config/update"] = async function (ctx: Context) {
 	ctx.body = await service.updateVal(ctx.request.body.code, ctx.request.body.val);
 };
 
+/**
+ * 提交修改
+ */
+router["POST /config/insertOrUpdate"] = async function (ctx: Context) {
+	ctx.body = await service.insertOrReplace(ctx.request.body);
+};
+
 
 
 export default router;
