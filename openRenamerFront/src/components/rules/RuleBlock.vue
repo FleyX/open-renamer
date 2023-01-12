@@ -38,8 +38,8 @@
         <el-button type="primary" size="small" text @click="addRuleDialogShow = true">+ 新增规则</el-button>
       </div>
     </div>
-    <el-dialog title="新增规则" v-model="addRuleDialogShow" width="70%" @close="ruleDialogClose">
-      <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" />
+    <el-dialog :title="editRule ? '编辑规则' : '新增规则'" v-model="addRuleDialogShow" width="70%" @close="ruleDialogClose">
+      <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" :isAutoPlan="rules != undefined" />
     </el-dialog>
     <el-dialog title="模板管理" v-model="ruleTemplateShow" width="70%">
       <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate" />
