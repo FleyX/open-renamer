@@ -23,7 +23,7 @@
 					<el-button v-else class="button-new-tag ml-1" size="small" @click="ignoreInputVisible = true">
 						+ 忽略
 					</el-button>
-					<tips message="名字匹配的文件/文件夹将会忽略处理" />
+					<tips message="名字匹配的文件/文件夹将会忽略处理,支持js正则表达式" />
 				</div>
 			</el-form-item>
 			<el-form-item label="忽略特典">
@@ -43,6 +43,7 @@
 			</el-form-item>
 			<el-form-item label="开始任务">
 				<el-switch v-model="body.start" class="ml-2" />
+				<tips message="打开此开关，即开始自动化处理" />
 			</el-form-item>
 		</el-form>
 		<el-button type="primary" @click="submit"> 保存自动化配置 </el-button>
@@ -65,7 +66,7 @@ let body = ref({
 	paths: [],
 	version: 1,
 	ignoreSeason0: true,
-	ignorePaths: [],
+	ignorePaths: ['.*\.jpg', 'tvshow.nfo', 'season.nfo', 'metadata'],
 	deleteSmallVideo: true,
 	rules: [],
 	ignoreExist: false,
