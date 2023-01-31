@@ -13,7 +13,7 @@ CREATE TABLE auto_deal_history (
 	-- 说明
 	comment TEXT(200) NOT NULL,
 	-- 1:文件重命名，2：剧集下无季文件夹，自动创建;3:操作失败
-	"type" INTEGER NOT NULL,
-	CONSTRAINT auto_deal_history_PK PRIMARY KEY (id)
+	"type" INTEGER NOT NULL
 );
+
 CREATE INDEX auto_deal_history_createTime_IDX ON auto_deal_history (createTime);
