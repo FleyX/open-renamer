@@ -23,9 +23,9 @@
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="move('bottom')">
-          <el-tooltip effect="dark" content="下移规则" placement="top"><el-icon>
-              <bottom />
-            </el-icon></el-tooltip>
+          <el-tooltip effect="dark" content="下移规则" placement="top"
+            ><el-icon> <bottom /> </el-icon
+          ></el-tooltip>
         </el-button>
       </template>
     </div>
@@ -62,7 +62,7 @@ export default {
     Top,
     Bottom,
   },
-  data () {
+  data() {
     return {
       addRuleDialogShow: false, //是否显示新增规则弹窗
       ruleTemplateShow: false, //是否显示选择规则模板弹窗
@@ -73,11 +73,11 @@ export default {
   },
   computed: {
     //选中的规则
-    checkedRules () {
+    checkedRules() {
       return this.ruleList.filter((item) => item.checked);
     },
   },
-  async created () {
+  async created() {
     //如果外部传入了规则
     if (this.rules != undefined) {
       this.ruleList = JSON.parse(JSON.stringify(this.rules));
@@ -87,26 +87,32 @@ export default {
       await this.ruleUpdate();
     }
   },
+  watch: {
+    rules: function (newVal, oldVal) {
+      console.log("rules变化", newVal);
+      this.ruleList = JSON.parse(JSON.stringify(newVal));
+    },
+  },
   methods: {
     //规则更新
-    ruleUpdate () {
+    ruleUpdate() {
       let temp = this.ruleList.filter((item) => !item.blocked);
       this.$emit("ruleUpdate", temp);
     },
     //模板内容提交
-    async templateSubmit () {
+    async templateSubmit() {
       this.chosedTemplate.content = JSON.stringify(this.ruleList);
       await HttpUtil.post("/applicationRule", null, this.chosedTemplate);
       this.$message.success("操作成功");
     },
     //切换模板
-    async templateUpdate (newVal) {
+    async templateUpdate(newVal) {
       this.ruleList = JSON.parse(newVal.content);
       this.ruleUpdate();
       this.ruleTemplateShow = false;
     },
     //新增规则
-    async ruleAdd (data) {
+    async ruleAdd(data) {
       if (this.editRule != null) {
         let index = this.ruleList.indexOf(this.editRule);
         this.ruleList.splice(index, 1, data);
@@ -119,7 +125,7 @@ export default {
       this.addRuleDialogShow = false;
     },
     //禁用/启用
-    async block () {
+    async block() {
       this.ruleList
         .filter((item) => item.checked)
         .forEach((item) => {
@@ -129,17 +135,17 @@ export default {
       await this.ruleUpdate();
     },
     //删除规则
-    async deleteRule () {
+    async deleteRule() {
       this.ruleList = this.ruleList.filter((item) => !item.checked);
       this.ruleUpdate();
     },
     //编辑规则
-    editClick (rule) {
+    editClick(rule) {
       this.editRule = rule && rule.data ? rule : this.checkedRules[0];
       this.addRuleDialogShow = true;
     },
     //移动规则
-    async move (type) {
+    async move(type) {
       let index = this.ruleList.indexOf(this.checkedRules[0]);
       let newIndex;
       if (type == "top") {
@@ -160,7 +166,7 @@ export default {
       await this.ruleUpdate();
     },
     //规则弹窗关闭
-    ruleDialogClose () {
+    ruleDialogClose() {
       this.editRule = null;
       this.addRuleDialogShow = false;
     },
