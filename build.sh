@@ -14,3 +14,4 @@ rm -rf openRenamerBackend/node_modules
 #docker build -t fleyx/open-renamer:$0 --push .
 # 多平台打包并推送
 docker buildx build -t fleyx/open-renamer:$1 --platform linux/amd64,linux/arm64 --push .
+docker buildx build -t fleyx/open-renamer:latset --platform linux/amd64,linux/arm64 --push .
