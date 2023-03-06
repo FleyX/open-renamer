@@ -9,14 +9,15 @@ import handleError from "./middleware/handleError";
 import init from "./middleware/init";
 import SqliteUtil from './util/SqliteHelper';
 import log from './util/LogUtil';
-import { updateQbInfo } from './util/QbApiUtil';
+import {updateQbInfo} from './util/QbApiUtil';
 
 
 console.log(config);
+
 const app = new koa();
 
 let router = new Router({
-  prefix: config.urlPrefix
+    prefix: config.urlPrefix
 });
 
 app.use(require('koa-static')(path.join(config.rootPath, 'static')));
@@ -30,12 +31,12 @@ app.use(handleError);
 
 app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
 (async () => {
-  await SqliteUtil.createPool();
-  await updateQbInfo(null, null);
-  app.listen(config.port);
-  log.info(`server listened `, config.port);
+    await SqliteUtil.createPool();
+    await updateQbInfo(null, null);
+    app.listen(config.port);
+    log.info(`server listened `, config.port);
 })();
 
 app.on("error", (error) => {
-  console.error(error);
+    console.error(error);
 })

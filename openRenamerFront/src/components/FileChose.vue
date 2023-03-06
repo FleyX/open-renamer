@@ -11,8 +11,8 @@
     <div class="fileList">
       <div>
         <el-input style="display: inline-block; width: 150px" type="text" size="small" placeholder="关键词过滤"
-          v-model="filterText" clearable />
-        <template v-if="type == 'file'">
+                  v-model="filterText" clearable/>
+        <template v-if="type === 'file'">
           <el-button type="primary" @click="selectAll(true)" size="small">全选</el-button>
           <el-button type="primary" @click="selectAll(false)" size="small">全不选</el-button>
           <el-button type="primary" @click="refresh" size="small">刷新</el-button>
@@ -21,9 +21,10 @@
         </template>
       </div>
       <div v-for="(item, index) in filterFileList" :key="index">
-        <span class="folder" v-if="item.isFolder" @click="fileClick(item)">{{ item.name }}</span>
-        <el-checkbox style="height: 1.4em" v-model="item.checked" v-else-if="type == 'file'">{{ item.name
-        }}</el-checkbox>
+        <el-checkbox style="height: 1.4em" v-model="item.checked" :disabled="type==='folder' && !item.isFolder">
+          <a v-if="item.isFolder" @click="fileClick(item)" style="color: #289fff">{{ item.name }}</a>
+          <span v-else>{{ item.name }}</span>
+        </el-checkbox>
       </div>
     </div>
 
@@ -32,7 +33,7 @@
     </div>
 
     <el-dialog title="保存路径" v-model="showSave" width="40em">
-      <el-input type="text" v-model="saveName" placeholder="输入名称" />
+      <el-input type="text" v-model="saveName" placeholder="输入名称"/>
       <el-button type="primary" @click="savePath" style="padding-top: 1em">提交</el-button>
     </el-dialog>
   </div>
@@ -41,10 +42,12 @@
 <script>
 import HttpUtil from "../utils/HttpUtil";
 import Bus from "../utils/Bus";
+
 export default {
   name: "FileChose",
+  //type:folder:选择文件夹。file:选择文件
   props: ["curChoosePath", "type"],
-  data () {
+  data() {
     return {
       isWindows: false,
       fileList: [], //路径下的文件节点
@@ -57,24 +60,24 @@ export default {
     };
   },
   computed: {
-    filterFileList () {
+    filterFileList() {
       let text = this.filterText.trim();
       return text === "" ? this.fileList : this.fileList.filter((item) => item.name.indexOf(text) > -1);
     },
-    curSavePathId () {
+    curSavePathId() {
       let curPath = JSON.stringify(this.pathList);
-      let targetList = this.savePathList.filter((item) => item.content == curPath);
+      let targetList = this.savePathList.filter((item) => item.content === curPath);
       return targetList.length > 0 ? targetList[0].id : null;
     },
   },
   watch: {
-    async curChoosePath (newVal) {
+    async curChoosePath(newVal) {
       console.log("变更路径:", newVal);
       this.pathList = newVal;
       await this.breadcrumbClick(this.pathList.length - 1);
     },
   },
-  async created () {
+  async created() {
     if (this.curChoosePath && this.curChoosePath.length > 0) {
       this.pathList = this.curChoosePath;
     }
@@ -84,15 +87,15 @@ export default {
   },
 
   methods: {
-    async refresh () {
+    async refresh() {
       await this.breadcrumbClick(this.pathList.length - 1);
     },
     //刷新保存的路径
-    async refreshSavePathList () {
+    async refreshSavePathList() {
       this.savePathList = await HttpUtil.get("/file/path");
     },
     //点击面包蟹
-    async breadcrumbClick (index) {
+    async breadcrumbClick(index) {
       this.loading = true;
       try {
         let path = this.createPath(index);
@@ -109,7 +112,7 @@ export default {
       return false;
     },
     //文件列表点击
-    fileClick (item) {
+    fileClick(item) {
       if (item.isFolder) {
         this.pathList.push(item.name);
         this.breadcrumbClick(this.pathList.length);
@@ -118,14 +121,14 @@ export default {
       }
     },
     //全选
-    selectAll (status) {
+    selectAll(status) {
       this.filterFileList.filter((item) => !item.isFolder).forEach((item) => (item.checked = status));
     },
     //根据index构建路径
-    createPath (index) {
+    createPath(index) {
       console.log("当前路径为:", this.pathList);
       let path;
-      if (index == -1) {
+      if (index === -1) {
         path = "";
         this.pathList = [];
       } else {
@@ -137,34 +140,35 @@ export default {
       return path;
     },
     //点击确定
-    submit () {
+    async submit() {
+      let chosenFiles = this.fileList.filter((item) => item.checked);
+      if (chosenFiles.length === 0) {
+        this.$message({message: "未选择文件", type: "warning"});
+        return;
+      }
       if (this.type === 'file') {
-        let chosedFiles = this.fileList.filter((item) => item.checked);
-        if (chosedFiles.length == 0) {
-          this.$message({ message: "未选择文件", type: "warning" });
-          return;
-        }
-        this.$emit("addData", JSON.parse(JSON.stringify(chosedFiles)));
+        let body = await HttpUtil.post("/file/recursionQuery", null, chosenFiles);
+        this.$emit("addData", JSON.parse(JSON.stringify(body)));
         this.fileList.forEach((item) => (item.checked = false));
         this.fileList = [...this.fileList];
       } else if (this.type === 'folder') {
         //选择文件夹
-        this.$emit("folderChose", this.createPath(this.pathList.length - 1));
+        this.$emit("folderChose", JSON.parse(JSON.stringify(chosenFiles)));
       }
       this.filterText = "";
 
     },
     //收藏路径
-    async savePath () {
-      await HttpUtil.post("/file/path/save", null, { name: this.saveName, content: JSON.stringify(this.pathList) });
+    async savePath() {
+      await HttpUtil.post("/file/path/save", null, {name: this.saveName, content: JSON.stringify(this.pathList)});
       Bus.$emit("refreshSavePathList");
       this.saveName = "";
       this.showSave = false;
       this.$message.success("操作成功");
     },
     //取消收藏路径
-    async cancelSavePath () {
-      await HttpUtil.delete("/file/path/delete", { id: this.curSavePathId });
+    async cancelSavePath() {
+      await HttpUtil.delete("/file/path/delete", {id: this.curSavePathId});
       Bus.$emit("refreshSavePathList");
       this.$message.success("操作成功");
     },
