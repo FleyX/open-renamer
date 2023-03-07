@@ -34,7 +34,7 @@ export default {
   name: "Home",
   data() {
     return {
-      version: 1.2,
+      version: 1.3,
       latestVersion: null,
       activeIndex: location.pathname,
     };
