@@ -13,8 +13,17 @@
     <div class="content">
       <router-view/>
     </div>
-    <div class="footer">版本：{{ version }}&nbsp;&nbsp;开源地址:<a
-        href="https://github.com/FleyX/open-renamer">open-renamer</a></div>
+    <div class="footer">版本：{{ version }}&nbsp;&nbsp;
+      <template v-if="latestVersion && latestVersion>version">
+        最新版本:
+        <el-tooltip effect="dark" content="点击查看更新文档" placement="top">
+          <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">{{
+              latestVersion
+            }}</a>
+        </el-tooltip>
+      </template>
+      开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a>
+    </div>
   </div>
 </template>
 
@@ -25,13 +34,16 @@ export default {
   name: "Home",
   data() {
     return {
-      version: "1.2",
+      version: 1.2,
+      latestVersion: null,
       activeIndex: location.pathname,
     };
   },
   async created() {
-    let token = localStorage.getItem("token");
-    window.token = token;
+    //获取最新版本
+    let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
+    this.latestVersion = config.version;
+    window.token = localStorage.getItem("token");
     window.isWindows = await httpUtil.get("/file/isWindows");
     console.log(this.$route);
     console.log(this.activeIndex);
