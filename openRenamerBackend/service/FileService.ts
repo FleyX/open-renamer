@@ -42,12 +42,12 @@ class FileService {
                 if (fileList[index].startsWith('.')) {
                     if (showHidden) {
                         (stat.isDirectory() ? folderList : files).push(
-                            new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.birthtime.getTime(), stat.mtime.getTime()),
+                            new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
                         );
                     }
                 } else {
                     (stat.isDirectory() ? folderList : files).push(
-                        new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.birthtime.getTime(), stat.mtime.getTime()),
+                        new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
                     );
                 }
             } catch (e) {
@@ -82,7 +82,7 @@ class FileService {
                 let filePath = path.join(file.path, file.name);
                 let temp = (await fs.readdir(filePath)).map(item => {
                     let stat = fs.statSync(path.join(filePath, item));
-                    return new FileObj(item, filePath, stat.isDirectory(), stat.birthtime.getTime(), stat.mtime.getTime());
+                    return new FileObj(item, filePath, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime());
                 });
                 await FileService.readDirRecursion(res, temp, depth + 1);
             }

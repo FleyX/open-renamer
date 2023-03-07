@@ -24,7 +24,7 @@
       <div style="margin-top: 5px">
         <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
         <el-tooltip effect="dark" content="一键选中所有的非视频、字幕文件和小于5MB的视频文件" placement="bottom">
-          <el-button type="success" size="small" @click="">一键选择</el-button>
+          <el-button type="success" size="small" @click="choseAdFile">一键选择</el-button>
         </el-tooltip>
         <el-tooltip effect="dark" content="移除（非删除）需要重命名的文件" placement="bottom">
           <el-button type="warning" size="small" @click="removeCheckedFiles">移除</el-button>
@@ -199,7 +199,6 @@ export default {
       this.newName = list[0].name;
       this.currentEditFile = list[0];
       this.showNameEditDialog = true;
-      await this.showResult();
     },
     async doEditFile() {
       if (!this.newName) {
@@ -282,6 +281,9 @@ export default {
     async refreshSavePathList() {
       this.savePathList = await HttpUtil.get("/file/path");
     },
+    async choseAdFile() {
+      this.fileList.forEach(item => item.checked = item.isAdFile);
+    }
   },
 };
 
