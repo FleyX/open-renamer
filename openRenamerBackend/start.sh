@@ -1,1 +1,1 @@
-npm install && node dist/index.js
+npm install -g pnpm && pnpm install && node dist/index.js
