@@ -4,7 +4,7 @@
       <el-menu-item :disabled="editRule != null" index="insert">插入</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="delete">删除</el-menu-item>
       <!-- <el-menu-item index="replace">替换</el-menu-item> -->
-      <el-menu-item :disabled="editRule != null" index="serialization">序列化</el-menu-item>
+      <el-menu-item :disabled="editRule != null || isAutoPlan" index="serialization">序列化</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="auto">自动识别</el-menu-item>
     </el-menu>
     <div class="rule">
@@ -26,25 +26,25 @@ import SerializationRule from "./rules/SerializationRule.vue";
 import AutoRule from "./rules/AutoRule";
 export default {
   components: { InsertRule, DeleteRule, SerializationRule, AutoRule },
-  props: ["editRule"],
+  props: ["editRule", "isAutoPlan"],
   emits: ["ruleAdd"],
   name: "Rule",
-  data() {
+  data () {
     return {
       currentIndex: "insert",
       options: [{ label: "插入", value: "insert" }],
     };
   },
-  created() {
+  created () {
     if (this.editRule) {
       this.currentIndex = this.editRule.type;
     }
   },
   methods: {
-    menuChange(index) {
+    menuChange (index) {
       this.currentIndex = index;
     },
-    submit() {
+    submit () {
       let data = this.$refs["rule"].exportObj();
       if (data != null) {
         this.$emit("ruleAdd", data);

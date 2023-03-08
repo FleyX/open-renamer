@@ -4,6 +4,7 @@ import GlobalConfigDao from '../dao/GlobalConfigDao';
 
 import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant';
 import GlobalConfig from '../entity/po/GlobalConfig';
+import ErrorHelper from '../util/ErrorHelper';
 
 
 class ApplicationRuleService {
@@ -25,6 +26,11 @@ class ApplicationRuleService {
 	}
 
 	static async deleteById(id: number): Promise<void> {
+		//禁止删除默认模板
+		let idStr = await GlobalConfigDao.getByCode(DEFAULT_TEMPLETE_ID);
+		if (id.toString() === idStr) {
+			throw ErrorHelper.Error400("禁止删除默认模板");
+		}
 		await ApplicationRuleDao.delete(id);
 	}
 

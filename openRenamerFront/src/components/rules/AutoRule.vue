@@ -62,7 +62,7 @@ export default {
           type: "",
           frontAdd: "",
           endAdd: "",
-          eNumWidth: 2,
+          eNumWidth: 3,
         },
       },
     };
@@ -79,8 +79,8 @@ export default {
         this.$message({ message: "请选择识别类型", type: "warning" });
         return null;
       }
-      this.ruleObj.message = `自动识别:"${this.radioList.filter((item) => item.code == this.ruleObj.data.type)[0].label}";`;
-      if (this.ruleObj.data.type == "eNum") {
+      this.ruleObj.message = `自动识别:"${this.radioList.filter((item) => item.code === this.ruleObj.data.type)[0].label}";`;
+      if (this.ruleObj.data.type === "eNum") {
         this.ruleObj.message += "集数宽度:" + this.ruleObj.data.eNumWidth + ";";
       }
       if (this.ruleObj.data.frontAdd.length > 0) {
