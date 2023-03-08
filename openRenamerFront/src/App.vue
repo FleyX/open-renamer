@@ -13,13 +13,17 @@
     <div class="content">
       <router-view/>
     </div>
-    <div class="footer">版本：{{ version }}&nbsp;&nbsp;
+    <div class="footer">版本：
+      <el-tooltip effect="dark" content="点击查看更新内容" placement="top">
+        <a href="https://blog.fleyx.com/blog/detail/20221130/#13" target="_blank">
+          {{ version }}</a>
+      </el-tooltip>
+      &nbsp;&nbsp;
       <template v-if="latestVersion && latestVersion>version">
         最新版本:
         <el-tooltip effect="dark" content="点击查看更新文档" placement="top">
-          <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">{{
-              latestVersion
-            }}</a>
+          <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">
+            {{ latestVersion }}</a>
         </el-tooltip>
       </template>
       开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a>
