@@ -25,8 +25,10 @@
           <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">
             {{ latestVersion }}</a>
         </el-tooltip>
+        &nbsp;&nbsp;
       </template>
       开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a>
+      &nbsp;&nbsp;<a href="https://github.com/FleyX/open-renamer/issues">反馈</a>
     </div>
   </div>
 </template>
