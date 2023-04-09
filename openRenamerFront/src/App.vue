@@ -40,19 +40,19 @@ export default {
   name: "Home",
   data() {
     return {
-      version: 1.3,
+      version: 1.4,
       latestVersion: null,
       activeIndex: location.pathname,
     };
+  },
+  async beforeCreate() {
+    window.token = localStorage.getItem("token");
+    window.isWindows = await httpUtil.get("/file/isWindows");
   },
   async created() {
     //获取最新版本
     let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
     this.latestVersion = config.version;
-    window.token = localStorage.getItem("token");
-    window.isWindows = await httpUtil.get("/file/isWindows");
-    console.log(this.$route);
-    console.log(this.activeIndex);
   },
   async mounted() {
     console.log(this.$route);

@@ -22,7 +22,7 @@
         </el-tag>
       </div>
       <div style="margin-top: 5px">
-        <el-button type="primary" size="small" @click="selectAllFiles">反选</el-button>
+        <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? "不选" : "全选" }}</el-button>
         <el-tooltip effect="dark" content="一键选中所有的非视频、字幕文件和小于5MB的视频文件" placement="bottom">
           <el-button type="success" size="small" @click="choseAdFile">一键选择</el-button>
         </el-tooltip>
@@ -120,7 +120,11 @@ export default {
       showNameEditDialog: false //显示编辑文件弹窗
     };
   },
-  computed: {},
+  computed: {
+    allChecked() {
+      return this.fileList.length > 0 && this.fileList.filter(item => item.checked).length === this.fileList.length;
+    }
+  },
   async created() {
     this.savePathList = await HttpUtil.get("/file/path");
     window.isWindows = await HttpUtil.get("/file/isWindows");
@@ -214,9 +218,9 @@ export default {
       this.showNameEditDialog = false;
       await this.showResult();
     },
-    //反选
     selectAllFiles() {
-      this.fileList.forEach((item) => (item.checked = !item.checked));
+      let checked = !this.allChecked;
+      this.fileList.forEach((item) => (item.checked = checked));
     },
     //检查规则和文件
     checkRuleAndFile() {

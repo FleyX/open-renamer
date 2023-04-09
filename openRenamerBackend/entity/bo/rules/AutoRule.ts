@@ -1,6 +1,7 @@
 import RuleInterface from "./RuleInterface";
 import FileObj from "../../vo/FileObj";
 import path from 'path';
+import {getSeason} from "../../../util/MediaUtil";
 
 
 let pattern = new RegExp(/s(eason)?(\d+)/);
@@ -35,14 +36,12 @@ export default class InsertRule implements RuleInterface {
     deal(file: FileObj): void {
         //识别到的内容
         let getStr = null;
-        let patternRes = path.basename(file.path).replace(/[ ]+/, "").toLocaleLowerCase().match(pattern);
+        let season = getSeason(path.basename(file.path));
         if (this.type === 'season') {
-            if (patternRes && patternRes[2]) {
-                getStr = patternRes[2];
-            }
+            getStr = season;
         } else if (this.type === 'name') {
             let originName = null;
-            if (patternRes && patternRes[2]) {
+            if (season && season.length > 0) {
                 //说明是剧集,取父文件夹的父文件夹名称
                 originName = path.basename(path.resolve(file.path, '..'));
             } else {

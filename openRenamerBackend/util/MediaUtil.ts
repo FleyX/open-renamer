@@ -1,3 +1,4 @@
+const path = require("path")
 const videoSet = new Set(["flv", 'avi', 'wmv', 'dat', 'vob', 'mpg', 'mpeg', 'mp4', '3gp', '3g2', 'mkv', 'rm', 'rmvb', 'mov', 'qt', 'ogg', 'ogv', 'oga', 'mod']);
 
 /**
@@ -33,4 +34,24 @@ export function isNfo(str: string) {
         return false;
     }
     return "nfo" == str;
+}
+
+let pattern1 = new RegExp(/s(eason)?\.?(\d+)/);
+let pattern2 = new RegExp(/(\d+)/);
+
+/**
+ * 识别季号
+ * @param str
+ */
+export function getSeason(name: string) {
+    name = name.replace(/[ ]+/, "").toLocaleLowerCase();
+    let patternRes = name.match(pattern1);
+    if (patternRes && patternRes[2]) {
+        return patternRes[2];
+    }
+    patternRes = name.match(pattern2);
+    if (patternRes && patternRes[1]) {
+        return patternRes[1];
+    }
+    return "";
 }
