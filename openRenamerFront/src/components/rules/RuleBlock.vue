@@ -11,21 +11,25 @@
         <el-button type="primary" size="small" @click="editClick">
           <el-tooltip effect="dark" content="编辑规则" placement="top">
             <el-icon>
-              <edit />
+              <edit/>
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="move('top')">
           <el-tooltip effect="dark" content="上移规则" placement="top">
             <el-icon>
-              <top />
+              <top/>
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="move('bottom')">
           <el-tooltip effect="dark" content="下移规则" placement="top"
-            ><el-icon> <bottom /> </el-icon
-          ></el-tooltip>
+          >
+            <el-icon>
+              <bottom/>
+            </el-icon
+            >
+          </el-tooltip>
         </el-button>
       </template>
     </div>
@@ -38,11 +42,12 @@
         <el-button type="primary" size="small" text @click="addRuleDialogShow = true">+ 新增规则</el-button>
       </div>
     </div>
-    <el-dialog :title="editRule ? '编辑规则' : '新增规则'" v-model="addRuleDialogShow" width="70%" @close="ruleDialogClose">
-      <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" :isAutoPlan="rules != undefined" />
+    <el-dialog :title="editRule ? '编辑规则' : '新增规则'" v-model="addRuleDialogShow" width="70%"
+               @close="ruleDialogClose">
+      <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" :isAutoPlan="rules != undefined"/>
     </el-dialog>
     <el-dialog title="模板管理" v-model="ruleTemplateShow" width="70%">
-      <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate" />
+      <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate"/>
     </el-dialog>
   </div>
 </template>
@@ -51,7 +56,8 @@
 import Rule from "@/components/Rule";
 import ApplicationRuleList from "./ApplicationRuleList";
 import HttpUtil from "@/utils/HttpUtil";
-import { Top, Bottom, Edit } from "@element-plus/icons-vue";
+import {Top, Bottom, Edit} from "@element-plus/icons-vue";
+
 export default {
   name: "RuleBlock",
   props: ["rules"],
@@ -79,7 +85,7 @@ export default {
   },
   async created() {
     //如果外部传入了规则
-    if (this.rules != undefined) {
+    if (this.rules !== undefined) {
       this.ruleList = JSON.parse(JSON.stringify(this.rules));
     } else {
       this.chosedTemplate = await HttpUtil.get("/applicationRule/default");
@@ -107,7 +113,9 @@ export default {
     },
     //切换模板
     async templateUpdate(newVal) {
+      console.debug("新的模板:", newVal);
       this.ruleList = JSON.parse(newVal.content);
+      this.chosedTemplate = newVal;
       this.ruleUpdate();
       this.ruleTemplateShow = false;
     },
@@ -127,11 +135,11 @@ export default {
     //禁用/启用
     async block() {
       this.ruleList
-        .filter((item) => item.checked)
-        .forEach((item) => {
-          item.blocked = !item.blocked;
-          item.checked = false;
-        });
+          .filter((item) => item.checked)
+          .forEach((item) => {
+            item.blocked = !item.blocked;
+            item.checked = false;
+          });
       await this.ruleUpdate();
     },
     //删除规则

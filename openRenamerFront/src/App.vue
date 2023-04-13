@@ -14,15 +14,17 @@
       <router-view/>
     </div>
     <div class="footer">版本：
-      <el-tooltip effect="dark" content="点击查看更新内容" placement="top">
-        <a href="https://blog.fleyx.com/blog/detail/20221130/#13" target="_blank">
+      <el-tooltip effect="dark" content="点击查看更新记录" placement="top">
+        <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95"
+           target="_blank">
           {{ version }}</a>
       </el-tooltip>
       &nbsp;&nbsp;
-      <template v-if="latestVersion && latestVersion>version">
+      <template v-if="latestVersion && showNewVersion">
         最新版本:
         <el-tooltip effect="dark" content="点击查看更新文档" placement="top">
-          <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">
+          <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95"
+             target="_blank">
             {{ latestVersion }}</a>
         </el-tooltip>
         &nbsp;&nbsp;
@@ -40,9 +42,10 @@ export default {
   name: "Home",
   data() {
     return {
-      version: 1.4,
+      version: "1.5",
       latestVersion: null,
       activeIndex: location.pathname,
+      showNewVersion: false
     };
   },
   async beforeCreate() {
@@ -53,12 +56,30 @@ export default {
     //获取最新版本
     let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
     this.latestVersion = config.version;
+    this.showNewVersion = checkVersion(this.version, this.latestVersion);
+
   },
   async mounted() {
     console.log(this.$route);
     console.log(location);
   },
 };
+
+function checkVersion(version, latestVersion) {
+  let versions = version.split(".");
+  let latestVersions = latestVersion.split('.');
+  for (let i = 0; i < versions.length; i++) {
+    if (i >= latestVersions.length) {
+      return false;
+    }
+    let versionNum = parseInt(versions[i]);
+    let latestVersionNum = parseInt(latestVersions[i]);
+    if (versionNum !== latestVersionNum) {
+      return versionNum < latestVersionNum;
+    }
+  }
+  return false;
+}
 </script>
 
 <style lang="less">
