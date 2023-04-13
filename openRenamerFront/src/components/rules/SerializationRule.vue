@@ -2,20 +2,20 @@
   <div class="flex">
     <span class="left">起始数：</span>
     <div class="right">
-      <el-input-number :min="1" size="small" v-model="ruleObj.data.start" />
+      <el-input-number :min="1" size="small" v-model="ruleObj.data.start"/>
     </div>
   </div>
   <div class="flex">
     <span class="left">增量：</span>
     <div class="right">
-      <el-input-number :min="1" size="small" v-model="ruleObj.data.increment" />
+      <el-input-number :min="1" size="small" v-model="ruleObj.data.increment"/>
     </div>
   </div>
   <div class="flex">
     <span class="left">填充0补足：</span>
     <div class="right">
-      <el-switch v-model="ruleObj.data.addZero" />
-      <el-input-number size="small" :min="1" :disabled="!ruleObj.data.addZero" v-model="ruleObj.data.numLength" />
+      <el-switch v-model="ruleObj.data.addZero"/>
+      <el-input-number size="small" :min="1" :disabled="!ruleObj.data.addZero" v-model="ruleObj.data.numLength"/>
     </div>
   </div>
   <div class="flex">
@@ -24,21 +24,34 @@
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="front">前缀</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="backend">后缀</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="at"
-        >位置:<el-input-number size="small" :min="1" :disabled="ruleObj.data.insertType !== 'at'" v-model="ruleObj.data.insertValue" />
+      >位置:
+        <el-input-number size="small" :min="1" :disabled="ruleObj.data.insertType !== 'at'"
+                         v-model="ruleObj.data.insertValue"/>
       </el-radio>
     </div>
   </div>
 
   <div class="flex">
     <div class="left">忽略拓展名:</div>
-    <el-switch v-model="ruleObj.data.ignorePostfix" />
+    <el-switch v-model="ruleObj.data.ignorePostfix"/>
+  </div>
+  <div class="flex">
+    <div class="left">拓展名分组:</div>
+    <el-switch v-model="ruleObj.data.postfixGroup"/>
+    <el-tooltip effect="dark" content="按照文件拓展名分别计数,方便多种类型文件同时生成序列" placement="right">
+      <el-icon>
+        <InfoFilled/>
+      </el-icon>
+    </el-tooltip>
   </div>
 </template>
 
 <script>
+import {InfoFilled} from "@element-plus/icons-vue";
+
 export default {
   name: "SerializationRule",
-
+  components: {InfoFilled},
   props: ["editRule"],
   data() {
     return {
@@ -53,6 +66,7 @@ export default {
           ignorePostfix: true,
           insertType: "front",
           insertValue: 1,
+          postfixGroup: true
         },
       },
     };

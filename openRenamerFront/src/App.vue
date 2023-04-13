@@ -19,7 +19,7 @@
           {{ version }}</a>
       </el-tooltip>
       &nbsp;&nbsp;
-      <template v-if="latestVersion && latestVersion>version">
+      <template v-if="latestVersion && showNewVersion">
         最新版本:
         <el-tooltip effect="dark" content="点击查看更新文档" placement="top">
           <a href="https://blog.fleyx.com/blog/detail/20221130/#%e5%8d%87%e7%ba%a7" target="_blank">
@@ -40,9 +40,10 @@ export default {
   name: "Home",
   data() {
     return {
-      version: 1.4,
+      version: "1.5",
       latestVersion: null,
       activeIndex: location.pathname,
+      showNewVersion: false
     };
   },
   async beforeCreate() {
@@ -53,12 +54,30 @@ export default {
     //获取最新版本
     let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
     this.latestVersion = config.version;
+    this.showNewVersion = checkVersion(this.version, this.latestVersion);
+
   },
   async mounted() {
     console.log(this.$route);
     console.log(location);
   },
 };
+
+function checkVersion(version, latestVersion) {
+  let versions = version.split(".");
+  let latestVersions = latestVersion.split('.');
+  for (let i = 0; i < versions.length; i++) {
+    if (i >= latestVersions.length) {
+      return false;
+    }
+    let versionNum = parseInt(versions[i]);
+    let latestVersionNum = parseInt(latestVersions[i]);
+    if (versionNum !== latestVersionNum) {
+      return versionNum < latestVersionNum;
+    }
+  }
+  return false;
+}
 </script>
 
 <style lang="less">
