@@ -85,7 +85,7 @@ export default {
   },
   async created() {
     //如果外部传入了规则
-    if (this.rules != undefined) {
+    if (this.rules !== undefined) {
       this.ruleList = JSON.parse(JSON.stringify(this.rules));
     } else {
       this.chosedTemplate = await HttpUtil.get("/applicationRule/default");
