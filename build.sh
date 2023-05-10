@@ -2,7 +2,9 @@
 base=$(cd "$(dirname "$0")";pwd)
 cd $base
 rm -rf openRenamerBackend/dist
-docker run -it --rm --name buildOpenRenamer --user ${UID} -v $base/openRenamerFront:/opt/front node:lts-slim  bash -c "cd /opt/front &&   npm install -g pnpm --registry https://registry.npmmirror.com && pnpm install --registry https://registry.npmmirror.com && pnpm run build"
+# 注意此处未添加npm代理
+# docker run -it --rm --name buildOpenRenamer --user ${UID} -v $base/openRenamerFront:/opt/front node:lts-slim  bash -c "cd /opt/front &&   npm install -g pnpm --registry https://registry.npmmirror.com && pnpm install --registry https://registry.npmmirror.com && pnpm run build"
+docker run -it --rm --name buildOpenRenamer --user ${UID} -v $base/openRenamerFront:/opt/front node:lts-slim  bash -c "cd /opt/front &&   npm install -g pnpm  && pnpm install  && pnpm run build"
 
 rm -rf openRenamerBackend/static/*
 touch openRenamerBackend/static/.gitkeep
