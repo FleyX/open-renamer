@@ -3,15 +3,16 @@
     <el-menu style="width: 8em" mode="vertical" :default-active="currentIndex" @select="menuChange">
       <el-menu-item :disabled="editRule != null" index="insert">插入</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="delete">删除</el-menu-item>
-      <!-- <el-menu-item index="replace">替换</el-menu-item> -->
+      <el-menu-item :disabled="editRule != null" index="replace">替换</el-menu-item>
       <el-menu-item :disabled="editRule != null || isAutoPlan" index="serialization">序列化</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="auto">自动识别</el-menu-item>
     </el-menu>
     <div class="rule">
-      <insert-rule ref="rule" :editRule="editRule" v-if="currentIndex == 'insert'" />
-      <delete-rule ref="rule" :editRule="editRule" v-else-if="currentIndex == 'delete'" />
-      <serialization-rule ref="rule" :editRule="editRule" v-else-if="currentIndex == 'serialization'" />
-      <auto-rule ref="rule" :editRule="editRule" v-else-if="currentIndex == 'auto'" />
+      <insert-rule ref="rule" :editRule="editRule" v-if="currentIndex === 'insert'"/>
+      <delete-rule ref="rule" :editRule="editRule" v-else-if="currentIndex === 'delete'"/>
+      <replace-rule ref="rule" :editRule="editRule" v-else-if="currentIndex === 'replace'"/>
+      <serialization-rule ref="rule" :editRule="editRule" v-else-if="currentIndex === 'serialization'"/>
+      <auto-rule ref="rule" :editRule="editRule" v-else-if="currentIndex === 'auto'"/>
     </div>
   </div>
   <div style="text-align: center">
@@ -24,27 +25,29 @@ import InsertRule from "./rules/InsertRule.vue";
 import DeleteRule from "./rules/DeleteRule.vue";
 import SerializationRule from "./rules/SerializationRule.vue";
 import AutoRule from "./rules/AutoRule";
+import ReplaceRule from "@/components/rules/ReplaceRule";
+
 export default {
-  components: { InsertRule, DeleteRule, SerializationRule, AutoRule },
+  components: {InsertRule, DeleteRule, SerializationRule, AutoRule, ReplaceRule},
   props: ["editRule", "isAutoPlan"],
   emits: ["ruleAdd"],
   name: "Rule",
-  data () {
+  data() {
     return {
       currentIndex: "insert",
-      options: [{ label: "插入", value: "insert" }],
+      options: [{label: "插入", value: "insert"}],
     };
   },
-  created () {
+  created() {
     if (this.editRule) {
       this.currentIndex = this.editRule.type;
     }
   },
   methods: {
-    menuChange (index) {
+    menuChange(index) {
       this.currentIndex = index;
     },
-    submit () {
+    submit() {
       let data = this.$refs["rule"].exportObj();
       if (data != null) {
         this.$emit("ruleAdd", data);
