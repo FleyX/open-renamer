@@ -42,7 +42,7 @@ export default {
   name: "Home",
   data() {
     return {
-      version: "1.5",
+      version: "1.6",
       latestVersion: null,
       activeIndex: location.pathname,
       showNewVersion: false

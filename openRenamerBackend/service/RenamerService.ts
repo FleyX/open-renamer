@@ -17,7 +17,7 @@ class RenamerService {
             if (newNameSet.has(obj.name)) {
                 obj.errorMessage = "重名";
             }
-            newNameSet.add(obj.name);
+            newNameSet.add(obj.path + obj.name);
         }
         return fileList;
     }
