@@ -59,16 +59,24 @@
       </div>
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
-        <div style="flex: 4">
+        <div style="width:50%;">
           <div v-for="(item, index) in fileList" :key="index" class="oneLine">
-            <el-checkbox v-model="item.checked" style="height: 1.2em">{{ item.name }}</el-checkbox>
+            <el-checkbox class="oneLineText" style="width: 95%" v-model="item.checked">
+              <el-tooltip show-after="300" style="color:white" effect="dark" :content="item.name" placement="top">
+                <span class="oneLineText" style="width: 100%;display: inline-block">{{ item.name }}</span>
+              </el-tooltip>
+            </el-checkbox>
           </div>
         </div>
         <!-- 右边的预览文件名 -->
-        <div style="flex: 4">
+        <div style="width:50%">
           <div v-for="(item, index) in changedFileList" :key="index" class="oneLine">
-            <div style="flex: 4">{{ item.name }}</div>
-            <div style="color: red; flex: 1">{{ item.errorMessage }}</div>
+            <div style="display:inline-block;width:72%;" class="oneLineText">
+              <el-tooltip show-after="300" style="color:white" effect="dark" :content="item.name" placement="top">
+                <span class="oneLineText" style="width: 100%;display: inline-block">{{ item.name }}</span>
+              </el-tooltip>
+            </div>
+            <div style="display:inline-block;color: red; width: 25%">{{ item.errorMessage }}</div>
           </div>
         </div>
       </div>
@@ -355,15 +363,28 @@ function readChar(a, i, n) {
     margin-top: 20px;
     display: flex;
 
+    .el-checkbox__label {
+      width: 95%;
+    }
+
+
     .oneLine {
       display: flex;
-      justify-content: space-between;
       align-items: center;
       border-top: 1px solid rgb(214, 212, 212);
       height: 1.5em;
       padding-top: 0.1em;
       padding-bottom: 0.1em;
       padding-right: 0.2em;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .oneLineText {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .oneFileName {

@@ -14,7 +14,7 @@ class RenamerService {
         for (let i in fileList) {
             let obj = fileList[i];
             ruleObjs.forEach(item => (item.data as RuleInterface).deal(obj));
-            if (newNameSet.has(obj.name)) {
+            if (newNameSet.has(obj.path + obj.name)) {
                 obj.errorMessage = "重名";
             }
             newNameSet.add(obj.path + obj.name);
