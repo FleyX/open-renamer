@@ -7,7 +7,6 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "rootDir": "./",
-    "watch": false,
     "strict": true,
     "strictNullChecks": false,
     "esModuleInterop": true
