@@ -60,7 +60,7 @@
       <div class="fileBlock">
         <!-- 左侧原始文件名 -->
         <div style="width:50%;">
-          <div v-for="(item, index) in fileList" :key="index" class="oneLine">
+          <div v-for="(item, index) in showFileList" :key="index" class="oneLine">
             <el-checkbox class="oneLineText" style="width: 95%" v-model="item.checked">
               <el-tooltip show-after="300" style="color:white" effect="dark" :content="item.name" placement="top">
                 <span class="oneLineText" style="width: 100%;display: inline-block">{{ item.name }}</span>
@@ -70,7 +70,7 @@
         </div>
         <!-- 右边的预览文件名 -->
         <div style="width:50%">
-          <div v-for="(item, index) in changedFileList" :key="index" class="oneLine">
+          <div v-for="(item, index) in showChangedFileList" :key="index" class="oneLine">
             <div style="display:inline-block;width:72%;" class="oneLineText">
               <el-tooltip show-after="300" style="color:white" effect="dark" :content="item.name" placement="top">
                 <span class="oneLineText" style="width: 100%;display: inline-block">{{ item.name }}</span>
@@ -131,6 +131,12 @@ export default {
   computed: {
     allChecked() {
       return this.fileList.length > 0 && this.fileList.filter(item => item.checked).length === this.fileList.length;
+    },
+    showFileList() {
+      return this.fileList.length > 500 ? this.fileList.slice(0, 500) : this.fileList;
+    },
+    showChangedFileList() {
+      return this.changedFileList && this.changedFileList.length > 500 ? this.changedFileList.slice(0, 500) : this.changedFileList;
     }
   },
   async created() {
@@ -155,6 +161,9 @@ export default {
     },
     //预览结果
     async showResult() {
+      if (this.fileList.length > 500) {
+        this.$message.info("文件数过多，仅展示前500个(不影响重命名)");
+      }
       this.changedFileList = [];
       if (!this.checkRuleAndFile()) {
         return;
