@@ -58,7 +58,7 @@ export default class InsertRule implements RuleInterface {
             }
         } else if (this.type === 'eNum') {
             let lowName = file.originName.toLocaleLowerCase().replace(/ /g, '')
-                .replace(/\d+[a-df-z]/g, '')//去除4k,1080p等
+                .replace(/\d+[kp]/g, '')//去除4k,1080p等
                 .replace(/[xh]\d+/g, '')//去除x264,h264等 ;
             for (let i in eNumPatternArr) {
                 let patternRes = lowName.match(eNumPatternArr[i]);
