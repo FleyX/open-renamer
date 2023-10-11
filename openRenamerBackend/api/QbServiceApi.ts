@@ -17,5 +17,12 @@ router["GET /qb/config"] = async function (ctx: Context) {
     ctx.body = await service.getAddress();
 };
 
+/**
+ * 获取qb配置
+ */
+router["GET /qb/bt/list"] = async function (ctx: Context) {
+    ctx.body = await service.getAddress();
+};
+
 
 export default router;

@@ -1,13 +1,13 @@
 import {Method} from "axios";
 import axios from "axios";
 import querystring from "querystring";
-import QbAddressDto from "../entity/dto/QbAddressDto";
+import QbConfigDto from "../entity/dto/QbConfigDto";
 import GlobalService from '../service/GlobalConfigService';
 
-let qbInfo: QbAddressDto = null;
-let cookie: string = null;
+let qbInfo: QbConfigDto = null;
+let cookie: any = null;
 
-export function updateQbInfo(info: QbAddressDto) {
+export function updateQbInfo(info: QbConfigDto) {
     qbInfo = info;
 }
 
@@ -15,12 +15,12 @@ export function getQbInfo() {
     return qbInfo;
 }
 
-export function get() {
-
+export async function get(url: string, data: object) {
+    return await request("get", url, data, null, false);
 }
 
-export function post() {
-
+export async function post(url: string, data: object, isForm = false) {
+    return await request("post", url, null, data, isForm);
 }
 
 async function request(method: Method, url: string, query: any, body: any, isForm = false) {
@@ -37,7 +37,7 @@ async function request(method: Method, url: string, query: any, body: any, isFor
         }
         let res = await axios.request({
             baseURL: qbInfo.address,
-            url: url,
+            url: "/api/v2" + url,
             method,
             params: query,
             data: body,
@@ -71,7 +71,7 @@ export async function tryLogin(): Promise<boolean> {
         });
         let success = res.data.toLocaleLowerCase().indexOf('ok') > -1;
         if (success) {
-            cookie = res.headers['Cookie'];
+            cookie = res.headers['set-cookie'];
         }
         qbInfo.valid = success;
         return success;

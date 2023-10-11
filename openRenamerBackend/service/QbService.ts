@@ -1,7 +1,8 @@
-import QbAddressDto from "../entity/dto/QbAddressDto";
-import {tryLogin, updateQbInfo, getQbInfo} from '../util/QbApiUtil';
+import QbConfigDto from "../entity/dto/QbConfigDto";
+import {tryLogin, get, post, updateQbInfo, getQbInfo} from '../util/QbApiUtil';
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../entity/po/GlobalConfig";
+import BtListItemDto from "../entity/dto/BtListItemDto";
 
 class QbService {
 
@@ -9,32 +10,40 @@ class QbService {
      * 保存地址
      * @param body
      */
-    static async saveAddress(body: QbAddressDto): Promise<boolean> {
-        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbAddress", body.address, "qbAdress"));
-        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbUsername", body.username, ""));
-        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbPassword", body.password, ""));
-        body.valid = await tryLogin();
+    static async saveAddress(body: QbConfigDto): Promise<QbConfigDto> {
+        if (body.address.endsWith("/")) {
+            body.address = body.address.substring(0, body.address.length - 1);
+        }
+        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbConfig", JSON.stringify(body), "qb config"));
         updateQbInfo(body);
-        return body.valid;
+        body.valid = await tryLogin();
+        body.version = body ? (await get("/app/version", null)) : null;
+        return body;
     }
 
     /**
      * 获取当前配置
      */
-    static async getAddress(): Promise<QbAddressDto> {
+    static async getAddress(): Promise<QbConfigDto> {
         return getQbInfo();
     }
 
+    static async getBtList(): Promise<Array<BtListItemDto>> {
+        let res = await get("/api/v2/torrents/info?category=&sort=added_on", null);
+
+        return res;
+    }
+
+    /**
+     * 初始化
+     */
     static async init() {
-        let config = await GlobalConfigService.getMultVal(["qbAddress", "qbUsername", "qbPassword"]);
-        let qbInfo: QbAddressDto = {
-            address: config.qbAddress,
-            username: config.qbUsername,
-            password: config.qbPassword,
-            valid: true
-        }
+        let config = await GlobalConfigService.getVal("qbConfig");
+        let qbInfo: QbConfigDto = config == null ? {} : JSON.parse(config);
         updateQbInfo(qbInfo);
         qbInfo.valid = await tryLogin();
+        qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
+        return qbInfo;
     }
 }
 
