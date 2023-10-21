@@ -14,14 +14,14 @@ router["POST /qb/saveQbInfo"] = async function (ctx: Context) {
  * 获取qb配置
  */
 router["GET /qb/config"] = async function (ctx: Context) {
-    ctx.body = await service.getAddress();
+    ctx.body = await service.getConfig();
 };
 
 /**
  * 获取qb配置
  */
 router["GET /qb/bt/list"] = async function (ctx: Context) {
-    ctx.body = await service.getAddress();
+    ctx.body = await service.getBtList();
 };
 
 

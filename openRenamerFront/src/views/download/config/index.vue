@@ -5,7 +5,7 @@
       {{ data.qbConfig.version ? data.qbConfig.version : "配置错误，无法访问" }}
     </el-form-item>
     <el-form-item label="访问地址">
-      <el-input type="text" v-model="data.qbConfig.address" placeholder="qb访问地址"/>
+      <el-input type="text" v-model="data.qbConfig.address" placeholder="例如:http://localhost:8080(仅支持v4.1及以上)"/>
     </el-form-item>
     <el-form-item label="用户名">
       <el-input type="text" v-model="data.qbConfig.username" placeholder="qb访问用户名"/>

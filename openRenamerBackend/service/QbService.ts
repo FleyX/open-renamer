@@ -20,17 +20,19 @@ class QbService {
         body.version = body ? (await get("/app/version", null)) : null;
         return body;
     }
-
+a
     /**
      * 获取当前配置
      */
-    static async getAddress(): Promise<QbConfigDto> {
+    static async getConfig(): Promise<QbConfigDto> {
         return getQbInfo();
     }
 
+    /**
+     * get torrents list from qb
+     */
     static async getBtList(): Promise<Array<BtListItemDto>> {
         let res = await get("/api/v2/torrents/info?category=&sort=added_on", null);
-
         return res;
     }
 
