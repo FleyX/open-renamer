@@ -1,7 +1,6 @@
 <template>
   <div class="app">
-    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff"
-             active-text-color="#ffd04b" router>
+    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" router>
       <el-menu-item index="/">重命名</el-menu-item>
       <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
       <el-sub-menu index="/download">
@@ -11,26 +10,28 @@
       </el-sub-menu>
     </el-menu>
     <div class="content">
-      <router-view/>
+      <router-view />
     </div>
-    <div class="footer">版本：
+    <div class="footer">
+      版本：
       <el-tooltip effect="dark" content="点击查看更新记录" placement="top">
-        <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95"
-           target="_blank">
-          {{ version }}</a>
+        <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95" target="_blank">
+          {{ version }}</a
+        >
       </el-tooltip>
       &nbsp;&nbsp;
       <template v-if="latestVersion && showNewVersion">
         最新版本:
         <el-tooltip effect="dark" content="点击查看更新文档" placement="top">
-          <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95"
-             target="_blank">
-            {{ latestVersion }}</a>
+          <a href="https://blog.fleyx.com/blog/detail/20221130/#%E7%89%88%E6%9C%AC%E6%9B%B4%E6%96%B0%E8%AE%B0%E5%BD%95" target="_blank">
+            {{ latestVersion }}</a
+          >
         </el-tooltip>
         &nbsp;&nbsp;
       </template>
-      开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a>
-      &nbsp;&nbsp;<a href="https://github.com/FleyX/open-renamer/issues">反馈</a>
+      开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a> &nbsp;&nbsp;<a href="https://github.com/FleyX/open-renamer/issues"
+        >反馈</a
+      >
     </div>
   </div>
 </template>
@@ -45,7 +46,7 @@ export default {
       version: "1.6.2",
       latestVersion: null,
       activeIndex: location.pathname,
-      showNewVersion: false
+      showNewVersion: false,
     };
   },
   async beforeCreate() {
@@ -57,7 +58,6 @@ export default {
     let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
     this.latestVersion = config.version;
     this.showNewVersion = checkVersion(this.version, this.latestVersion);
-
   },
   async mounted() {
     console.log(this.$route);
@@ -66,8 +66,11 @@ export default {
 };
 
 function checkVersion(version, latestVersion) {
+  if (version === latestVersion) {
+    return false;
+  }
   let versions = version.split(".");
-  let latestVersions = latestVersion.split('.');
+  let latestVersions = latestVersion.split(".");
   for (let i = 0; i < versions.length; i++) {
     if (i >= latestVersions.length) {
       return false;
@@ -78,7 +81,7 @@ function checkVersion(version, latestVersion) {
       return versionNum < latestVersionNum;
     }
   }
-  return false;
+  return true;
 }
 </script>
 
