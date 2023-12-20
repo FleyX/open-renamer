@@ -5,11 +5,48 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder --win --x64"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "productName": "openRenamer",
+    "appId": "electron.app",
+    "directories": {
+      "output": "build"
+    },
+    "copyright": "xxxx",
+    "nsis": {
+      "oneClick": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "./openRenamerBackend/static/favicon.ico",
+      "uninstallerIcon": "./openRenamerBackend/static/favicon.ico",
+      "installerHeaderIcon": "./openRenamerBackend/static/favicon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "openRenamer"
+    },
+    "win": {
+      "icon": "./openRenamerBackend/static/favicon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "build/icons"
+    }
   }
 }

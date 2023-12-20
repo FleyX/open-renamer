@@ -26,7 +26,7 @@ async function createWindow() {
     let port = await startBackend()
     // 并且为你的应用加载index.html
     // win.loadFile('./dist/index.html')
-    win.loadURL(`file://${__dirname}/dist/index.html?port=` + port);
+    win.loadURL(`http://localhost:` + port);
     win.webContents.openDevTools()
 }
 
