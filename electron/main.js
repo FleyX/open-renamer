@@ -2,6 +2,7 @@
 // 控制应用生命周期和创建原生浏览器窗口的模组
 const {app, BrowserWindow, Menu} = require('electron')
 const path = require('path')
+const fs = require('fs');
 const {spawn} = require('child_process');
 const net = require('net');
 const log = require('electron-log');
@@ -65,7 +66,8 @@ async function startBackend() {
     }
     let userHome = process.env.HOME || process.env.USERPROFILE;
     let dataPath = path.join(userHome, "openRenamer");
-    const childProcess = spawn('node', ['openRenamerBackend/dist/index.js'], {
+    let exist = fs.existsSync("./openRenamerBackend");
+    const childProcess = spawn('node', [exist ? './' : '../' + 'openRenamerBackend/dist/index.js'], {
         env: {
             "PORT": port,
             "DATA_PATH": dataPath

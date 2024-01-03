@@ -16,7 +16,7 @@
   },
   "build": {
     "productName": "openRenamer",
-    "appId": "electron.app",
+    "appId": "openRenamer.app",
     "directories": {
       "output": "build"
     },
@@ -35,9 +35,9 @@
       "oneClick": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "./openRenamerBackend/static/favicon.ico",
-      "uninstallerIcon": "./openRenamerBackend/static/favicon.ico",
-      "installerHeaderIcon": "./openRenamerBackend/static/favicon.ico",
+      "installerIcon": "../openRenamerBackend/static/favicon.ico",
+      "uninstallerIcon": "../openRenamerBackend/static/favicon.ico",
+      "installerHeaderIcon": "../openRenamerBackend/static/favicon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "openRenamer"
