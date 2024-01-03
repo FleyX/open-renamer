@@ -66,8 +66,9 @@ async function startBackend() {
     }
     let userHome = process.env.HOME || process.env.USERPROFILE;
     let dataPath = path.join(userHome, "openRenamer");
-    let exist = fs.existsSync("./openRenamerBackend");
-    const childProcess = spawn('node', [exist ? './' : '../' + 'openRenamerBackend/dist/index.js'], {
+    log.info("start check folder exist", __dirname, __filename)
+    let exist = fs.existsSync("openRenamerBackend");
+    const childProcess = spawn('node', [(exist ? '' : '../') + 'openRenamerBackend/dist/index.js'], {
         env: {
             "PORT": port,
             "DATA_PATH": dataPath
