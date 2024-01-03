@@ -1,10 +1,12 @@
 import * as path from 'path';
+import * as process from "process";
 
 //后台所在绝对路径
 const rootPath = path.resolve(__dirname, '..');
 
 let config = {
     rootPath,
+    dataPath: process.env.DATA_PATH ? process.env.DATA_PATH : path.join(rootPath, 'data'),
     port: process.env.PORT ? parseInt(process.env.PORT) : 8089,
     token: process.env.TOKEN ? process.env.TOKEN : null,
     urlPrefix: '/openRenamer/api',

@@ -4,6 +4,7 @@ const {app, BrowserWindow, Menu} = require('electron')
 const path = require('path')
 const {spawn} = require('child_process');
 const net = require('net');
+const log = require('electron-log');
 
 async function createWindow() {
     // 隐藏菜单栏
@@ -22,7 +23,7 @@ async function createWindow() {
     // 下面这两行代码配合上面 new BrowserWindow 里面的 show: false，可以实现打开时窗口最大化
     win.maximize()
     win.show()
-    console.log(__dirname);
+    log.info(__dirname);
     let port = await startBackend()
     // 并且为你的应用加载index.html
     // win.loadFile('./dist/index.html')
@@ -62,18 +63,25 @@ async function startBackend() {
         }
         port = port + 1;
     }
-    const childProcess = spawn('node', ['openRenamerBackend/dist/index.js'], {env: {"PORT": port}});
+    let userHome = process.env.HOME || process.env.USERPROFILE;
+    let dataPath = path.join(userHome, "openRenamer");
+    const childProcess = spawn('node', ['openRenamerBackend/dist/index.js'], {
+        env: {
+            "PORT": port,
+            "DATA_PATH": dataPath
+        }
+    });
 
     childProcess.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
+        log.info(`stdout: ${data}`);
     });
 
     childProcess.stderr.on('data', (data) => {
-        console.error(`stderr: ${data}`);
+        log.error(`stderr: ${data}`);
     });
 
     childProcess.on('close', (code) => {
-        console.log(`child process exited with code ${code}`);
+        log.info(`child process exited with code ${code}`);
     });
     return port;
 }

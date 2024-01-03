@@ -20,7 +20,17 @@
     "directories": {
       "output": "build"
     },
-    "copyright": "xxxx",
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraFiles": [
+      {
+        "from": "../openRenamerBackend",
+        "to": "openRenamerBackend"
+      }
+    ],
+    "copyright": "open-renamer",
     "nsis": {
       "oneClick": false,
       "allowElevation": true,
@@ -33,7 +43,6 @@
       "shortcutName": "openRenamer"
     },
     "win": {
-      "icon": "./openRenamerBackend/static/favicon.ico",
       "target": [
         "nsis",
         "zip"
@@ -48,5 +57,8 @@
     "linux": {
       "icon": "build/icons"
     }
+  },
+  "dependencies": {
+    "electron-log": "^5.0.1"
   }
 }
