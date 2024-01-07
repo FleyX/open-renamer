@@ -35,17 +35,24 @@
       "oneClick": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "../openRenamerBackend/static/favicon.ico",
-      "uninstallerIcon": "../openRenamerBackend/static/favicon.ico",
-      "installerHeaderIcon": "../openRenamerBackend/static/favicon.ico",
+      "installerIcon": "./renamer.ico",
+      "uninstallerIcon": "./renamer.ico",
+      "installerHeaderIcon": "./renamer.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "openRenamer"
     },
     "win": {
+      "icon": "./renamer.ico",
       "target": [
         "nsis",
         "zip"
+      ],
+      "extraFiles": [
+        {
+          "from": "windows/node.exe",
+          "to": "node.exe"
+        }
       ]
     },
     "mac": {

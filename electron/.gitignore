@@ -3,3 +3,4 @@ dist
 openRenamerBackend
 build
 .idea
+*.exe
