@@ -29,8 +29,8 @@
         </el-tooltip>
         &nbsp;&nbsp;
       </template>
-      开源地址:<a href="https://github.com/FleyX/open-renamer">open-renamer</a>
-      &nbsp;&nbsp;<a href="https://github.com/FleyX/open-renamer/issues">反馈</a>
+      开源地址:<a href="https://github.com/FleyX/open-renamer" target="_blank">open-renamer</a>
+      &nbsp;&nbsp;<a href="https://github.com/FleyX/open-renamer/issues" target="_blank">反馈</a>
     </div>
   </div>
 </template>
@@ -49,6 +49,17 @@ export default {
     };
   },
   async beforeCreate() {
+    console.log("beforeCreate");
+    let queryMap = {};
+    location.search.substring(1).split("&").forEach(item => {
+      let arr = item.split("=");
+      queryMap[arr[0]] = arr[1];
+    })
+    if (queryMap.port) {
+      window.baseUrl = "http://localhost:" + queryMap.port;
+    } else {
+      window.baseUrl = "";
+    }
     window.token = localStorage.getItem("token");
     window.isWindows = await httpUtil.get("/file/isWindows");
   },

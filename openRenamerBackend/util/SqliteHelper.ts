@@ -1,5 +1,5 @@
 import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import {open, Database} from 'sqlite';
 import config from '../config';
 import * as fs from "fs-extra";
 import * as path from 'path';
@@ -12,9 +12,9 @@ class SqliteHelper {
     public static pool: Database = null;
 
     static async createPool() {
-        let dataFolder = path.join(config.rootPath, "data");
+        let dataFolder = config.dataPath;
         if (!fs.existsSync(dataFolder)) {
-            fs.mkdir(dataFolder);
+            await fs.mkdir(dataFolder);
         }
         SqliteHelper.pool = await open({
             filename: path.join(dataFolder, "database.db"),
@@ -26,7 +26,7 @@ class SqliteHelper {
         if (fs.existsSync(hisPath)) {
             history = JSON.parse(await fs.readFile(hisPath, "utf-8"));
         } else {
-            history = new Array();
+            history = [];
         }
         //执行数据库
         let files = (await fs.readdir(basePath)).sort((a, b) => a.localeCompare(b)).filter(item => !(item === HISTORY_NAME));

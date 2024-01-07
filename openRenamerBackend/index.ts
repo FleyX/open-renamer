@@ -10,6 +10,7 @@ import init from "./middleware/init";
 import SqliteUtil from './util/SqliteHelper';
 import log from './util/LogUtil';
 import {updateQbInfo} from './util/QbApiUtil';
+import TimeUtil from "./util/TimeUtil";
 
 
 console.log(config);
