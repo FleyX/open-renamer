@@ -1,13 +1,24 @@
 <template>
   <div>配置qb</div>
-  <div class="item">
-    <div class="left">qb信息</div>
-    <div class="right">{{ qbInfo }}<el-button @click="editInfo = true">编辑</el-button></div>
-  </div>
-  <el-form v-if="editInfo" :model="qbBody" label-width="4em">
-    <el-form-item label="qb地址"><el-input type="text" v-model="qbBody.address" placeholder="例如:http://192.168.1.4:8080" /></el-form-item>
-    <el-form-item label="用户名"><el-input type="text" v-model="qbBody.username" placeholder="qb访问用户名" /></el-form-item>
-    <el-form-item label="密码"><el-input type="password" v-model="qbBody.password" placeholder="qb访问密码" /></el-form-item>
+  <el-form :model="data.qbConfig" label-width="8em">
+    <el-form-item label="qb版本">
+      {{ data.qbConfig.version ? data.qbConfig.version : "配置错误，无法访问" }}
+    </el-form-item>
+    <el-form-item label="访问地址">
+      <el-input type="text" v-model="data.qbConfig.address" placeholder="例如:http://localhost:8080(仅支持v4.1及以上)"/>
+    </el-form-item>
+    <el-form-item label="用户名">
+      <el-input type="text" v-model="data.qbConfig.username" placeholder="qb访问用户名"/>
+    </el-form-item>
+    <el-form-item label="密码">
+      <el-input type="password" v-model="data.qbConfig.password" placeholder="qb访问密码"/>
+    </el-form-item>
+    <el-form-item label="qb下载路径">
+      <el-input type="text" v-model="data.qbConfig.qbDownloadPath" placeholder="qb下载路径(qb中选择的下载路径)"/>
+    </el-form-item>
+    <el-form-item label="对应本系统路径">
+      <el-input type="text" v-model="data.qbConfig.renameQbDownloadPath" placeholder="qb下载路径对应到本软件中的路径"/>
+    </el-form-item>
     <div style="text-align: center">
       <el-button type="" @click="editInfo = false">取消</el-button>
       <el-button type="primary" @click="submitQb">提交</el-button>
@@ -16,34 +27,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import {ref, reactive, onMounted, computed} from "vue";
 import http from "@/utils/HttpUtil";
 //表单
-const qbBody = reactive({
-  address: "",
-  username: "",
-  password: "",
+const data = reactive({
+  qbConfig: {},
 });
-//配置中心数据
-let downloadConfig = reactive({});
 //qb是否可访问
-let qbReach = ref(true);
 let editInfo = ref(false);
 
-const qbInfo = computed(() => {
-  if (downloadConfig.qbAddress) {
-    return downloadConfig.qbAddress + " 用户名：" + downloadConfig.qbUsername;
-  } else {
-    return "尚未配置";
-  }
-});
-
 onMounted(async () => {
-  downloadConfig = reactive(await http.post("/config/multCode", null, ["qbAddress", "qbUsername", "qbPassword"]));
+  data.qbConfig = await http.get("/qb/config");
 });
 
 async function submitQb() {
-  let res = await http.post("");
+  data.qbConfig = await http.post("/qb/saveQbInfo", null, data.qbConfig);
 }
 </script>
 
@@ -52,10 +50,12 @@ async function submitQb() {
   display: flex;
   text-align: left;
   padding-bottom: 0.5em;
+
   .left {
     width: 6em;
     font-weight: 600;
   }
+
   .right {
     flex: 1;
   }
