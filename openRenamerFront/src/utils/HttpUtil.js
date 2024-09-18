@@ -14,7 +14,7 @@ import router from '../router/index';
 async function request(url, method, params, body, isForm) {
     let options = {
         url,
-        baseURL: window.baseUrl + '/openRenamer/api',
+        baseURL: '/openRenamer/api',
         method,
         params,
         headers: {token: window.token}

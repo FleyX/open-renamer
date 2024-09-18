@@ -233,7 +233,7 @@ var hk2tSearch = null;// WordsSearch
  * @param {any} text 原文本
  * @param {any} type 0、繁体中文，1、港澳繁体，2、台湾正体
  */
-export function ToTraditionalChinese(text: any, type: any) {
+export function toTraditionalChinese(text: any, type: any) {
     if (type == undefined) {
         type = 0;
     }
@@ -255,7 +255,7 @@ export function ToTraditionalChinese(text: any, type: any) {
  * @param {any} text 原文本
  * @param {any} srcType 0、繁体中文，1、港澳繁体，2、台湾正体
  */
-export function ToSimplifiedChinese(text: string, srcType: any) {
+export function toSimplifiedChinese(text: string, srcType: any) {
     if (srcType == undefined) {
         srcType = 0;
     }
