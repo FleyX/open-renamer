@@ -26,15 +26,25 @@ async function createWindow() {
             nodeIntegration: true, // 是否完整支持node。默认为 true
             preload: path.join(__dirname, 'preload.js')  //界面的其它脚本运行之前预先加载一个指定脚本。
         }
-    })
+    });
+    //打开调试
+    // win.webContents.openDevTools();
+
+    win.loadFile('./index.html');
+    let startTime = Date.now();
+
     // 下面这两行代码配合上面 new BrowserWindow 里面的 show: false，可以实现打开时窗口最大化
     win.maximize()
     win.show()
     log.info(__dirname);
     let port = await startBackend()
-    // 并且为你的应用加载index.html
-    // win.loadFile('./dist/index.html')
     log.info("backend service started")
+
+    let diff = Date.now() - startTime;
+    let time = 2000;
+    if (diff < time) {
+        await sleep(time - diff);
+    }
     win.loadURL(`http://localhost:` + port);
     // win.webContents.openDevTools()
 }

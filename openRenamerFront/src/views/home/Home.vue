@@ -155,9 +155,12 @@ export default {
       this.dialogVisible = false;
       await this.showResult();
     },
-    async ruleUpdate(rules) {
+    async ruleUpdate(rules, preview) {
+      console.log(rules, preview);
       this.ruleList = rules;
-      await this.showResult();
+      if (preview) {
+        await this.showResult();
+      }
     },
     //预览结果
     async showResult() {
