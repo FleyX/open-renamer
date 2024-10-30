@@ -90,7 +90,7 @@ export default {
     } else {
       this.chosedTemplate = await HttpUtil.get("/applicationRule/default");
       this.ruleList = JSON.parse(this.chosedTemplate.content);
-      await this.ruleUpdate();
+      await this.ruleUpdate(false);
     }
   },
   watch: {
@@ -101,9 +101,14 @@ export default {
   },
   methods: {
     //规则更新
-    ruleUpdate() {
+    ruleUpdate(preview) {
+      if (preview !== undefined && preview === false) {
+        preview = false;
+      } else {
+        preview = true;
+      }
       let temp = this.ruleList.filter((item) => !item.blocked);
-      this.$emit("ruleUpdate", temp);
+      this.$emit("ruleUpdate", temp, preview);
     },
     //模板内容提交
     async templateSubmit() {

@@ -1,0 +1,70 @@
+<html lang="">
+<head>
+    <title>open-renamer</title>
+</head>
+<body class="center">
+<div class="center" style="flex-direction: column">
+    <div class="loading"></div>
+    <div id="text" style="font: 1.2em">loading...</div>
+</div>
+
+
+<style>
+    .center {
+        justify-content: center;
+        align-items: center;
+        display: -webkit-flex;
+    }
+
+    .loading {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        animation: satellite 3s infinite linear;
+        border: 1px solid #000;
+        border-radius: 100%;
+    }
+
+    .loading:before,
+    .loading:after {
+        position: absolute;
+        left: 1px;
+        top: 1px;
+        width: 12px;
+        height: 12px;
+        content: "";
+        border-radius: 100%;
+        background-color: #000;
+        box-shadow: 0 0 10px #000;
+    }
+
+    .loading:after {
+        right: 0;
+        width: 20px;
+        height: 20px;
+        margin: 13px;
+    }
+
+    @keyframes satellite {
+        from {
+            transform: rotate(0) translateZ(0);
+        }
+
+        to {
+            transform: rotate(360deg) translateZ(0);
+        }
+    }
+</style>
+<script>
+    let text = document.getElementById("text");
+    let count = 1;
+    setInterval(() => {
+        if (count > 3) {
+            count = 1;
+        }
+        text.innerText = "Loading" + (count == 3 ? '...' : count == 2 ? '..' : '.');
+        count++;
+    }, 500);
+</script>
+</body>
+</html>
