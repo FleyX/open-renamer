@@ -42,24 +42,13 @@ export default {
   name: "Home",
   data() {
     return {
-      version: "1.6.2",
+      version: "1.6.4",
       latestVersion: null,
       activeIndex: location.pathname,
       showNewVersion: false
     };
   },
   async beforeCreate() {
-    console.log("beforeCreate");
-    let queryMap = {};
-    location.search.substring(1).split("&").forEach(item => {
-      let arr = item.split("=");
-      queryMap[arr[0]] = arr[1];
-    })
-    if (queryMap.port) {
-      window.baseUrl = "http://localhost:" + queryMap.port;
-    } else {
-      window.baseUrl = "";
-    }
     window.token = localStorage.getItem("token");
     window.isWindows = await httpUtil.get("/file/isWindows");
   },

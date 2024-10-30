@@ -3,6 +3,7 @@ import InsertRule from "../bo/rules/InsertRule";
 import SerializationRule from "../bo/rules/SerializationRule";
 import AutoRule from "../bo/rules/AutoRule";
 import ReplaceRule from "../bo/rules/ReplaceRule";
+import TranslateRole from "../bo/rules/TranslateRole";
 
 export default class RuleObj {
     type: string;
@@ -31,9 +32,11 @@ export default class RuleObj {
             case "replace":
                 this.data = new ReplaceRule(data.data);
                 break;
+            case "translate":
+                this.data = new TranslateRole(data.data);
+                break;
             default:
                 throw new Error("不支持的规则:" + this.type);
-
         }
     }
 }

@@ -122,7 +122,7 @@ export default {
     },
     //全选
     selectAll(status) {
-      this.filterFileList.filter((item) => !item.isFolder).forEach((item) => (item.checked = status));
+      this.filterFileList.forEach((item) => (item.checked = status));
     },
     //根据index构建路径
     createPath(index) {
