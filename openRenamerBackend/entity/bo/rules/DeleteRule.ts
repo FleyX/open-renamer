@@ -1,4 +1,5 @@
 import RuleInterface from "./RuleInterface";
+import {dealFileName} from "./RuleInterface";
 import FileObj from "../../vo/FileObj";
 import path from 'path';
 
@@ -20,6 +21,9 @@ export default class DeleteRule implements RuleInterface {
      * 忽略拓展名，true:忽略，false：不忽略
      */
     ignorePostfix: boolean;
+    /*
+     * 是否区分大小写
+     */
     regI: boolean;
 
     constructor(data: any) {
@@ -32,11 +36,9 @@ export default class DeleteRule implements RuleInterface {
 
 
     deal(file: FileObj): void {
+        let target = "";
         if (this.type === 'deleteAll') {
-            file.realName = "";
-            if (!this.ignorePostfix) {
-                file.expandName = "";
-            }
+            target = "";
         } else {
             let str = file.realName + (this.ignorePostfix ? "" : file.expandName);
             let startIndex = this.start.calIndex(str, false);
@@ -45,19 +47,9 @@ export default class DeleteRule implements RuleInterface {
                 return;
             }
             str = str.substring(0, startIndex) + str.substring(endIndex + 1);
-            if (this.ignorePostfix) {
-                file.realName = str;
-            } else {
-                file.expandName = path.extname(str);
-                if (file.expandName.length > 0) {
-                    file.realName = str.substring(0, str.lastIndexOf("."));
-                } else {
-                    file.realName = str;
-                }
-            }
+            target = str;
         }
-
-        file.name = file.realName + file.expandName;
+        dealFileName(file, target, this.ignorePostfix);
     }
 
 }
@@ -94,12 +86,13 @@ class DeleteRuleItem {
             let val = parseInt(this.value);
             return val > 0 ? val - 1 : str.length + val;
         } else if (this.type === 'text') {
-            return str.indexOf(this.value);
+            let index = str.indexOf(this.value);
+            return index + (end ? this.value.length - 1 : 0);
         } else if (this.type === 'end') {
             return str.length - 1;
         } else if (this.type === 'reg') {
             let res = this.reg.exec(str);
-            return res == null ? -1 : (res.index + (end ? 0 : res[0].length));
+            return res == null ? -1 : (res.index + (end ? res[0].length - 1 : 0));
         }
         return -1;
     }

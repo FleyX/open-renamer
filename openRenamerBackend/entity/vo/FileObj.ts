@@ -3,21 +3,22 @@ import {isVideo, isSub, isNfo} from "../../util/MediaUtil"
 
 export default class FileObj {
     /**
-     * 文件名
+     * 变更后的文件名(包含拓展名)
      */
     name: string;
     /**
-     原始名字
+     * 去掉拓展名后的名字(不包含拓展名)
+     */
+    realName: string;
+    /**
+     原始文件名(不变)
      */
     originName: string;
     /**
-     * 拓展名
+     * 拓展名(最新的拓展名，每次应用规则后重新计算)
      */
     expandName: string;
-    /**
-     * 去掉拓展名后的名字
-     */
-    realName: string;
+
     /**
      * 所属路径
      */
