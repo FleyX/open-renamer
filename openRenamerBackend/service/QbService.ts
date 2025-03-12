@@ -3,6 +3,8 @@ import {tryLogin, get, post, updateQbInfo, getQbInfo} from '../util/QbApiUtil';
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../entity/po/GlobalConfig";
 import BtListItemDto from "../entity/dto/BtListItemDto";
+import QbCommonDto from "../entity/dto/QbCommonDto";
+import {boolTag} from "yaml/dist/schema/core/bool";
 
 class QbService {
 
@@ -14,13 +16,18 @@ class QbService {
         if (body.address.endsWith("/")) {
             body.address = body.address.substring(0, body.address.length - 1);
         }
-        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbConfig", JSON.stringify(body), "qb config"));
         updateQbInfo(body);
         body.valid = await tryLogin();
         body.version = body ? (await get("/app/version", null)) : null;
+        if (parseFloat(body.version.replace("v", "")) < 4.1) {
+            body.valid = false;
+            body.version = null;
+            throw new Error("qb.version-error");
+        }
+        await GlobalConfigService.insertOrReplace(new GlobalConfig("qbConfig", JSON.stringify(body), "qb config"));
         return body;
     }
-a
+
     /**
      * 获取当前配置
      */
@@ -35,6 +42,16 @@ a
         let res = await get("/api/v2/torrents/info?category=&sort=added_on", null);
         return res;
     }
+
+    static async commonGet(body: QbCommonDto): Promise<any> {
+        return await get(body.url, body.body);
+    }
+
+
+    static async commonPost(body: QbCommonDto): Promise<any> {
+        return await post(body.url, body.query, body.body, body.contentType);
+    }
+
 
     /**
      * 初始化

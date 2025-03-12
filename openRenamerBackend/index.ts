@@ -9,8 +9,8 @@ import handleError from "./middleware/handleError";
 import init from "./middleware/init";
 import SqliteUtil from './util/SqliteHelper';
 import log from './util/LogUtil';
-import QbService from './service/QbService';
 import qbService from "./service/QbService";
+import * as i18n from './i18n';
 
 console.log(config);
 
@@ -33,6 +33,7 @@ app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
 (async () => {
     await SqliteUtil.createPool();
     await qbService.init();
+    await i18n.init();
     app.listen(config.port);
     log.info(`server listened `, config.port);
 })();

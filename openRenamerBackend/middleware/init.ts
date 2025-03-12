@@ -31,7 +31,7 @@ export default async (ctx, next) => {
     ctx.set("X-Powered-By", ' 3.2.1');
     ctx.set("Content-Type", "application/json;charset=utf-8");
     //合并请求参数到allParams
-    let objs = new Array();
+    let objs = [];
     if (ctx.method == "POST" || ctx.method == "PUT") {
         if (ctx.request.body) {
             if (ctx.request.body.fields != undefined && ctx.request.body.files != undefined) {
