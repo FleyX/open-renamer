@@ -16,24 +16,40 @@ export function getQbInfo() {
 }
 
 export async function get(url: string, data: object) {
-    return await request("get", url, data, null, false);
+    return await request("get", url, data, null, 1);
 }
 
-export async function post(url: string, data: object, isForm = false) {
-    return await request("post", url, null, data, isForm);
+/**
+ *
+ * @param url
+ * @param data
+ * @param formType 1:application/json 2:formdata 3:application/x-www-form-urlencoded
+ */
+export async function post(url: string, query: any, data: object, formType = 1) {
+    return await request("post", url, query, data, formType);
 }
 
-async function request(method: Method, url: string, query: any, body: any, isForm = false) {
+/**
+ *
+ * @param url
+ * @param data
+ * @param formType 1:application/json 2:formdata 3:application/x-www-form-urlencoded
+ */
+async function request(method: Method, url: string, query: any, body: any, formType = 1) {
     if (!qbInfo.valid) {
         throw new Error("qbittorrent无法连接，请检查配置");
     }
     let isTryLogin = false;
     while (true) {
         let headers = {"Cookie": cookie};
-        if (isForm) {
-            headers['content-type'] = "multipart/form-data";
-        } else if (method == "post") {
-            headers['content-type'] = "application/json";
+        if (method == 'post') {
+            if (formType == 1) {
+                headers['content-type'] = "application/json";
+            } else if (formType == 2) {
+                headers['content-type'] = "multipart/form-data";
+            } else {
+                headers['content-type'] = "application/x-www-form-urlencoded";
+            }
         }
         let res = await axios.request({
             baseURL: qbInfo.address,
