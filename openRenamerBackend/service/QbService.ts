@@ -1,10 +1,10 @@
 import QbConfigDto from "../entity/dto/QbConfigDto";
-import {tryLogin, get, post, updateQbInfo, getQbInfo} from '../util/QbApiUtil';
+import {get, getQbInfo, post, tryLogin, updateQbInfo} from '../util/QbApiUtil';
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../entity/po/GlobalConfig";
 import BtListItemDto from "../entity/dto/BtListItemDto";
 import QbCommonDto from "../entity/dto/QbCommonDto";
-import {boolTag} from "yaml/dist/schema/core/bool";
+import logger from "../util/LogUtil";
 
 class QbService {
 
@@ -60,9 +60,12 @@ class QbService {
         let config = await GlobalConfigService.getVal("qbConfig");
         let qbInfo: QbConfigDto = config == null ? {} : JSON.parse(config);
         updateQbInfo(qbInfo);
-        qbInfo.valid = await tryLogin();
-        qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
-        return qbInfo;
+        try {
+            qbInfo.valid = await tryLogin();
+            qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
+        } catch (e) {
+            logger.error("qb登录失败:", e);
+        }
     }
 }
 

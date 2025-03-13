@@ -15,3 +15,8 @@ static/*
 !static/.gitkeep
 database.db
 .idea
+
+ndist/index.js
+app
+app.exe
+/ndist/lib/binding/napi-v6-darwin-unknown-arm64/node_sqlite3.node.bak

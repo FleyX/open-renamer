@@ -4,7 +4,18 @@
   "description": "文件备份用",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "ncc": "tsc && ncc build dist/index.js -m -o ndist",
+    "pkg": "pkg . -t macos  -o app"
+  },
+  "bin": "ndist/index.js",
+  "pkg": {
+    "assets": [
+      "ndist/lib/binding/**/*",
+      "dist/**/**",
+      "static/**/**",
+      "sqls/*",
+      "i18n/*"
+    ]
   },
   "author": "fxb",
   "license": "ISC",
@@ -12,17 +23,18 @@
     "@types/fs-extra": "5.0.4",
     "@types/koa": "2.13.12",
     "@types/node": "11.13.4",
-    "axios": "0.21.4",
+    "axios": "0.29.0",
     "fs-extra": "7.0.0",
-    "koa": "2.5.3",
+    "koa": "3.0.0-alpha.3",
     "koa-body": "4.0.4",
     "koa-router": "7.4.0",
     "koa-static": "5.0.0",
     "koa2-cors": "2.0.6",
-    "log4js": "6.3.0",
-    "moment": "2.22.2",
-    "sqlite": "4.0.23",
-    "sqlite3": "5.0.2",
-    "uuid": "3.3.2"
+    "log4js": "6.4.0",
+    "moment": "2.29.4",
+    "sqlite": "5.1.1",
+    "sqlite3": "5.1.5",
+    "uuid": "3.3.2",
+    "yaml": "2.7.0"
   }
 }

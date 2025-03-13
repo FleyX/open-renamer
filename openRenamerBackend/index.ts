@@ -12,6 +12,7 @@ import log from './util/LogUtil';
 import qbService from "./service/QbService";
 import * as i18n from './i18n';
 
+let start = Date.now();
 console.log(config);
 
 const app = new koa();
@@ -32,10 +33,10 @@ app.use(handleError);
 app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
 (async () => {
     await SqliteUtil.createPool();
-    await qbService.init();
-    await i18n.init();
+    qbService.init();
+    i18n.init();
     app.listen(config.port);
-    log.info(`server listened `, config.port);
+    log.info(`server listened ${config.port},cost:${Date.now() - start}ms`);
 })();
 
 app.on("error", (error) => {
