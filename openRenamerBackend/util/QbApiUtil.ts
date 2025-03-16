@@ -91,8 +91,8 @@ export async function tryLogin(): Promise<boolean> {
         }
         qbInfo.valid = success;
         return success;
-    } catch (error) {
-        console.error("登录报错：", error);
+    } catch (error:any) {
+        console.error("qb登录报错：" );
         return false;
 
     }

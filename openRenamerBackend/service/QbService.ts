@@ -60,12 +60,8 @@ class QbService {
         let config = await GlobalConfigService.getVal("qbConfig");
         let qbInfo: QbConfigDto = config == null ? {} : JSON.parse(config);
         updateQbInfo(qbInfo);
-        try {
-            qbInfo.valid = await tryLogin();
-            qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
-        } catch (e) {
-            logger.error("qb登录失败:", e);
-        }
+        qbInfo.valid = await tryLogin();
+        qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
     }
 }
 

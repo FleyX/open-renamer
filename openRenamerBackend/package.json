@@ -11,7 +11,7 @@
   "pkg": {
     "assets": [
       "ndist/lib/binding/**/*",
-      "dist/**/**",
+      "dist/**/*",
       "static/**/**",
       "sqls/*",
       "i18n/*"
