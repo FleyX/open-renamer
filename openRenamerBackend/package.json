@@ -4,13 +4,11 @@
   "description": "文件备份用",
   "main": "index.js",
   "scripts": {
-    "ncc": "tsc && ncc build dist/index.js -m -o ndist",
-    "pkg": "pkg . -t macos  -o app"
+    "pkg": "tsc && pkg . -t macos  -o app"
   },
-  "bin": "ndist/index.js",
+  "bin": "dist/index.js",
   "pkg": {
     "assets": [
-      "ndist/lib/binding/**/*",
       "dist/**/*",
       "static/**/**",
       "sqls/*",

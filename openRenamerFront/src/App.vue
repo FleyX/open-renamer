@@ -1,8 +1,10 @@
 <template>
   <div class="app">
-    <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b" router>
-      <el-menu-item index="/">重命名</el-menu-item>
-      <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
+    <div class="header">
+      <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff"
+               active-text-color="#ffd04b" router>
+        <el-menu-item index="/">{{ $t("menu.rename") }}</el-menu-item>
+        <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
         <el-sub-menu index="/download">
           <template #title>{{ $t("menu.download") }}</template>
           <el-menu-item index="/download/center">{{ $t("menu.downloadHome") }}</el-menu-item>
@@ -53,7 +55,7 @@ const { locale, t } = useI18n();
 import httpUtil from "./utils/HttpUtil";
 
 const data = reactive({
-  version: "1.6.2",
+  version: "1.7.2",
   latestVersion: null,
   activeIndex: location.pathname,
   showNewVersion: false,
@@ -65,7 +67,6 @@ const data = reactive({
 onBeforeMount(async () => {
   window.token = localStorage.getItem("token");
   window.isWindows = await httpUtil.get("/file/isWindows");
-    window.isWindows = await httpUtil.get("/file/isWindows");
   //获取最新版本
   let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
   data.latestVersion = config.version;
@@ -83,7 +84,7 @@ function langChange(command) {
 
 function checkVersion(version, latestVersion) {
   let versions = version.split(".");
-  let latestVersions = latestVersion.split('.');
+  let latestVersions = latestVersion.split(".");
   for (let i = 0; i < versions.length; i++) {
     if (i >= latestVersions.length) {
       return false;
