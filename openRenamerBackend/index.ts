@@ -1,3 +1,4 @@
+import {writeFileSync} from 'fs-extra';
 import koa from "koa";
 import Router from "koa-router";
 import koaBody from "koa-body";
@@ -37,6 +38,7 @@ app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
     i18n.init();
     app.listen(config.port);
     log.info(`server listened ${config.port},cost:${Date.now() - start}ms`);
+    writeFileSync(path.join(config.dataPath, 'port'), config.port.toString());
 })();
 
 app.on("error", (error) => {

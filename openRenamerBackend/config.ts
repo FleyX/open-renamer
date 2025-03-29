@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as process from "process";
+import {getPort} from './util/NetUtil';
 
 //后台所在绝对路径
 const rootPath = path.resolve(__dirname, '..');
@@ -12,13 +13,16 @@ for (let i = 2; i < process.argv.length; i++) {
         map[strings[0]] = strings[1];
     }
 }
+//dev,prod,desktop
+let env = map['env'] ? map['env'] : process.env.ENV ? process.env.ENV : "dev";
+let basePort = map['port'] ? parseInt(map['port']) : process.env.PORT ? parseInt(process.env.PORT) : 8089;
 
 let config = {
     rootPath,
     dataPath: map['dataPath'] ? map['dataPath'] : process.env.DATA_PATH ? process.env.DATA_PATH : path.join(rootPath, 'data'),
-    port: map['port'] ? parseInt(map['port']) : process.env.PORT ? parseInt(process.env.PORT) : 8089,
+    port: env == 'desktop' ? getPort(20000, 50000) : basePort,
     token: map['token'] ? map['token'] : process.env.TOKEN ? process.env.TOKEN : null,
-    env: map['env'] ? map['env'] : process.env.ENV ? process.env.ENV : "dev",
+    env,
     urlPrefix: '/openRenamer/api',
     //是否为windows平台
     isWindows: process.platform.toLocaleLowerCase().includes("win32"),

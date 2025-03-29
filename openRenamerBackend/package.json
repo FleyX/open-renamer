@@ -4,7 +4,7 @@
   "description": "文件备份用",
   "main": "index.js",
   "scripts": {
-    "pkg": "tsc && pkg . -t macos  -o app"
+    "pkg": "tsc && pkg . -t macos  -o desktop/macapp"
   },
   "bin": "dist/index.js",
   "pkg": {
