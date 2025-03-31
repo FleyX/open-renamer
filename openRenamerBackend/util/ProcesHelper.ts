@@ -1,4 +1,6 @@
 import * as childPrecess from 'child_process';
+import logUtil from "./LogUtil";
+import logger from "./LogUtil";
 
 class ProcessHelper {
     static exec(cmd): Promise<string> {
@@ -6,7 +8,8 @@ class ProcessHelper {
             childPrecess.exec(cmd, (error, stdout, stderr) => {
                 if (error) {
                     reject(error);
-                } if (stderr) {
+                }
+                if (stderr) {
                     reject(stderr);
                 } else {
                     resolve(stdout)
@@ -14,7 +17,16 @@ class ProcessHelper {
             })
         })
     }
+
+    static kill(pid: number): void {
+        try {
+            childPrecess.execSync("kill " + pid)
+        } catch (e) {
+            logger.info("进程kill报错:" + (e as Error).message);
+        }
+    }
 }
+
 
 // (async()=>{
 //     let res= await ProcessHelper.exec('cd /d e://workspace&&dir');

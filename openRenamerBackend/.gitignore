@@ -19,3 +19,6 @@ database.db
 app
 app.exe
 desktop/*app
+desktop/**/*.zip
+desktop/**/*app
+desktop/mac/data/**

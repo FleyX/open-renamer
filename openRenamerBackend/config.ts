@@ -19,7 +19,8 @@ let basePort = map['port'] ? parseInt(map['port']) : process.env.PORT ? parseInt
 
 let config = {
     rootPath,
-    dataPath: map['dataPath'] ? map['dataPath'] : process.env.DATA_PATH ? process.env.DATA_PATH : path.join(rootPath, 'data'),
+    dataPath: map['dataPath'] ? map['dataPath'] : process.env.DATA_PATH ? process.env.DATA_PATH :
+        env == 'desktop' ? path.join(process.argv[0], "..", 'data') : path.join(rootPath, 'data'),
     port: env == 'desktop' ? getPort(20000, 50000) : basePort,
     token: map['token'] ? map['token'] : process.env.TOKEN ? process.env.TOKEN : null,
     env,
