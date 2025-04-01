@@ -1,6 +1,7 @@
 import * as childPrecess from 'child_process';
 import logUtil from "./LogUtil";
 import logger from "./LogUtil";
+import config from "../config";
 
 class ProcessHelper {
     static exec(cmd): Promise<string> {
@@ -20,7 +21,11 @@ class ProcessHelper {
 
     static kill(pid: number): void {
         try {
-            childPrecess.execSync("kill " + pid)
+            if(config.isWindows){
+                childPrecess.execSync("taskkill /pid " + pid)
+            }else{
+                childPrecess.execSync("kill " + pid)
+            }
         } catch (e) {
             logger.info("进程kill报错:" + (e as Error).message);
         }

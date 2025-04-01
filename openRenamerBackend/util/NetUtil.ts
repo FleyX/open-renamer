@@ -20,7 +20,7 @@ export function checkFree(port: number): boolean {
 
         if (platform.includes("win32")) {
         } else if (platform.includes('darwin')) {
-            //mac
+            //mac-arm
             stdout = execSync(`lsof -i:${port}`)
         } else {
             //Linux

@@ -5,7 +5,7 @@ echo 当前目录："$script_dir"
 # 删除历史port文件
 rm "$script_dir"/data/port
 # 启动应用
-"$script_dir"/macapp env:desktop &
+"$script_dir"/renamer-linux env:desktop &
 # 循环等待启动成功
 while [ ! -f "$script_dir"/data/port ]; do
     echo 等待程序启动
