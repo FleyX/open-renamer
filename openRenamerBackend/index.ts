@@ -7,7 +7,6 @@ import RouterMW from "./middleware/controllerEngine";
 
 import config from "./config";
 import handleError from "./middleware/handleError";
-import init from "./middleware/init";
 import SqliteUtil from './util/SqliteHelper';
 import log from './util/LogUtil';
 import qbService from "./service/QbService";
@@ -28,8 +27,6 @@ app.use(require('koa-static')(path.join(config.rootPath, 'static')));
 
 //表单解析
 app.use(koaBody(config.bodyLimit));
-//请求预处理
-app.use(init);
 //错误处理
 app.use(handleError);
 
