@@ -4,7 +4,20 @@
   "description": "文件备份用",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pkg-mac-arm": "tsc && pkg . -t macos-arm64  -o desktop/mac-arm/renamer-mac",
+    "pkg-mac-x64": "tsc && pkg . -t macos-x64  -o desktop/mac-x64/renamer-mac",
+    "pkg-win-x64": "tsc && pkg . -t win-x64 -o desktop/win-x64/renamer-win",
+    "pkg-linux-arm": "tsc && pkg . -t linux-arm64 -o desktop/linux-arm/renamer-linux",
+    "pkg-linux-x64": "tsc && pkg . -t linux-x64 -o desktop/linux-x64/renamer-linux"
+  },
+  "bin": "dist/index.js",
+  "pkg": {
+    "assets": [
+      "dist/**/*",
+      "static/**/**",
+      "sqls/*",
+      "i18n/*"
+    ]
   },
   "author": "fxb",
   "license": "ISC",
@@ -12,17 +25,18 @@
     "@types/fs-extra": "5.0.4",
     "@types/koa": "2.13.12",
     "@types/node": "11.13.4",
-    "axios": "0.21.4",
+    "axios": "0.29.0",
     "fs-extra": "7.0.0",
-    "koa": "2.5.3",
+    "koa": "3.0.0",
     "koa-body": "4.0.4",
-    "koa-router": "7.4.0",
+    "koa-router": "13.0.1",
     "koa-static": "5.0.0",
     "koa2-cors": "2.0.6",
-    "log4js": "6.3.0",
-    "moment": "2.22.2",
-    "sqlite": "4.0.23",
-    "sqlite3": "5.0.2",
-    "uuid": "3.3.2"
+    "log4js": "6.4.0",
+    "moment": "2.29.4",
+    "sqlite": "5.1.1",
+    "sqlite3": "5.1.5",
+    "uuid": "3.3.2",
+    "yaml": "2.7.0"
   }
 }

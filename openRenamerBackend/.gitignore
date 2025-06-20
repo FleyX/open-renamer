@@ -15,3 +15,10 @@ static/*
 !static/.gitkeep
 database.db
 .idea
+
+app
+app.exe
+desktop/**/*.zip
+desktop/**/renamer-*
+desktop/**/*-desktop
+desktop/**/data/**

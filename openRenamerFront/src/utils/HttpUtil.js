@@ -1,5 +1,5 @@
-import * as http from 'axios';
-import router from '../router/index';
+import * as http from "axios";
+import router from "../router/index";
 
 /**
  * 请求
@@ -12,36 +12,36 @@ import router from '../router/index';
  * @returns 数据
  */
 async function request(url, method, params, body, isForm) {
-    let options = {
-        url,
-        baseURL: '/openRenamer/api',
-        method,
-        params,
-        headers: {token: window.token}
-    };
-    if (isForm) {
-        options.headers['Content-Type'] = 'multipart/form-data';
+  let options = {
+    url,
+    baseURL: "/openRenamer/api",
+    method,
+    params,
+    headers: { token: window.token, lang: localStorage.getItem("lang") }
+  };
+  if (isForm) {
+    options.headers["Content-Type"] = "multipart/form-data";
+  }
+  if (body) {
+    options.data = body;
+  }
+  let res;
+  try {
+    res = await http.default.request(options);
+  } catch (err) {
+    console.log(Object.keys(err));
+    console.log(err.response);
+    if (err.response.status === 401) {
+      window.vueInstance.config.globalProperties.$message.error("密钥验证错误");
+      router.push("/public/login");
+    } else if (err.response.status === 400) {
+      window.vueInstance.config.globalProperties.$message.error(err.response.data);
+    } else {
+      window.vueInstance.config.globalProperties.$message.error("发生了某些异常问题");
     }
-    if (body) {
-        options.data = body;
-    }
-    let res;
-    try {
-        res = await http.default.request(options);
-    } catch (err) {
-        console.log(Object.keys(err));
-        console.log(err.response);
-        if (err.response.status === 401) {
-            window.vueInstance.config.globalProperties.$message.error('密钥验证错误');
-            router.push("/public/login");
-        } else if (err.response.status === 400) {
-            window.vueInstance.config.globalProperties.$message.error(err.response.data);
-        } else {
-            window.vueInstance.config.globalProperties.$message.error('发生了某些异常问题');
-        }
-        throw err;
-    }
-    return res.data;
+    throw err;
+  }
+  return res.data;
 }
 
 /**
@@ -51,7 +51,7 @@ async function request(url, method, params, body, isForm) {
  * @param {*} redirect 未登陆是否跳转到登陆页
  */
 async function get(url, params = null) {
-    return request(url, 'get', params, null, false);
+  return request(url, "get", params, null, false);
 }
 
 /**
@@ -63,7 +63,7 @@ async function get(url, params = null) {
  * @param {*} redirect 是否重定向
  */
 async function post(url, params, body, isForm = false) {
-    return request(url, 'post', params, body, isForm);
+  return request(url, "post", params, body, isForm);
 }
 
 /**
@@ -75,7 +75,7 @@ async function post(url, params, body, isForm = false) {
  * @param {*} redirect 是否重定向
  */
 async function put(url, params, body, isForm = false) {
-    return request(url, 'put', params, body, isForm);
+  return request(url, "put", params, body, isForm);
 }
 
 /**
@@ -85,12 +85,12 @@ async function put(url, params, body, isForm = false) {
  * @param {*} redirect 是否重定向
  */
 async function deletes(url, params = null) {
-    return request(url, 'delete', params, null);
+  return request(url, "delete", params, null);
 }
 
 export default {
-    get,
-    post,
-    put,
-    delete: deletes,
+  get,
+  post,
+  put,
+  delete: deletes
 };

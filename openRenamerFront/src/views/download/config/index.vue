@@ -1,40 +1,52 @@
 <template>
-  <div>配置qb</div>
-  <el-form :model="data.qbConfig" label-width="8em">
-    <el-form-item label="qb版本">
-      {{ data.qbConfig.version ? data.qbConfig.version : "配置错误，无法访问" }}
+  <el-form :model="data.qbConfig" label-width="10em">
+    <el-form-item :label="t('qbConfig.version')">
+      {{ data.qbConfig.version ? data.qbConfig.version : $t("qbConfig.error") }}
     </el-form-item>
-    <el-form-item label="访问地址">
-      <el-input type="text" v-model="data.qbConfig.address" placeholder="例如:http://localhost:8080(仅支持v4.1及以上)"/>
+    <el-form-item :label="t('qbConfig.address')">
+      <el-input :disabled="data.disabled" type="text" v-model="data.qbConfig.address"
+                :placeholder="t('qbConfig.addressAlt')" />
     </el-form-item>
-    <el-form-item label="用户名">
-      <el-input type="text" v-model="data.qbConfig.username" placeholder="qb访问用户名"/>
+    <el-form-item :label="t('qbConfig.username')">
+      <el-input :disabled="data.disabled" type="text" v-model="data.qbConfig.username"
+                :placeholder="t('qbConfig.usernameAlt')" />
     </el-form-item>
-    <el-form-item label="密码">
-      <el-input type="password" v-model="data.qbConfig.password" placeholder="qb访问密码"/>
+    <el-form-item :label="t('qbConfig.password')">
+      <el-input :disabled="data.disabled" type="password" v-model="data.qbConfig.password"
+                :placeholder="t('qbConfig.passwordAlt')" />
     </el-form-item>
-    <el-form-item label="qb下载路径">
-      <el-input type="text" v-model="data.qbConfig.qbDownloadPath" placeholder="qb下载路径(qb中选择的下载路径)"/>
+    <el-form-item :label="t('qbConfig.downloadPath')">
+      <el-input :disabled="data.disabled" type="text" v-model="data.qbConfig.qbDownloadPath"
+                :placeholder="t('qbConfig.downloadPathAlt')" />
     </el-form-item>
-    <el-form-item label="对应本系统路径">
-      <el-input type="text" v-model="data.qbConfig.renameQbDownloadPath" placeholder="qb下载路径对应到本软件中的路径"/>
+    <el-form-item :label="t('qbConfig.localPath')">
+      <el-input :disabled="data.disabled" type="text" v-model="data.qbConfig.renameQbDownloadPath"
+                :placeholder="t('qbConfig.localPathAlt')" />
     </el-form-item>
     <div style="text-align: center">
-      <el-button type="" @click="editInfo = false">取消</el-button>
-      <el-button type="primary" @click="submitQb">提交</el-button>
+      <template v-if="!data.disabled">
+        <el-button type="warning" @click="data.disabled= true">{{ $t("action.cancel") }}</el-button>
+        <el-button type="primary" @click="submitQb">{{ $t("action.submit") }}</el-button>
+      </template>
+      <el-button type="primary" @click="data.disabled= false" v-else>{{ $t("action.edit") }}</el-button>
     </div>
   </el-form>
 </template>
 
 <script setup>
-import {ref, reactive, onMounted, computed} from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
+import { ElMessage } from "element-plus";
 import http from "@/utils/HttpUtil";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+
 //表单
 const data = reactive({
   qbConfig: {},
+  disabled: true
+
 });
-//qb是否可访问
-let editInfo = ref(false);
 
 onMounted(async () => {
   data.qbConfig = await http.get("/qb/config");
@@ -42,6 +54,8 @@ onMounted(async () => {
 
 async function submitQb() {
   data.qbConfig = await http.post("/qb/saveQbInfo", null, data.qbConfig);
+  ElMessage({ message: t("action.success"), type: "success" });
+
 }
 </script>
 

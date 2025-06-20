@@ -1,0 +1,7 @@
+key-error:
+  en: Secret error
+  zh: 秘钥错误
+qb:
+  version-error:
+    en: qBittorrent version must be V4.xx
+    zh: qBittorrent 版本必须为V4.xx
