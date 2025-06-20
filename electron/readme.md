@@ -1,1 +1,0 @@
-需要下载windows版的node.js压缩包，将其中的node.exe 放到windowes目录下

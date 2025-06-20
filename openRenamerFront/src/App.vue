@@ -53,9 +53,10 @@ import { useI18n } from "vue-i18n";
 
 const { locale, t } = useI18n();
 import httpUtil from "./utils/HttpUtil";
+import {version} from './config';
 
 const data = reactive({
-  version: "1.7.2",
+  version,
   latestVersion: null,
   activeIndex: location.pathname,
   showNewVersion: false,
