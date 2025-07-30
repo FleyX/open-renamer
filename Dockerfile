@@ -1,4 +1,4 @@
-FROM node:lts-buster-slim
+FROM node:hydrogen-slim
 WORKDIR /app
 COPY ./openRenamerBackend /app
 # RUN chmod 777 -R /app && npm install -g pnpm typescript --registry https://registry.npmmirror.com
