@@ -28,7 +28,7 @@ renamer 的开源实现版本，BS 应用，支持全平台部署使用
 
 ## 客户端安装
 
-跳转[github.com/FleyX/open-renamer/releases/latest](https://github.com/FleyX/open-renamer/releases/latest) 下载对应平台的 zip 压缩包，解压后执行启动命令
+跳转[github.com/FleyX/open-renamer/releases/latest](https://github.com/FleyX/open-renamer/releases/latest) 下载对应平台的 zip 压缩包，解压后执行
 
 ## docker 部署
 
@@ -83,6 +83,11 @@ version: "3.6"
 ## TODO
 
 ## 版本更新记录
+
+
+### 1.9.1
+
+客户端应用优化，去除启动脚本，直接双击应用启动
 
 ### 1.9.0
 

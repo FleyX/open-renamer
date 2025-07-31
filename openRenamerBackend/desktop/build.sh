@@ -8,6 +8,10 @@ cp -r dist/* ../openRenamerBackend/static
 # shellcheck disable=SC2164
 cd ../openRenamerBackend
 
+# "dev"替换为desktop
+sed -i 's/"dev"/"desktop"/g' config.ts
+
+
 # mac-arm-arm打包
 npm run pkg-mac-arm
 # 打zip包
@@ -61,3 +65,7 @@ npm run pkg-linux-arm
 cd ./desktop/linux-arm
 zip renamer-linux-arm-desktop.zip renamer-linux linux-start.sh node_sqlite3.node
 echo linux-arm over
+
+# 替换回去
+cd ../../
+sed -i 's/"desktop"/"dev"/g' config.ts

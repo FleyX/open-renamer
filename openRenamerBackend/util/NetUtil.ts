@@ -17,14 +17,18 @@ export function checkFree(port: number): boolean {
     let stdout = null
     let platform = process.platform.toLocaleLowerCase();
     try {
-
         if (platform.includes("win32")) {
+            //windows
+            stdout = execSync(`netstat -ano | findstr :${port}`);
         } else if (platform.includes('darwin')) {
-            //mac-arm
-            stdout = execSync(`lsof -i:${port}`)
+            //mac
+            stdout = execSync(`lsof -i:${port}`);
         } else {
             //Linux
-            stdout = execSync(`netstat -anp | grep ${port}`)
+            stdout = execSync(`netstat -tulpn | grep :${port}`);
+            if (stdout.includes("command not found") || stdout.includes("未找到命令")) {
+                stdout = execSync(`ss -tulpn | grep :${port}`);
+            }
         }
         console.log(stdout);
     } catch (e) {

@@ -1,4 +1,4 @@
-import {writeFileSync, readFileSync, pathExistsSync} from 'fs-extra';
+import fs, {writeFileSync, readFileSync, pathExistsSync} from 'fs-extra';
 import koa from "koa";
 import Router from "koa-router";
 import koaBody from "koa-body";
@@ -13,6 +13,7 @@ import qbService from "./service/QbService";
 import * as i18n from './i18n';
 import * as process from "process";
 import ProcesHelper from "./util/ProcesHelper";
+import {execSync} from 'child_process';
 
 let start = Date.now();
 console.log(config);
@@ -46,9 +47,18 @@ app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
     //写启动端口
     writeFileSync(path.join(config.dataPath, 'port'), config.port.toString());
     //写进程号
-    writeFileSync(path.join(config.dataPath, 'pid'), process.pid.toString());
+    writeFileSync(pidPath, process.pid.toString());
+    //如果为桌面环境，打开浏览器
+    if (config.env == 'desktop') {
+        await openBrowser(`http://localhost:${config.port}`);
+    }
 })();
 
 app.on("error", (error) => {
     console.error(error);
 })
+
+
+async function openBrowser(url: string) {
+    execSync(config.isWindows ? `start "" "${url}"` : config.isMac ? `open '${url}'` : `xdg-open ${url}`);
+}
