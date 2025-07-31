@@ -17,7 +17,7 @@ npm run pkg-mac-arm
 # 打zip包
 # shellcheck disable=SC2164
 cd ./desktop/mac-arm
-zip renamer-mac-arm-desktop.zip renamer-mac mac-start.command
+zip renamer-mac-arm-desktop.zip renamer-mac node_sqlite3.node
 echo mac-arm over
 # 解压后，首次运行会因为mac安全检查导致无法启动，解决步骤如下：
 # 1. 双击renamer-mac启动应用
@@ -33,7 +33,7 @@ npm run pkg-mac-x64
 # 打zip包
 # shellcheck disable=SC2164
 cd ./desktop/mac-x64
-zip renamer-mac-x64-desktop.zip renamer-mac mac-start.command
+zip renamer-mac-x64-desktop.zip renamer-mac  node_sqlite3.node
 echo mac-x64 over
 
 
@@ -43,7 +43,7 @@ npm run pkg-win-x64
 # 打zip包
 # shellcheck disable=SC2164
 cd ./desktop/win-x64
-zip renamer-win-x64-desktop.zip renamer-win.exe win-start.bat node_sqlite3.node
+zip renamer-win-x64-desktop.zip renamer-win.exe node_sqlite3.node
 echo win-x64 over
 
 
@@ -53,7 +53,7 @@ npm run pkg-linux-x64
 # 打zip包
 # shellcheck disable=SC2164
 cd ./desktop/linux-x64
-zip renamer-linux-x64-desktop.zip renamer-linux linux-start.sh node_sqlite3.node
+zip renamer-linux-x64-desktop.zip renamer-linux node_sqlite3.node
 echo linux-x64 over
 
 
@@ -63,7 +63,7 @@ npm run pkg-linux-arm
 # 打zip包
 # shellcheck disable=SC2164
 cd ./desktop/linux-arm
-zip renamer-linux-arm-desktop.zip renamer-linux linux-start.sh node_sqlite3.node
+zip renamer-linux-arm-desktop.zip renamer-linux node_sqlite3.node
 echo linux-arm over
 
 # 替换回去
