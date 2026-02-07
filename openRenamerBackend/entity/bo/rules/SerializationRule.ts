@@ -1,6 +1,6 @@
-import RuleInterface from "./RuleInterface";
-import FileObj from "../../vo/FileObj";
-import path from 'path';
+import RuleInterface from "./RuleInterface.ts";
+import FileObj from "../../vo/FileObj.ts";
+import * as path from 'std/path/mod.ts';
 
 export default class InsertRule implements RuleInterface {
     /**

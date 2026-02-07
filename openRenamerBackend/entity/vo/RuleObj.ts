@@ -1,9 +1,9 @@
-import DeleteRule from "../bo/rules/DeleteRule";
-import InsertRule from "../bo/rules/InsertRule";
-import SerializationRule from "../bo/rules/SerializationRule";
-import AutoRule from "../bo/rules/AutoRule";
-import ReplaceRule from "../bo/rules/ReplaceRule";
-import TranslateRole from "../bo/rules/TranslateRole";
+import DeleteRule from "../bo/rules/DeleteRule.ts";
+import InsertRule from "../bo/rules/InsertRule.ts";
+import SerializationRule from "../bo/rules/SerializationRule.ts";
+import AutoRule from "../bo/rules/AutoRule.ts";
+import ReplaceRule from "../bo/rules/ReplaceRule.ts";
+import TranslateRole from "../bo/rules/TranslateRole.ts";
 
 export default class RuleObj {
     type: string;

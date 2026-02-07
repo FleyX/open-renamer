@@ -1,6 +1,6 @@
-import ErrorHelper from "../util/ErrorHelper";
-import SqliteHelper from "../util/SqliteHelper";
-import GlobalConfig from "../entity/po/GlobalConfig";
+import ErrorHelper from "../util/ErrorHelper.ts";
+import SqliteHelper from "../util/SqliteHelper.ts";
+import GlobalConfig from "../entity/po/GlobalConfig.ts";
 
 export default class GlobalConfigDao {
 
@@ -41,7 +41,8 @@ export default class GlobalConfigDao {
 	 * @param code
 	 */
 	static async getByCode(code: string): Promise<string> {
-		let res = await SqliteHelper.pool.get('select val from global_config where code=?', code);
+		const stmt = SqliteHelper.pool.prepare('select val from global_config where code=?');
+		const res = stmt.get([code]);
 		return res ? res.val : null;
 	}
 
@@ -54,7 +55,8 @@ export default class GlobalConfigDao {
 			return new Array();
 		}
 		let codeStr = codes.map(item => `'${item}'`).join(',');
-		return await SqliteHelper.pool.all(`select * from global_config where code in (${codeStr})`);
+		const stmt = SqliteHelper.pool.prepare(`select * from global_config where code in (${codeStr})`);
+		return stmt.all();
 	}
 
 	/**

@@ -1,64 +1,128 @@
-import fs, {writeFileSync, readFileSync, pathExistsSync} from 'fs-extra';
-import koa from "koa";
-import Router from "koa-router";
-import koaBody from "koa-body";
-import * as path from "path";
-import RouterMW from "./middleware/controllerEngine";
+/// <reference lib="deno.ns" />
+import * as path from 'std/path/mod.ts';
+import {Application} from "oak";
+import {Router} from "oak/router";
+import {send} from "oak/send";
+import RouterMW from "./middleware/controllerEngine.ts";
 
-import config from "./config";
-import handleError from "./middleware/handleError";
-import SqliteUtil from './util/SqliteHelper';
-import log from './util/LogUtil';
-import qbService from "./service/QbService";
-import * as i18n from './i18n';
-import * as process from "process";
-import ProcesHelper from "./util/ProcesHelper";
-import {execSync} from 'child_process';
+// 导入Deno标准库日志模块
+import * as log from 'std/log/mod.ts';
 
-let start = Date.now();
-console.log(config);
+import config from "./config.ts";
+import handleError from "./middleware/handleError.ts";
+import SqliteUtil from './util/SqliteHelper.ts';
+import qbService from "./service/QbService.ts";
+import * as i18n from './i18n/index.ts';
+import ProcesHelper from "./util/ProcesHelper.ts";
 
-const app = new koa();
+// 配置Deno日志
+log.setup({
+    handlers: {
+        console: new log.handlers.ConsoleHandler("DEBUG", {
+            formatter: "[{levelName}] {msg}",
+        }),
+    },
+    loggers: {
+        default: {
+            level: "DEBUG",
+            handlers: ["console"],
+        },
+    },
+});
 
-let router = new Router({
+const start = Date.now();
+log.info(JSON.stringify(config));
+
+const app = new Application();
+
+const router = new Router({
     prefix: config.urlPrefix
 });
 
-app.use(require('koa-static')(path.join(config.rootPath, 'static')));
+// 静态文件服务
+app.use(async (ctx, next) => {
+    const url = ctx.request.url.pathname;
+    if (url.startsWith('/static/')) {
+        const fileUrl = url.replace('/static/', '');
+        try {
+            await send(ctx, fileUrl, {
+                root: path.join(config.rootPath, 'static')
+            });
+        } catch {
+            await next();
+        }
+    } else {
+        await next();
+    }
+});
 
-//表单解析
-app.use(koaBody(config.bodyLimit));
-//错误处理
+// 表单解析 - 在 Oak v12 中，请求体解析由 ctx.request.body() 处理
+// 不再需要单独的 bodyParser 中间件
+
+// 错误处理
 app.use(handleError);
 
-app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
+// 异步注册路由，直接处理 api/ 目录下的 .ts 文件
+app.use(await RouterMW(router, path.join(config.rootPath, "openRenamerBackend/api")));
+
 (async () => {
-    let pidPath = path.join(config.dataPath, 'pid');
-    //尝试杀死历史进程
-    if (pathExistsSync(pidPath)) {
-        let pid = readFileSync(pidPath, 'utf-8');
-        ProcesHelper.kill(parseInt(pid));
+    const pidPath = path.join(config.dataPath, 'pid');
+    // 检查目录是否存在，不存在则创建
+    try {
+        await Deno.stat(config.dataPath);
+    } catch {
+        await Deno.mkdir(config.dataPath, { recursive: true });
     }
+    
+    // 尝试杀死历史进程
+    try {
+        const pidContent = await Deno.readTextFile(pidPath);
+        const pid = parseInt(pidContent);
+        ProcesHelper.kill(pid);
+    } catch {
+        // 文件不存在，忽略错误
+    }
+    
     await SqliteUtil.createPool();
     await qbService.init();
     i18n.init();
-    app.listen(config.port);
+    
+    await app.listen({
+        port: config.port,
+        hostname: "0.0.0.0"
+    });
+    
     log.info(`server listened ${config.port},cost:${Date.now() - start}ms`);
-    //写启动端口
-    writeFileSync(path.join(config.dataPath, 'port'), config.port.toString());
-    //写进程号
-    writeFileSync(pidPath, process.pid.toString());
-    //如果为桌面环境，打开浏览器
+    
+    // 写启动端口
+    await Deno.writeTextFile(path.join(config.dataPath, 'port'), config.port.toString());
+    
+    // 写进程号
+    await Deno.writeTextFile(pidPath, Deno.pid.toString());
+    
+    // 如果为桌面环境，打开浏览器
     if (config.env == 'desktop') {
-        await openBrowser(`http://localhost:${config.port}`);
+        openBrowser(`http://localhost:${config.port}`);
     }
 })();
 
-app.on("error", (error) => {
-    console.error(error);
-})
+app.addEventListener("error", (event) => {
+    // Oak v12 中，错误事件直接包含错误对象
+    log.error("应用程序错误:", event);
+});
 
-
-async function openBrowser(url: string) {
-    execSync(config.isWindows ? `start "" "${url}"` : config.isMac ? `open '${url}'` : `xdg-open ${url}`);
+// 使用 Deno.Command 替代 execSync
+function openBrowser(url: string) {
+    const cmd = config.isWindows 
+        ? ['cmd.exe', '/c', `start "" "${url}"`]
+        : config.isMac 
+            ? ['open', url]
+            : ['xdg-open', url];
+    
+    new Deno.Command(cmd[0], {
+        args: cmd.slice(1),
+        stdin: 'inherit',
+        stdout: 'inherit',
+        stderr: 'inherit',
+    }).spawn();
 }

@@ -1,10 +1,10 @@
-import QbConfigDto from "../entity/dto/QbConfigDto";
-import {get, getQbInfo, post, tryLogin, updateQbInfo} from '../util/QbApiUtil';
-import GlobalConfigService from "./GlobalConfigService";
-import GlobalConfig from "../entity/po/GlobalConfig";
-import BtListItemDto from "../entity/dto/BtListItemDto";
-import QbCommonDto from "../entity/dto/QbCommonDto";
-import logger from "../util/LogUtil";
+import QbConfigDto from "../entity/dto/QbConfigDto.ts";
+import {get, getQbInfo, post, tryLogin, updateQbInfo} from '../util/QbApiUtil.ts';
+import GlobalConfigService from "./GlobalConfigService.ts";
+import GlobalConfig from "../entity/po/GlobalConfig.ts";
+import BtListItemDto from "../entity/dto/BtListItemDto.ts";
+import QbCommonDto from "../entity/dto/QbCommonDto.ts";
+
 
 class QbService {
 

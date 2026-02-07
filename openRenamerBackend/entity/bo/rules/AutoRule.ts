@@ -1,7 +1,7 @@
-import RuleInterface from "./RuleInterface";
-import FileObj from "../../vo/FileObj";
-import path from 'path';
-import {getSeason} from "../../../util/MediaUtil";
+import RuleInterface from "./RuleInterface.ts";
+import FileObj from "../../vo/FileObj.ts";
+import * as path from 'std/path/mod.ts';
+import {getSeason} from "../../../util/MediaUtil.ts";
 
 
 let pattern = new RegExp(/s(eason)?(\d+)/);

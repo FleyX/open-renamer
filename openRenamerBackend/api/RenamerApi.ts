@@ -1,5 +1,5 @@
-import { Context } from "koa";
-import RenamerService from "../service/RenamerService";
+import { Context } from "oak";
+import RenamerService from "../service/RenamerService.ts";
 
 const router = {};
 
@@ -7,14 +7,16 @@ const router = {};
  * 预览文件修改后的状态 
  */
 router["POST /renamer/preview"] = async function (ctx: Context) {
-	ctx.body = await RenamerService.preview(ctx.request.body.fileList, ctx.request.body.ruleList);
+    const body = await ctx.request.body().value;
+	ctx.body = await RenamerService.preview(body.fileList, body.ruleList);
 };
 
 /**
  * 提交修改
  */
 router["POST /renamer/submit"] = async function (ctx: Context) {
-	ctx.body = await RenamerService.rename(ctx.request.body.fileList, ctx.request.body.changedFileList);
+    const body = await ctx.request.body().value;
+	ctx.body = await RenamerService.rename(body.fileList, body.changedFileList);
 };
 
 

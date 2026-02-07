@@ -1,5 +1,5 @@
-import {Context} from "koa";
-import service from "../service/QbService";
+import {Context} from "oak";
+import service from "../service/QbService.ts";
 
 const router = {};
 
@@ -7,7 +7,8 @@ const router = {};
  * 获取单个配置
  */
 router["POST /qb/saveQbInfo"] = async function (ctx: Context) {
-    ctx.body = await service.saveAddress(ctx.request.body);
+    const body = await ctx.request.body().value;
+    ctx.body = await service.saveAddress(body);
 };
 
 /**

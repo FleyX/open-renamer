@@ -1,8 +1,22 @@
-import NumberUtil from './NumberUtil'
-import {execSync} from 'child_process';
-import * as process from "process";
+import NumberUtil from './NumberUtil.ts'
+import * as logger from 'std/log/mod.ts';
 
-export function getPort(start, end): number {
+// 使用 Deno.Command 替代 execSync
+async function execCommand(cmd: string[]): Promise<string> {
+    const { stdout, stderr } = await new Deno.Command(cmd[0], {
+        args: cmd.slice(1),
+        stdout: 'piped',
+        stderr: 'piped',
+    }).output();
+    
+    if (stderr.length > 0) {
+        throw new Error(new TextDecoder().decode(stderr));
+    }
+    
+    return new TextDecoder().decode(stdout);
+}
+
+export function getPort(start: number, end: number): number {
     let count = 100;
     while (count-- > 0) {
         let num = NumberUtil.getRandom(start, end);
@@ -15,24 +29,45 @@ export function getPort(start, end): number {
 
 export function checkFree(port: number): boolean {
     let stdout = null
-    let platform = process.platform.toLocaleLowerCase();
+    let platform = Deno.build.os;
     try {
-        if (platform.includes("win32")) {
+        if (platform === "windows") {
             //windows
-            stdout = execSync(`netstat -ano | findstr :${port}`);
-        } else if (platform.includes('darwin')) {
+            const cmd = ['cmd.exe', '/c', `netstat -ano | findstr :${port}`];
+            stdout = new Deno.Command(cmd[0], {
+                args: cmd.slice(1),
+                stdout: 'piped',
+                stderr: 'piped',
+            }).outputSync().stdout;
+        } else if (platform === 'darwin') {
             //mac
-            stdout = execSync(`lsof -i:${port}`);
+            const cmd = ['lsof', `-i:${port}`];
+            stdout = new Deno.Command(cmd[0], {
+                args: cmd.slice(1),
+                stdout: 'piped',
+                stderr: 'piped',
+            }).outputSync().stdout;
         } else {
             //Linux
-            stdout = execSync(`netstat -tulpn | grep :${port}`);
-            if (stdout.includes("command not found") || stdout.includes("未找到命令")) {
-                stdout = execSync(`ss -tulpn | grep :${port}`);
+            try {
+                const cmd = ['netstat', '-tulpn', `| grep :${port}`];
+                stdout = new Deno.Command(cmd[0], {
+                    args: cmd.slice(1),
+                    stdout: 'piped',
+                    stderr: 'piped',
+                }).outputSync().stdout;
+            } catch {
+                const cmd = ['ss', '-tulpn', `| grep :${port}`];
+                stdout = new Deno.Command(cmd[0], {
+                    args: cmd.slice(1),
+                    stdout: 'piped',
+                    stderr: 'piped',
+                }).outputSync().stdout;
             }
         }
-        console.log(stdout);
+        logger.info(new TextDecoder().decode(stdout));
     } catch (e) {
         return true;
     }
-    return !stdout;
+    return stdout.length === 0;
 }

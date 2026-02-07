@@ -1,24 +1,27 @@
-import log from '../util/LogUtil';
-import config from "../config";
-import {getMessage} from "../i18n";
+// 导入Deno标准库日志模块
+import * as log from 'std/log/mod.ts';
+import config from "../config.ts";
+import {getMessage} from "../i18n/index.ts";
 
+// Oak 中间件，处理错误和身份验证
 let f = async (ctx, next) => {
-    let lang = ctx.request.headers['lang'];
+    // 在 Oak 中，headers 是一个 Headers 对象，使用 get() 方法获取
+    let lang = ctx.request.headers.get('lang');
     try {
         //检查是否有密码
         if (checkToken(ctx)) {
             await next();
         } else {
-            ctx.status = 401;
-            ctx.body = getMessage(lang, "key-error");
+            ctx.response.status = 401;
+            ctx.response.body = getMessage(lang, "key-error");
         }
     } catch (error: any) {
         if (error.status != undefined) {
-            ctx.status = error.status;
+            ctx.response.status = error.status;
         } else {
-            ctx.status = 500;
+            ctx.response.status = 500;
         }
-        ctx.body = getMessage(lang, error.message);
+        ctx.response.body = getMessage(lang, error.message);
         log.error(error);
     }
 }
@@ -27,12 +30,15 @@ function checkToken(ctx) {
     if (!config.token) {
         return true;
     }
-    let requestPath = ctx.method + ctx.path.replace(config.urlPrefix, "");
+    
+    // 在 Oak 中，路径和方法的获取方式
+    let requestPath = ctx.request.method + ctx.request.url.pathname.replace(config.urlPrefix, "");
     if (config.publicPath.has(requestPath)) {
         return true;
     }
-    return config.token == ctx.headers.token;
-
+    
+    // 在 Oak 中，获取 headers
+    return config.token == ctx.request.headers.get('token');
 }
 
 export default f;

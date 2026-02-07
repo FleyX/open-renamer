@@ -1,14 +1,14 @@
-import config from '../config';
-import * as path from 'path';
-import * as fs from 'fs-extra';
+import config from '../config.ts';
+import * as path from 'std/path/mod.ts';
 
-import AutoPlanConfigDto from '../entity/dto/AutoPlanConfigDto';
-import GlobalConfig from 'entity/po/GlobalConfig';
-import GlobalConfigService from './GlobalConfigService';
-import ErrorHelper from '../util/ErrorHelper';
-import TimeUtil from '../util/TimeUtil';
-import { isSub, isVideo } from '../util/MediaUtil';
-import log from '../util/LogUtil';
+import AutoPlanConfigDto from '../entity/dto/AutoPlanConfigDto.ts';
+import GlobalConfig from '../entity/po/GlobalConfig.ts';
+import GlobalConfigService from './GlobalConfigService.ts';
+import ErrorHelper from '../util/ErrorHelper.ts';
+import TimeUtil from '../util/TimeUtil.ts';
+import { isSub, isVideo } from '../util/MediaUtil.ts';
+// 导入Deno标准库日志模块
+import * as log from 'std/log/mod.ts';
 const autoConfigCode = "autoConfig";
 let isReadDir = false;
 /**
@@ -93,7 +93,8 @@ async function readDir(dirList: Array<string>): Promise<void> {
 		if (checkIgnore(path.basename(pathStr))) {
 			continue;
 		}
-		if (!(await fs.stat(pathStr)).isDirectory()) {
+		let stat = await Deno.stat(pathStr);
+		if (!stat.isDirectory) {
 			let fileName = path.basename(pathStr);
 			let strs = fileName.split('.').reverse();
 			if (strs.length > 0 && (isSub(strs[0]) || isVideo(strs[1]))) {
@@ -103,7 +104,10 @@ async function readDir(dirList: Array<string>): Promise<void> {
 		}
 		let childs = null;
 		try {
-			childs = await fs.readdir(pathStr);
+			childs = [];
+			for await (const entry of Deno.readDir(pathStr)) {
+				childs.push(entry.name);
+			}
 		} catch (error) {
 			console.warn("读取报错:{}", error);
 		}
@@ -149,7 +153,13 @@ async function work() {
  * @returns 
  */
 async function dealOnePath(filePath: string) {
-	let exist = await fs.pathExists(filePath);
+	let exist = false;
+	try {
+		await Deno.stat(filePath);
+		exist = true;
+	} catch {
+		exist = false;
+	}
 	if (!exist) {
 		return;
 	}
@@ -161,7 +171,7 @@ async function dealOnePath(filePath: string) {
 		}
 	}
 	if (basePath == null) {
-		log.warn("无法识别的文件:{}", filePath);
+		log.warning("无法识别的文件:{}", filePath);
 		return;
 	}
 	let relativePath = filePath.replace(basePath, "");

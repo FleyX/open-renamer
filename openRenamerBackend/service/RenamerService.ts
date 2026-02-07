@@ -1,10 +1,9 @@
-import config from '../config';
-import * as path from 'path';
-import * as fs from 'fs-extra';
+import config from '../config.ts';
+import * as path from 'std/path/mod.ts';
 
-import FileObj from '../entity/vo/FileObj';
-import RuleObj from '../entity/vo/RuleObj';
-import RuleInterface from '../entity/bo/rules/RuleInterface';
+import FileObj from '../entity/vo/FileObj.ts';
+import RuleObj from '../entity/vo/RuleObj.ts';
+import RuleInterface from '../entity/bo/rules/RuleInterface.ts';
 
 
 class RenamerService {

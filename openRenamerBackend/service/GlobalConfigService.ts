@@ -1,7 +1,7 @@
-import GlobalConfigDao from '../dao/GlobalConfigDao';
+import GlobalConfigDao from '../dao/GlobalConfigDao.ts';
 
-import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant';
-import GlobalConfig from '../entity/po/GlobalConfig';
+import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant.ts';
+import GlobalConfig from '../entity/po/GlobalConfig.ts';
 
 
 class GlobalConfigService {

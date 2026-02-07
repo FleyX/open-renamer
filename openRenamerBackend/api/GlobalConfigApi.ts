@@ -1,5 +1,5 @@
-import { Context } from "koa";
-import service from "../service/GlobalConfigService";
+import { Context } from "oak";
+import service from "../service/GlobalConfigService.ts";
 
 const router = {};
 
@@ -7,21 +7,25 @@ const router = {};
  * 获取单个配置
  */
 router["GET /config/code"] = async function (ctx: Context) {
-	ctx.body = await service.getVal(ctx.request.query.code as string);
+    const url = ctx.request.url;
+    const params = url.searchParams;
+	ctx.body = await service.getVal(params.get("code") as string);
 };
 
 /**
  * 获取多个配置项
  */
 router["POST /config/multCode"] = async function (ctx: Context) {
-	ctx.body = await service.getMultVal(ctx.request.body);
+    const body = await ctx.request.body().value;
+	ctx.body = await service.getMultVal(body);
 };
 
 /**
  * 提交修改
  */
 router["POST /config/update"] = async function (ctx: Context) {
-	ctx.body = await service.updateVal(ctx.request.body.code, ctx.request.body.val);
+    const body = await ctx.request.body().value;
+	ctx.body = await service.updateVal(body.code, body.val);
 };
 
 /**

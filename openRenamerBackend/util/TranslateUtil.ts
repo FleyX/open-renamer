@@ -1,7 +1,7 @@
 // ToolGood.Words.Translate.js
 // 2020, Lin Zhijun, https://github.com/toolgood/ToolGood.Words
 // Licensed under the Apache License 2.0
-import {_s2t_s, _s2t_t, _t2hk_t, _t2hk_hk, _t2s_s, _t2tw_t, _t2s_t, _t2tw_tw} from './TranslateWord'
+import {_s2t_s, _s2t_t, _t2hk_t, _t2hk_hk, _t2s_s, _t2tw_t, _t2s_t, _t2tw_tw} from './TranslateWord.ts'
 
 class TrieNode {
     Index = 0;

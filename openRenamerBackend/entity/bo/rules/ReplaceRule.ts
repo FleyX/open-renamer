@@ -1,8 +1,8 @@
-import RuleInterface from "./RuleInterface";
-import * as ValUtil from "../../../util/ValUtil";
-import FileObj from "../../vo/FileObj";
-import {dealFileName} from './RuleInterface';
-import path from 'path';
+import RuleInterface from "./RuleInterface.ts";
+import * as ValUtil from "../../../util/ValUtil.ts";
+import FileObj from "../../vo/FileObj.ts";
+import {dealFileName} from './RuleInterface.ts';
+import * as path from 'std/path/mod.ts';
 
 
 export default class ReplaceRule implements RuleInterface {

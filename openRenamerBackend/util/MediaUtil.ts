@@ -1,4 +1,5 @@
-const path = require("path")
+import * as path from 'std/path/mod.ts';
+
 const videoSet = new Set(["flv", 'avi', 'wmv', 'dat', 'vob', 'mpg', 'mpeg', 'mp4', '3gp', '3g2', 'mkv', 'rm', 'rmvb', 'mov', 'qt', 'ogg', 'ogv', 'oga', 'mod']);
 
 /**

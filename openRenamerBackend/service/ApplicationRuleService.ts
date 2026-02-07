@@ -1,10 +1,10 @@
-import ApplicationRule from '../entity/po/ApplicationRule';
-import ApplicationRuleDao from '../dao/ApplicationRuleDao';
-import GlobalConfigDao from '../dao/GlobalConfigDao';
+import ApplicationRule from '../entity/po/ApplicationRule.ts';
+import ApplicationRuleDao from '../dao/ApplicationRuleDao.ts';
+import GlobalConfigDao from '../dao/GlobalConfigDao.ts';
 
-import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant';
-import GlobalConfig from '../entity/po/GlobalConfig';
-import ErrorHelper from '../util/ErrorHelper';
+import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant.ts';
+import GlobalConfig from '../entity/po/GlobalConfig.ts';
+import ErrorHelper from '../util/ErrorHelper.ts';
 
 
 class ApplicationRuleService {

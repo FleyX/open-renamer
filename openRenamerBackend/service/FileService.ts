@@ -1,14 +1,15 @@
-import config from '../config';
-import * as path from 'path';
-import * as fs from 'fs-extra';
+import config from '../config.ts';
+import * as path from 'std/path/mod.ts';
 
-import ProcessHelper from '../util/ProcesHelper';
-import FileObj from '../entity/vo/FileObj';
-import SavePathDao from '../dao/SavePathDao';
-import SavePath from '../entity/po/SavePath';
-import ErrorHelper from "../util/ErrorHelper";
+import ProcessHelper from '../util/ProcesHelper.ts';
+import FileObj from '../entity/vo/FileObj.ts';
+import SavePathDao from '../dao/SavePathDao.ts';
+import SavePath from '../entity/po/SavePath.ts';
+import ErrorHelper from "../util/ErrorHelper.ts";
+// 导入Deno标准库日志模块
+import * as logger from 'std/log/mod.ts';
 
-let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+const numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
 class FileService {
     static async readPath(pathStr: string, showHidden: boolean): Promise<Array<FileObj>> {
@@ -18,7 +19,7 @@ class FileService {
             //获取根目录路径
             if (config.isWindows) {
                 //windows下
-                let std: string = (await ProcessHelper.exec('wmic logicaldisk get caption')).replace('Caption', '');
+                const std: string = (await ProcessHelper.exec('wmic logicaldisk get caption')).replace('Caption', '');
                 fileList = std
                     .split('\r\n')
                     .filter((item) => item.trim().length > 0)
@@ -26,32 +27,43 @@ class FileService {
             } else {
                 //linux下
                 pathStr = '/';
-                fileList = await fs.readdir(pathStr);
+                const entries = await Deno.readDir(pathStr);
+                fileList = [];
+                for await (const entry of entries) {
+                    fileList.push(entry.name);
+                }
             }
         } else {
-            if (!(fs.pathExists(pathStr))) {
+            try {
+                await Deno.stat(pathStr);
+            } catch (_e) {
                 throw new Error("路径不存在");
             }
-            fileList = await fs.readdir(pathStr);
+            const entries = await Deno.readDir(pathStr);
+            fileList = [];
+            for await (const entry of entries) {
+                fileList.push(entry.name);
+            }
         }
-        let folderList: Array<FileObj> = [];
-        let files: Array<FileObj> = [];
-        for (let index in fileList) {
+        // folderList和files变量在后续会被push方法修改内容，所以使用const
+        const folderList: Array<FileObj> = [];
+        const files: Array<FileObj> = [];
+        for (const index in fileList) {
             try {
-                let stat = await fs.stat(path.join(pathStr, fileList[index]));
+                const fileStat = await Deno.stat(path.join(pathStr, fileList[index]));
                 if (fileList[index].startsWith('.')) {
                     if (showHidden) {
-                        (stat.isDirectory() ? folderList : files).push(
-                            new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
+                        (fileStat.isDirectory ? folderList : files).push(
+                            new FileObj(fileList[index], pathStr, fileStat.isDirectory, fileStat.size, fileStat.birthtime?.getTime() || 0, fileStat.mtime?.getTime() || 0),
                         );
                     }
                 } else {
-                    (stat.isDirectory() ? folderList : files).push(
-                        new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
+                    (fileStat.isDirectory ? folderList : files).push(
+                        new FileObj(fileList[index], pathStr, fileStat.isDirectory, fileStat.size, fileStat.birthtime?.getTime() || 0, fileStat.mtime?.getTime() || 0),
                     );
                 }
             } catch (e) {
-                console.error(e);
+                logger.error(e);
             }
         }
         folderList.sort((a, b) => FileService.compareStr(a.name, b.name)).push(...files.sort((a, b) => FileService.compareStr(a.name, b.name)));
@@ -62,7 +74,7 @@ class FileService {
      * 递归读取文件夹下所有的文件
      */
     static async readRecursion(folders: Array<FileObj>): Promise<Array<FileObj>> {
-        let res = [];
+        const res: Array<FileObj> = [];
         await this.readDirRecursion(res, folders, 1);
         return res;
     }
@@ -74,23 +86,30 @@ class FileService {
         if (folders == null || folders.length == 0) {
             return;
         }
-        for (let i in folders) {
-            let file = folders[i];
+        for (const i in folders) {
+            const file = folders[i];
             if (!file.isFolder) {
                 res.push(file);
             } else {
-                let filePath = path.join(file.path, file.name);
-                let temp = (await fs.readdir(filePath)).map(item => {
-                    let stat = fs.statSync(path.join(filePath, item));
-                    return new FileObj(item, filePath, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime());
-                });
+                const filePath = path.join(file.path, file.name);
+                const entries = await Deno.readDir(filePath);
+                const temp: FileObj[] = [];
+                for await (const item of entries) {
+                    const fileStat = await Deno.stat(path.join(filePath, item.name));
+                    temp.push(new FileObj(item.name, filePath, fileStat.isDirectory, fileStat.size, fileStat.birthtime?.getTime() || 0, fileStat.mtime?.getTime() || 0));
+                }
                 await FileService.readDirRecursion(res, temp, depth + 1);
             }
         }
     }
 
-    static async checkExist(pathStr: string) {
-        return await fs.pathExists(pathStr);
+    static async checkExist(pathStr: string): Promise<boolean> {
+        try {
+            await Deno.stat(pathStr);
+            return true;
+        } catch (_e) {
+            return false;
+        }
     }
 
     /**
@@ -116,8 +135,8 @@ class FileService {
      * @param id
      * @returns
      */
-    static async deleteOne(id) {
-        return await SavePathDao.delete(id);
+    static async deleteOne(id: number): Promise<void> {
+        await SavePathDao.delete(id);
     }
 
     /**
@@ -126,11 +145,11 @@ class FileService {
      * @param b str
      */
     static compareStr(a: string, b: string) {
-        let an = a.length;
-        let bn = b.length;
+        const an = a.length;
+        const bn = b.length;
         for (let i = 0; i < an;) {
-            let charA = FileService.readChar(a, i, an);
-            let charB = FileService.readChar(b, i, bn);
+            const charA = FileService.readChar(a, i, an);
+            const charB = FileService.readChar(b, i, bn);
             if (charB.length == 0) {
                 return 1;
             }
@@ -153,7 +172,7 @@ class FileService {
     static readChar(a: string, i: number, n: number) {
         let res = "";
         for (; i < n; i++) {
-            let char = a.charAt(i);
+            const char = a.charAt(i);
             if (numberSet.has(char)) {
                 //如果当前字符是数字，添加到结果中
                 res += char;
@@ -177,8 +196,8 @@ class FileService {
         if (files == null || files.length == 0) {
             return;
         }
-        for (let i in files) {
-            await fs.remove(path.join(files[i].path, files[i].name));
+        for (const i in files) {
+            await Deno.remove(path.join(files[i].path, files[i].name), { recursive: true });
         }
     }
 
@@ -188,7 +207,7 @@ class FileService {
      * @param target targetFile
      */
     static async rename(source: FileObj, target: FileObj): Promise<void> {
-        await fs.rename(path.join(source.path, source.name), path.join(target.path, target.name));
+        await Deno.rename(path.join(source.path, source.name), path.join(target.path, target.name));
     }
 }
 

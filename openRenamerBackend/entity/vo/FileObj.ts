@@ -1,5 +1,5 @@
-import * as pathUtil from "path";
-import {isVideo, isSub, isNfo} from "../../util/MediaUtil"
+import * as pathUtil from "std/path/mod.ts";
+import {isVideo, isSub, isNfo} from "../../util/MediaUtil.ts"
 
 export default class FileObj {
     /**
