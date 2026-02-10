@@ -8,19 +8,17 @@ export default class ApplicationRuleDao {
 	 * @param obj 
 	 * @returns 
 	 */
-	static async getAll(): Promise<Array<ApplicationRule>> {
+	static getAll(): Array<ApplicationRule> {
 		const stmt = SqliteHelper.pool.prepare('select id,createdDate,updatedDate,name,comment,content from application_rule');
-		return stmt.all();
+		return stmt.all() as unknown as Array<ApplicationRule>;
 	}
 
 	/**
-		 * 查询id
-		 * @param id id
-		 * @returns 
-		 */
-	static async getById(id: number): Promise<ApplicationRule> {
+	 * 查询id
+	 */
+	static getById(id: number): ApplicationRule | null {
 		const stmt = SqliteHelper.pool.prepare('select * from application_rule where id=?');
-		return stmt.get([id]);
+		return stmt.get(id) as unknown as ApplicationRule | null;
 	}
 
 
@@ -32,10 +30,9 @@ export default class ApplicationRuleDao {
 	 * @returns 
 	 */
 	static async addOne(obj: ApplicationRule): Promise<number> {
-		await SqliteHelper.pool.run('insert into application_rule(createdDate,updatedDate,name,comment,content) values(?,?,?,?,?)'
+		const result = await SqliteHelper.pool.run('insert into application_rule(createdDate,updatedDate,name,comment,content) values(?,?,?,?,?)'
 			, [obj.createdDate, obj.updatedDate, obj.name, obj.comment, obj.content]);
-		// sql.js 不支持 lastID，返回插入的 ID
-		return 0;
+		return result.lastInsertRowId ?? 0;
 	}
 
 	/**

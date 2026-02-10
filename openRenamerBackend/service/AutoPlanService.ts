@@ -1,4 +1,3 @@
-import config from '../config.ts';
 import * as path from 'std/path/mod.ts';
 
 import AutoPlanConfigDto from '../entity/dto/AutoPlanConfigDto.ts';
@@ -7,30 +6,21 @@ import GlobalConfigService from './GlobalConfigService.ts';
 import ErrorHelper from '../util/ErrorHelper.ts';
 import TimeUtil from '../util/TimeUtil.ts';
 import { isSub, isVideo } from '../util/MediaUtil.ts';
-// 导入Deno标准库日志模块
 import * as log from 'std/log/mod.ts';
+
 const autoConfigCode = "autoConfig";
 let isReadDir = false;
-/**
- * 需要处理的文件
- */
-let needDeal = [];
-/**
- * 文件夹变更记录。key:变更前的目录，value:变更后的目录.当needDeal为空时清理pathMap
- */
-let pathMap = {};
-/**
- * 自动化配置
- */
-let autoConfig: AutoPlanConfigDto = null;
+/** 需要处理的文件 */
+const needDeal: string[] = [];
+/** 自动化配置 */
+let autoConfig: AutoPlanConfigDto | null = null;
 
 
 class AutoPlanService {
 
 	static async init() {
-		let str = await GlobalConfigService.getVal(autoConfigCode);
+		const str = await GlobalConfigService.getVal(autoConfigCode);
 		if (str != null) {
-		} else {
 			autoConfig = JSON.parse(str);
 		}
 		setTimeout(async () => {
@@ -60,7 +50,7 @@ class AutoPlanService {
 				throw ErrorHelper.Error400("规则为空");
 			}
 		}
-		let configBody: GlobalConfig = {
+		const configBody: GlobalConfig = {
 			code: autoConfigCode,
 			val: JSON.stringify(body),
 			description: "自动化计划配置"
@@ -81,28 +71,27 @@ class AutoPlanService {
 }
 
 /**
- * 读取目录，获取文件列表 
+ * 读取目录，获取文件列表
  * @param dirList 要读取的目录
  */
 async function readDir(dirList: Array<string>): Promise<void> {
 	if (!dirList) {
 		return;
 	}
-	for (let i in dirList) {
-		let pathStr = dirList[i];
+	for (const pathStr of dirList) {
 		if (checkIgnore(path.basename(pathStr))) {
 			continue;
 		}
-		let stat = await Deno.stat(pathStr);
+		const stat = await Deno.stat(pathStr);
 		if (!stat.isDirectory) {
-			let fileName = path.basename(pathStr);
-			let strs = fileName.split('.').reverse();
+			const fileName = path.basename(pathStr);
+			const strs = fileName.split('.').reverse();
 			if (strs.length > 0 && (isSub(strs[0]) || isVideo(strs[1]))) {
 				needDeal.push(pathStr);
 			}
 			continue;
 		}
-		let childs = null;
+		let childs: string[] | null = null;
 		try {
 			childs = [];
 			for await (const entry of Deno.readDir(pathStr)) {
@@ -118,11 +107,12 @@ async function readDir(dirList: Array<string>): Promise<void> {
 }
 
 /**
- * 检查文件名是否被忽略的 
+ * 检查文件名是否被忽略的
  */
 function checkIgnore(str: string): boolean {
-	for (let i in autoConfig.ignorePaths) {
-		if (str.match(autoConfig.ignorePaths[i])) {
+	if (!autoConfig) return false;
+	for (const pattern of autoConfig.ignorePaths) {
+		if (str.match(pattern)) {
 			return true;
 		}
 	}
@@ -130,16 +120,16 @@ function checkIgnore(str: string): boolean {
 }
 
 /**
- * 开始处理 
+ * 开始处理
  */
 async function work() {
 	if (autoConfig == null || !autoConfig.start) {
 		return;
 	}
 	while (needDeal.length > 0) {
-		let file = needDeal.pop();
+		const file = needDeal.pop();
 		try {
-			await dealOnePath(file);
+			await dealOnePath(file!);
 		} catch (error) {
 			log.error("处理文件报错:{}", file);
 			console.error(error);
@@ -150,23 +140,18 @@ async function work() {
 /**
  * 处理一个文件路径
  * @param filePath 路径
- * @returns 
  */
 async function dealOnePath(filePath: string) {
-	let exist = false;
 	try {
 		await Deno.stat(filePath);
-		exist = true;
 	} catch {
-		exist = false;
-	}
-	if (!exist) {
 		return;
 	}
-	let basePath = null;
-	for (let i in autoConfig.paths) {
-		if (filePath.startsWith(autoConfig.paths[i])) {
-			basePath = autoConfig.paths[i];
+	if (!autoConfig) return;
+	let basePath: string | null = null;
+	for (const p of autoConfig.paths) {
+		if (filePath.startsWith(p)) {
+			basePath = p;
 			break;
 		}
 	}
@@ -174,9 +159,9 @@ async function dealOnePath(filePath: string) {
 		log.warning("无法识别的文件:{}", filePath);
 		return;
 	}
-	let relativePath = filePath.replace(basePath, "");
-	let pathArrs = relativePath.split(path.sep).filter(item => item.length > 0);
-
+	const _relativePath = filePath.replace(basePath, "");
+	const _pathArrs = _relativePath.split(path.sep).filter(item => item.length > 0);
+	// TODO: 待实现具体处理逻辑
 }
 
 export default AutoPlanService;

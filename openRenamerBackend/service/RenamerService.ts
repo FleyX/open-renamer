@@ -1,4 +1,3 @@
-import config from '../config.ts';
 import * as path from 'std/path/mod.ts';
 
 import FileObj from '../entity/vo/FileObj.ts';
@@ -7,11 +6,10 @@ import RuleInterface from '../entity/bo/rules/RuleInterface.ts';
 
 
 class RenamerService {
-    static async preview(fileList: Array<FileObj>, ruleList: Array<any>): Promise<Array<FileObj>> {
-        let ruleObjs = ruleList.map(item => new RuleObj(item));
-        let newNameSet: Set<string> = new Set<string>();
-        for (let i in fileList) {
-            let obj = fileList[i];
+    static preview(fileList: Array<FileObj>, ruleList: Array<Record<string, unknown>>): Array<FileObj> {
+        const ruleObjs = ruleList.map(item => new RuleObj(item));
+        const newNameSet = new Set<string>();
+        for (const obj of fileList) {
             ruleObjs.forEach(item => (item.data as RuleInterface).deal(obj));
             if (newNameSet.has(obj.path + obj.name)) {
                 obj.errorMessage = "重名";
@@ -22,17 +20,22 @@ class RenamerService {
     }
 
     static async rename(fileList: Array<FileObj>, changedFileList: Array<FileObj>) {
-        for (let i in fileList) {
-            let old = fileList[i];
-            let oldPath = path.join(fileList[i].path, fileList[i].name);
-            let newPath = path.join(changedFileList[i].path, changedFileList[i].name);
+        for (let i = 0; i < fileList.length; i++) {
+            const oldPath = path.join(fileList[i].path, fileList[i].name);
+            const newPath = path.join(changedFileList[i].path, changedFileList[i].name);
             if (oldPath === newPath) {
                 continue;
             }
-            if ((await fs.pathExists(newPath))) {
+            try {
+                await Deno.stat(newPath);
                 throw new Error("此路径已存在:" + newPath);
+            } catch (e) {
+                if (e instanceof Error && e.message.startsWith("此路径已存在:")) {
+                    throw e;
+                }
+                // 路径不存在，可以继续
             }
-            await fs.rename(oldPath, newPath);
+            await Deno.rename(oldPath, newPath);
         }
     }
 

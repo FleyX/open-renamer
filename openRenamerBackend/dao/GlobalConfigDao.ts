@@ -4,11 +4,8 @@ import GlobalConfig from "../entity/po/GlobalConfig.ts";
 
 export default class GlobalConfigDao {
 
-
 	/**
 	 * 新增
-	 * @param obj 
-	 * @returns 
 	 */
 	static async addOne(obj: GlobalConfig): Promise<void> {
 		await SqliteHelper.pool.run('insert into global_config(code,val,description) values(?,?,?)'
@@ -17,20 +14,16 @@ export default class GlobalConfigDao {
 
 	/**
 	 * 更新
-	 * @param code code 
-	 * @param val  val
 	 */
 	static async updateOne(code: string, val: string): Promise<void> {
 		await SqliteHelper.pool.run('update global_config set val=? where code=?', val, code);
 	}
 
-
 	/**
 	 * 删除
-	 * @param code
 	 */
 	static async deleteByCode(code: string): Promise<void> {
-		let res = await SqliteHelper.pool.run('delete from global_config where code=?', code);
+		const res = await SqliteHelper.pool.run('delete from global_config where code=?', code);
 		if (res.changes == 0) {
 			throw ErrorHelper.Error404("数据不存在");
 		}
@@ -38,34 +31,29 @@ export default class GlobalConfigDao {
 
 	/**
 	 * 查询
-	 * @param code
 	 */
-	static async getByCode(code: string): Promise<string> {
+	static getByCode(code: string): string | null {
 		const stmt = SqliteHelper.pool.prepare('select val from global_config where code=?');
-		const res = stmt.get([code]);
-		return res ? res.val : null;
+		const res = stmt.get(code);
+		return res ? (res.val as string) : null;
 	}
 
 	/**
-	 * 查询多个code
-	 * @param code
+	 * 查询多个code（使用参数化查询避免SQL注入）
 	 */
-	static async getByMulCode(codes: Array<string>): Promise<Array<GlobalConfig>> {
+	static getByMulCode(codes: Array<string>): Array<GlobalConfig> {
 		if (codes.length == 0) {
-			return new Array();
+			return [];
 		}
-		let codeStr = codes.map(item => `'${item}'`).join(',');
-		const stmt = SqliteHelper.pool.prepare(`select * from global_config where code in (${codeStr})`);
-		return stmt.all();
+		const placeholders = codes.map(() => '?').join(',');
+		const stmt = SqliteHelper.pool.prepare(`select * from global_config where code in (${placeholders})`);
+		return stmt.all(...codes) as unknown as Array<GlobalConfig>;
 	}
 
 	/**
-	 * 插入一条
-	 * @param body body
+	 * 插入或替换
 	 */
 	static async insertOrReplace(body: GlobalConfig): Promise<void> {
 		await SqliteHelper.pool.run(`insert or replace into global_config values (?,?,?)`, body.code, body.val, body.description);
 	}
-
-
 }

@@ -8,9 +8,9 @@ export default class SavePathDao {
 	 * @param obj 
 	 * @returns 
 	 */
-	static async getAll(): Promise<Array<SavePath>> {
+	static getAll(): Array<SavePath> {
 		const stmt = SqliteHelper.pool.prepare('select id,name,content from path_save');
-		return stmt.all();
+		return stmt.all() as unknown as Array<SavePath>;
 	}
 
 
@@ -20,10 +20,9 @@ export default class SavePathDao {
 	 * @returns 
 	 */
 	static async addOne(obj: SavePath): Promise<number> {
-		await SqliteHelper.pool.run('insert into path_save(name,content) values(?,?)'
+		const result = await SqliteHelper.pool.run('insert into path_save(name,content) values(?,?)'
 			, [obj.name, obj.content]);
-		// sql.js 不支持 lastID，返回 0
-		return 0;
+		return result.lastInsertRowId ?? 0;
 	}
 
 

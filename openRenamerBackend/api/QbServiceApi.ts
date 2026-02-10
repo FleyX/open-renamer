@@ -1,29 +1,30 @@
-import {Context} from "oak";
+import { Context } from "oak";
 import service from "../service/QbService.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router = {};
+const router: RouterDefinition = {};
 
 /**
- * 获取单个配置
+ * 保存qb配置
  */
 router["POST /qb/saveQbInfo"] = async function (ctx: Context) {
     const body = await ctx.request.body().value;
-    ctx.body = await service.saveAddress(body);
+    ctx.response.body = await service.saveAddress(body);
 };
 
 /**
  * 获取qb配置
  */
 router["GET /qb/config"] = async function (ctx: Context) {
-    ctx.body = await service.getConfig();
+    await Promise.resolve();
+    ctx.response.body = await service.getConfig();
 };
 
 /**
- * 获取qb配置
+ * 获取bt列表
  */
 router["GET /qb/bt/list"] = async function (ctx: Context) {
-    ctx.body = await service.getBtList();
+    ctx.response.body = await service.getBtList();
 };
-
 
 export default router;

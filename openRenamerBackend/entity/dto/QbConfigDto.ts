@@ -3,20 +3,8 @@ export default interface QbConfigDto {
     username: string;
     password: string;
     valid: boolean;
-    /**
-     * qb version,null if config is error
-     */
-    version: string;
-    /**
-     * Qbittorrent's download
-     */
+    version: string | null;
     qbDownloadPath: string;
-    /**
-     * Qbittorrent's download path corresponds to current system path
-     */
     renameQbDownloadPath: string;
-    /**
-     * config path to select convenient
-     */
     configPaths: Array<string>;
 }

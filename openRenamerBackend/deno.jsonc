@@ -1,7 +1,7 @@
 {
   "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM", "WebWorker"],
+    "lib": ["ES2022", "DOM", "WebWorker", "deno.ns"],
     "strict": false,
     "strictNullChecks": false
   },
@@ -11,8 +11,7 @@
     "oak/router": "https://deno.land/x/oak@v12.6.1/router.ts",
     "oak/body": "https://deno.land/x/oak@v12.6.1/body.ts",
     "oak/send": "https://deno.land/x/oak@v12.6.1/send.ts",
-    "deno-sqlite": "https://deno.land/x/sqlite@v3.7.0/mod.ts",
-    "log4js": "npm:log4js@^6.4.0",
+    "deno-sqlite": "https://deno.land/x/sqlite@v3.9.0/mod.ts",
     "std/": "https://deno.land/std@0.201.0/",
     "uuid": "https://deno.land/std@0.201.0/uuid/mod.ts",
     "axios": "npm:axios@^1.6.0",

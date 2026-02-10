@@ -1,11 +1,8 @@
-// 导入Deno标准库日志模块
-import * as logger from 'std/log/mod.ts';
-import config from "../config.ts";
+import * as log from 'std/log/mod.ts';
 
 class ProcessHelper {
-    static async exec(cmd): Promise<string> {
+    static async exec(cmd: string): Promise<string> {
         try {
-            // 使用 Deno.Command 执行命令
             const command = new Deno.Command(
                 "sh",
                 {
@@ -14,16 +11,15 @@ class ProcessHelper {
                     stderr: "piped"
                 }
             );
-            
+
             const output = await command.output();
-            
+
             const stderr = new TextDecoder().decode(output.stderr);
             if (stderr) {
                 throw new Error(stderr);
             }
-            
-            const stdout = new TextDecoder().decode(output.stdout);
-            return stdout;
+
+            return new TextDecoder().decode(output.stdout);
         } catch (error) {
             throw error;
         }
@@ -31,12 +27,11 @@ class ProcessHelper {
 
     static kill(pid: number): void {
         try {
-            // 使用 Deno.kill 替代平台特定命令
             Deno.kill(pid);
         } catch (e) {
-            logger.info("进程kill报错:" + (e as Error).message);
+            log.info("进程kill报错:" + (e as Error).message);
         }
     }
 }
 
-export default ProcessHelper
+export default ProcessHelper;

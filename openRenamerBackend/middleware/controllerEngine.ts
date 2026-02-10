@@ -1,47 +1,50 @@
 import * as path from 'std/path/mod.ts';
-// 导入Deno标准库日志模块
-import * as log from 'std/log/mod.ts';
+import Logger from '../util/Logger.ts';
+import { Router } from "oak/router";
+import { Context } from "oak";
 
-async function addMapping(router, filePath: string) {
-  let mapping = await import(filePath);
-  for (let url in mapping.default) {
+type RouteHandler = (ctx: Context) => Promise<void>;
+
+async function addMapping(router: Router, filePath: string) {
+  const mapping = await import(filePath);
+  for (const url of Object.keys(mapping.default)) {
     if (url.startsWith('GET ')) {
-      let temp = url.substring(4);
-      router.get(temp, mapping.default[url]);
-      log.info(`----GET：${temp}`);
+      const temp = url.substring(4);
+      router.get(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----GET：${temp}`);
     } else if (url.startsWith('POST ')) {
-      let temp = url.substring(5);
-      router.post(temp, mapping.default[url]);
-      log.info(`----POST：${temp}`);
+      const temp = url.substring(5);
+      router.post(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----POST：${temp}`);
     } else if (url.startsWith('PUT ')) {
-      let temp = url.substring(4);
-      router.put(temp, mapping.default[url]);
-      log.info(`----PUT：${temp}`);
+      const temp = url.substring(4);
+      router.put(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----PUT：${temp}`);
     } else if (url.startsWith('DELETE ')) {
-      let temp = url.substring(7);
-      router.delete(temp, mapping.default[url]);
-      log.info(`----DELETE: ${temp}`);
+      const temp = url.substring(7);
+      router.delete(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----DELETE: ${temp}`);
     } else {
-      log.info(`xxxxx无效路径：${url}`);
+      Logger.info(`xxxxx无效路径：${url}`);
     }
   }
 }
 
-async function addControllers(router, filePath: string) {
+async function addControllers(router: Router, filePath: string) {
   for await (const entry of Deno.readDir(filePath)) {
     const temp = path.join(filePath, entry.name);
     const state = await Deno.stat(temp);
-    
+
     if (state.isDirectory) {
       await addControllers(router, temp);
-    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('Helper.ts')) {
-      log.info(`\n--开始处理: ${entry.name}路由`);
+    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('Helper.ts') && !entry.name.startsWith('types')) {
+      Logger.info(`\n--开始处理: ${entry.name}路由`);
       await addMapping(router, temp);
     }
   }
 }
 
-export default async function engine(router, folder: string) {
+export default async function engine(router: Router, folder: string) {
   await addControllers(router, folder);
   return router.routes();
 }

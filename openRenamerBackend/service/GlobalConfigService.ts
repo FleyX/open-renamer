@@ -1,32 +1,28 @@
 import GlobalConfigDao from '../dao/GlobalConfigDao.ts';
-
-import { DEFAULT_TEMPLETE_ID } from '../entity/constants/GlobalConfigCodeConstant.ts';
 import GlobalConfig from '../entity/po/GlobalConfig.ts';
 
 
 class GlobalConfigService {
 
-	static async getVal(code: string): Promise<string> {
+	static getVal(code: string): string | null {
 		return GlobalConfigDao.getByCode(code);
 	}
 
 	/**
 	 * 获取多个配置
-	 * @param codes codes
-	 * @returns 
 	 */
-	static async getMultVal(codes: Array<string>): Promise<any> {
-		let re = {};
-		(await GlobalConfigDao.getByMulCode(codes)).forEach(item => re[item.code] = item.val);
+	static getMultVal(codes: Array<string>): Record<string, string> {
+		const re: Record<string, string> = {};
+		GlobalConfigDao.getByMulCode(codes).forEach(item => re[item.code] = item.val);
 		return re;
 	}
 
 	static async updateVal(code: string, val: string): Promise<void> {
-		return GlobalConfigDao.updateOne(code, val);
+		await GlobalConfigDao.updateOne(code, val);
 	}
 
 	static async insertOrReplace(body: GlobalConfig): Promise<void> {
-		return GlobalConfigDao.insertOrReplace(body);
+		await GlobalConfigDao.insertOrReplace(body);
 	}
 }
 

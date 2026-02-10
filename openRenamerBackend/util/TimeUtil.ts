@@ -1,5 +1,3 @@
-import * as datetime from "std/datetime/mod.ts";
-
 class TimeUtil {
   /**
    * 获取今天的零点
@@ -9,8 +7,8 @@ class TimeUtil {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   }
 
-  static async sleep(duration: number): Promise<void> {
-    return new Promise((resolve, reject) => {
+  static sleep(duration: number): Promise<void> {
+    return new Promise((resolve) => {
       setTimeout(() => resolve(), duration);
     });
   }

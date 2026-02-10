@@ -1,15 +1,15 @@
 import { Context } from "oak";
 import service from "../service/GlobalConfigService.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router = {};
+const router: RouterDefinition = {};
 
 /**
  * 获取单个配置
  */
 router["GET /config/code"] = async function (ctx: Context) {
-    const url = ctx.request.url;
-    const params = url.searchParams;
-	ctx.body = await service.getVal(params.get("code") as string);
+    const params = ctx.request.url.searchParams;
+    ctx.response.body = await service.getVal(params.get("code") as string);
 };
 
 /**
@@ -17,7 +17,7 @@ router["GET /config/code"] = async function (ctx: Context) {
  */
 router["POST /config/multCode"] = async function (ctx: Context) {
     const body = await ctx.request.body().value;
-	ctx.body = await service.getMultVal(body);
+    ctx.response.body = await service.getMultVal(body);
 };
 
 /**
@@ -25,16 +25,17 @@ router["POST /config/multCode"] = async function (ctx: Context) {
  */
 router["POST /config/update"] = async function (ctx: Context) {
     const body = await ctx.request.body().value;
-	ctx.body = await service.updateVal(body.code, body.val);
+    await service.updateVal(body.code, body.val);
+    ctx.response.body = { success: true };
 };
 
 /**
- * 提交修改
+ * 插入或更新
  */
 router["POST /config/insertOrUpdate"] = async function (ctx: Context) {
-	ctx.body = await service.insertOrReplace(ctx.request.body);
+    const body = await ctx.request.body().value;
+    await service.insertOrReplace(body);
+    ctx.response.body = { success: true };
 };
-
-
 
 export default router;

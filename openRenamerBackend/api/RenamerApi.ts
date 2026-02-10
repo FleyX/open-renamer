@@ -1,14 +1,15 @@
 import { Context } from "oak";
 import RenamerService from "../service/RenamerService.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router = {};
+const router: RouterDefinition = {};
 
 /**
- * 预览文件修改后的状态 
+ * 预览文件修改后的状态
  */
 router["POST /renamer/preview"] = async function (ctx: Context) {
     const body = await ctx.request.body().value;
-	ctx.body = await RenamerService.preview(body.fileList, body.ruleList);
+    ctx.response.body = await RenamerService.preview(body.fileList, body.ruleList);
 };
 
 /**
@@ -16,9 +17,8 @@ router["POST /renamer/preview"] = async function (ctx: Context) {
  */
 router["POST /renamer/submit"] = async function (ctx: Context) {
     const body = await ctx.request.body().value;
-	ctx.body = await RenamerService.rename(body.fileList, body.changedFileList);
+    await RenamerService.rename(body.fileList, body.changedFileList);
+    ctx.response.body = { success: true };
 };
-
-
 
 export default router;

@@ -10,7 +10,6 @@ class QbService {
 
     /**
      * 保存地址
-     * @param body
      */
     static async saveAddress(body: QbConfigDto): Promise<QbConfigDto> {
         if (body.address.endsWith("/")) {
@@ -18,8 +17,8 @@ class QbService {
         }
         updateQbInfo(body);
         body.valid = await tryLogin();
-        body.version = body ? (await get("/app/version", null)) : null;
-        if (parseFloat(body.version.replace("v", "")) < 4.1) {
+        body.version = body.valid ? (await get("/app/version", null)) : null;
+        if (parseFloat(body.version?.replace("v", "") ?? "0") < 4.1) {
             body.valid = false;
             body.version = null;
             throw new Error("qb.version-error");
@@ -31,7 +30,7 @@ class QbService {
     /**
      * 获取当前配置
      */
-    static async getConfig(): Promise<QbConfigDto> {
+    static getConfig(): QbConfigDto | null {
         return getQbInfo();
     }
 
@@ -39,26 +38,24 @@ class QbService {
      * get torrents list from qb
      */
     static async getBtList(): Promise<Array<BtListItemDto>> {
-        let res = await get("/api/v2/torrents/info?category=&sort=added_on", null);
+        const res = await get("/api/v2/torrents/info?category=&sort=added_on", null);
         return res;
     }
 
-    static async commonGet(body: QbCommonDto): Promise<any> {
+    static async commonGet(body: QbCommonDto): Promise<unknown> {
         return await get(body.url, body.body);
     }
 
-
-    static async commonPost(body: QbCommonDto): Promise<any> {
+    static async commonPost(body: QbCommonDto): Promise<unknown> {
         return await post(body.url, body.query, body.body, body.contentType);
     }
-
 
     /**
      * 初始化
      */
     static async init() {
-        let config = await GlobalConfigService.getVal("qbConfig");
-        let qbInfo: QbConfigDto = config == null ? {} : JSON.parse(config);
+        const configStr = GlobalConfigService.getVal("qbConfig");
+        const qbInfo: QbConfigDto = configStr == null ? {} as QbConfigDto : JSON.parse(configStr);
         updateQbInfo(qbInfo);
         qbInfo.valid = await tryLogin();
         qbInfo.version = qbInfo.valid ? (await get("/app/version", null)) : null;
