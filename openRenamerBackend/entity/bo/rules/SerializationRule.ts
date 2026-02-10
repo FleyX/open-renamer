@@ -2,7 +2,18 @@ import RuleInterface from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
 import * as path from 'std/path/mod.ts';
 
-export default class InsertRule implements RuleInterface {
+interface SerializationRuleData {
+    start: number;
+    increment: number;
+    addZero: boolean;
+    numLength: number;
+    insertType: string;
+    insertValue: number;
+    ignorePostfix: boolean;
+    postfixGroup: boolean;
+}
+
+export default class SerializationRule implements RuleInterface {
     /**
      * 开始位置
      */
@@ -40,7 +51,7 @@ export default class InsertRule implements RuleInterface {
      */
     postfixGroup: boolean;
 
-    constructor(data: any) {
+    constructor(data: SerializationRuleData) {
         this.start = data.start;
         this.currentIndexMap = new Map<string, number>();
         this.increment = data.increment;
@@ -53,10 +64,10 @@ export default class InsertRule implements RuleInterface {
     }
 
     deal(file: FileObj): void {
-        let expand = this.postfixGroup ? file.expandName : "";
-        let currentIndex = this.currentIndexMap.has(expand) ? this.currentIndexMap.get(expand) : this.start;
-        let length = currentIndex.toString().length;
-        let numStr = (this.addZero && this.numLength > length ? "0".repeat(this.numLength - length) : "") + currentIndex;
+        const expand = this.postfixGroup ? file.expandName : "";
+        const currentIndex = this.currentIndexMap.has(expand) ? this.currentIndexMap.get(expand) : this.start;
+        const length = currentIndex.toString().length;
+        const numStr = (this.addZero && this.numLength > length ? "0".repeat(this.numLength - length) : "") + currentIndex;
         let str = this.ignorePostfix ? file.realName : file.name;
         switch (this.insertType) {
             case "front":

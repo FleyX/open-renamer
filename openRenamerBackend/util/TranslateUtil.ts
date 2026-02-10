@@ -128,7 +128,7 @@ class WordsSearch {
             else {
                 nd.Failure = r.m_values[c];
                 for (const key2 in nd.Failure.Results) {
-                    if (nd.Failure.Results.hasOwnProperty(key2) == false) {
+                    if (!Object.prototype.hasOwnProperty.call(nd.Failure.Results, key2)) {
                         continue;
                     }
                     const result = nd.Failure.Results[key2];
@@ -147,7 +147,7 @@ class WordsSearch {
             const newNode = allNode2[i];
 
             for (const key in oldNode.m_values) {
-                if (oldNode.m_values.hasOwnProperty(key) == false) {
+                if (!Object.prototype.hasOwnProperty.call(oldNode.m_values, key)) {
                     continue;
                 }
                 const index = oldNode.m_values[key].Index;
@@ -229,16 +229,16 @@ let t2hkSearch = null;// WordsSearch
 let hk2tSearch = null;// WordsSearch
 
 interface TranslationOptions {
-    text: any;
-    type: any;
+    text: string;
+    type: number;
 }
 
 /**
  * 转繁体中文
- * @param {any} text 原文本
- * @param {any} type 0、繁体中文，1、港澳繁体，2、台湾正体
+ * @param {string} text 原文本
+ * @param {number} type 0、繁体中文，1、港澳繁体，2、台湾正体
  */
-export function toTraditionalChinese(text: any, type: any) {
+export function toTraditionalChinese(text: string, type: number) {
     if (type == undefined) {
         type = 0;
     }
@@ -257,10 +257,10 @@ export function toTraditionalChinese(text: any, type: any) {
 
 /**
  * 转简体中文
- * @param {any} text 原文本
- * @param {any} srcType 0、繁体中文，1、港澳繁体，2、台湾正体
+ * @param {string} text 原文本
+ * @param {number} srcType 0、繁体中文，1、港澳繁体，2、台湾正体
  */
-export function toSimplifiedChinese(text: string, srcType: any) {
+export function toSimplifiedChinese(text: string, srcType: number) {
     if (srcType == undefined) {
         srcType = 0;
     }
@@ -276,7 +276,7 @@ export function toSimplifiedChinese(text: string, srcType: any) {
     return text;
 }
 
-function TransformationReplace(text: any, wordsSearch: any) {
+function TransformationReplace(text: string, wordsSearch: WordsSearch) {
     const ts = wordsSearch.FindAll(text);
 
     let sb = "";
@@ -341,7 +341,7 @@ function GetWordsSearch(s2t: boolean, srcType: number) {
     return null;
 }
 
-function BuildWordsSearch(keywords: string[], toWords: unknown[]) {
+function BuildWordsSearch(keywords: string[], toWords: string[]) {
     const wordsSearch = new WordsSearch();
     wordsSearch.SetKeywords(keywords);
     wordsSearch._others = toWords;

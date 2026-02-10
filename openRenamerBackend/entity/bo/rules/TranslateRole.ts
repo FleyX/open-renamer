@@ -1,8 +1,11 @@
 import RuleInterface from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
 import * as TranslateUtil from "../../../util/TranslateUtil.ts";
-import * as path from 'std/path/mod.ts';
 
+interface TranslateRoleData {
+    type: number;
+    traditionalType: number;
+}
 
 export default class TranslateRole implements RuleInterface {
 
@@ -15,7 +18,7 @@ export default class TranslateRole implements RuleInterface {
      */
     traditionalType: number;
 
-    constructor(data: any) {
+    constructor(data: TranslateRoleData) {
         this.type = data.type;
         this.traditionalType = data.traditionalType;
     }

@@ -6,11 +6,11 @@ export default interface AutoPlanConfigDto {
 	/**
 	 * 版本
 	 */
-	version: Number;
+	version: number;
 	/**
 	 * 是否忽略season 0
 	 */
-	ignoreSeason0: Boolean;
+	ignoreSeason0: boolean;
 	/**
 	 * 忽略的文件名
 	 */

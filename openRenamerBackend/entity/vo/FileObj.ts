@@ -49,13 +49,13 @@ export default class FileObj {
     isAdFile: boolean;
 
 
-    constructor(name: string, path, isFolder, size: number, createdTime, updatedTime) {
+    constructor(name: string, path: string, isFolder: boolean, size: number, createdTime: number, updatedTime: number) {
         this.name = name;
         this.originName = name;
         this.expandName = pathUtil.extname(name);
         if (this.expandName.length > 0) {
             this.realName = name.substring(0, name.lastIndexOf("."));
-            let end = this.expandName.toLowerCase().replace(".", "");
+            const end = this.expandName.toLowerCase().replace(".", "");
             if (isVideo(end)) {
                 this.isAdFile = size < 5 * 1024 * 1024;
             } else this.isAdFile = !(isSub(end) || isNfo(end));

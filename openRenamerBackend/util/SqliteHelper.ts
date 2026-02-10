@@ -8,10 +8,7 @@ interface DatabaseConfig {
   rootPath: string;
 }
 
-// deno-lint-ignore no-unused-vars
-interface MigrationHistory {
-  executedMigrations: string[];
-}
+
 
 interface QueryResult {
   [key: string]: unknown;
