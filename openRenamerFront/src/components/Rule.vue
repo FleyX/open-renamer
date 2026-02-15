@@ -1,12 +1,12 @@
 <template>
   <div class="main">
     <el-menu style="width: 8em" mode="vertical" :default-active="currentIndex" @select="menuChange">
-      <el-menu-item :disabled="editRule != null" index="insert">插入</el-menu-item>
-      <el-menu-item :disabled="editRule != null" index="delete">删除</el-menu-item>
-      <el-menu-item :disabled="editRule != null" index="replace">替换</el-menu-item>
-      <el-menu-item :disabled="editRule != null || isAutoPlan" index="serialization">序列化</el-menu-item>
-      <el-menu-item :disabled="editRule != null" index="auto">自动识别</el-menu-item>
-      <el-menu-item :disabled="editRule != null" index="translate">简繁转换</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="insert">{{ $t('rule.insert') }}</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="delete">{{ $t('rule.delete') }}</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="replace">{{ $t('rule.replace') }}</el-menu-item>
+      <el-menu-item :disabled="editRule != null || isAutoPlan" index="serialization">{{ $t('rule.serialization') }}</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="auto">{{ $t('rule.autoIdentify') }}</el-menu-item>
+      <el-menu-item :disabled="editRule != null" index="translate">{{ $t('rule.translate') }}</el-menu-item>
     </el-menu>
     <div class="rule">
       <insert-rule ref="rule" :editRule="editRule" v-if="currentIndex === 'insert'"/>
@@ -18,7 +18,7 @@
     </div>
   </div>
   <div style="text-align: center">
-    <el-button type="primary" @click="submit">确定</el-button>
+    <el-button type="primary" @click="submit">{{ $t('rule.confirm') }}</el-button>
   </div>
 </template>
 
@@ -38,7 +38,7 @@ export default {
   data() {
     return {
       currentIndex: "insert",
-      options: [{label: "插入", value: "insert"}],
+      options: [{label: this.$t('rule.insert'), value: "insert"}],
     };
   },
   created() {

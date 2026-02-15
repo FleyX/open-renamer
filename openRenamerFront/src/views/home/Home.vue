@@ -1,38 +1,38 @@
 <template>
   <div v-loading="loading" element-loading-text="后台处理中，请稍候">
     <br/>
-    <el-button type="success" @click="submit" size="default">开始重命名</el-button>
+    <el-button type="success" @click="submit" size="default">{{ $t('home.startRename') }}</el-button>
     <el-divider content-position="left">
-      <div class="head-text">规则设置</div>
+      <div class="head-text">{{ $t('home.ruleSetting') }}</div>
     </el-divider>
     <!-- 规则列表 -->
     <rule-block @ruleUpdate="ruleUpdate"/>
     <el-divider content-position="left">
-      <div class="head-text">文件预览</div>
+      <div class="head-text">{{ $t('home.filePreview') }}</div>
     </el-divider>
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>
         <el-tooltip effect="dark" content="添加需要重命名的文件" placement="top">
-          <el-button type="primary" @click="showFileAdd" size="small">添加</el-button>
+          <el-button type="primary" @click="showFileAdd" size="small">{{ $t('home.addFile') }}</el-button>
         </el-tooltip>
-        收藏路径:
+        {{ $t('home.savePath') }}
         <el-tag v-for="item in savePathList" :round="true" class="savePath" closable :key="item.id"
                 @click="clickSavePath(item)" @close="deleteSavePath(item)" text>{{ item.name }}
         </el-tag>
       </div>
       <div style="margin-top: 5px">
-        <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? "不选" : "全选" }}</el-button>
+        <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? $t('home.deselectAll') : $t('home.selectAll') }}</el-button>
         <el-tooltip effect="dark" content="一键选中所有的非视频、字幕文件和小于5MB的视频文件" placement="bottom">
-          <el-button type="success" size="small" @click="choseAdFile">一键选择</el-button>
+          <el-button type="success" size="small" @click="choseAdFile">{{ $t('home.oneClickSelect') }}</el-button>
         </el-tooltip>
         <el-tooltip effect="dark" content="移除（非删除）需要重命名的文件" placement="bottom">
-          <el-button type="warning" size="small" @click="removeCheckedFiles">移除</el-button>
+          <el-button type="warning" size="small" @click="removeCheckedFiles">{{ $t('home.remove') }}</el-button>
         </el-tooltip>
         <el-popconfirm width="250" confirm-button-text="确认" cancel-button-text="取消"
                        title="确认删除勾选的文件(无法恢复)？" @confirm="deleteCheckedFiles">
           <template #reference>
-            <el-button type="danger" size="small">删除</el-button>
+            <el-button type="danger" size="small">{{ $t('home.delete') }}</el-button>
           </template>
         </el-popconfirm>
         <el-button type="primary" size="small" @click="moveIndex('top')">
@@ -83,14 +83,14 @@
     </div>
     <!-- 新增文件弹窗 -->
 
-    <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
+    <el-dialog :title="$t('home.addFiles')" v-model="dialogVisible" width="70%">
       <file-chose ref="fileChose" type="file" :curChoosePath="curChoosePath" @addData="addData"
                   @refreshSavePathList="refreshSavePathList"/>
     </el-dialog>
     <el-dialog title="编辑名称" v-model="showNameEditDialog" width="50%">
       <el-input type="text" v-model="newName"/>
       <div>
-        <el-button type="primary" @click="doEditFile">确认</el-button>
+        <el-button type="primary" @click="doEditFile">{{ $t('home.confirm') }}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -165,7 +165,7 @@ export default {
     //预览结果
     async showResult() {
       if (this.fileList.length > 500) {
-        this.$message.info("文件数过多，仅展示前500个(不影响重命名)");
+        this.$message.info(this.$t('home.fileTooMany'));
       }
       this.changedFileList = [];
       if (!this.checkRuleAndFile()) {
@@ -196,7 +196,7 @@ export default {
       };
       try {
         await HttpUtil.post("/renamer/submit", null, body);
-        this.$message({message: "重命名成功", type: "success"});
+        this.$message({message: this.$t('home.renameSuccess'), type: "success"});
       } finally {
         this.loading = false;
       }
@@ -217,7 +217,7 @@ export default {
     async editFile() {
       let list = this.fileList.filter((item) => item.checked);
       if (list.length === 0 || list.length > 1) {
-        this.$message({message: "只能选择一个进行编辑", type: "warning"});
+        this.$message({message: this.$t('home.onlySelectOne'), type: "warning"});
         return;
       }
       this.newName = list[0].name;
@@ -226,7 +226,7 @@ export default {
     },
     async doEditFile() {
       if (!this.newName) {
-        this.$message({message: "文件名不能为空", type: "warning"});
+        this.$message({message: this.$t('home.fileNameCannotBeEmpty'), type: "warning"});
         return;
       }
       let target = JSON.parse(JSON.stringify(this.currentEditFile));
@@ -245,11 +245,11 @@ export default {
     //检查规则和文件
     checkRuleAndFile() {
       if (this.fileList.length === 0) {
-        this.$message({message: "请选择文件", type: "warning"});
+        this.$message({message: this.$t('home.pleaseSelectFile'), type: "warning"});
         return false;
       }
       if (this.ruleList.filter((item) => !item.blocked).length === 0) {
-        this.$message({message: "无生效规则", type: "warning"});
+        this.$message({message: this.$t('home.noValidRule'), type: "warning"});
         return false;
       }
       return true;
@@ -258,17 +258,17 @@ export default {
     async moveIndex(type) {
       let temps = this.fileList.filter((item) => item.checked === true);
       if (temps.length === 0) {
-        this.$message({type: "warning", message: "未选中文件，无法移动"});
+        this.$message({type: "warning", message: this.$t('home.noFileSelected')});
         return;
       }
       if (type == "top") {
         if (this.fileList.indexOf(temps[0]) == 0) {
-          this.$message({type: "warning", message: "无法上移"});
+          this.$message({type: "warning", message: this.$t('home.cannotMoveUp')});
           return;
         }
       } else {
         if (this.fileList.indexOf(temps[temps.length - 1]) == this.fileList.length - 1) {
-          this.$message({type: "warning", message: "无法下移"});
+          this.$message({type: "warning", message: this.$t('home.cannotMoveDown')});
           return;
         }
         temps = temps.reverse();

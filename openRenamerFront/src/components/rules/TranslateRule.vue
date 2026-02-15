@@ -1,18 +1,18 @@
 <template>
   <div class="flex">
-    <span class="left">操作：</span>
+    <span class="left">{{ $t('translateRule.operation') }}</span>
     <div class="location">
-      <el-radio v-model="ruleObj.data.type" :label="1">简体转繁体</el-radio>
-      <el-radio v-model="ruleObj.data.type" :label="2">繁体转简体</el-radio>
+      <el-radio v-model="ruleObj.data.type" :label="1">{{ $t('translateRule.simplifiedToTraditional') }}</el-radio>
+      <el-radio v-model="ruleObj.data.type" :label="2">{{ $t('translateRule.traditionalToSimplified') }}</el-radio>
     </div>
   </div>
 
   <div class="flex">
-    <span class="left">繁体类型：</span>
+    <span class="left">{{ $t('translateRule.traditionalType') }}</span>
     <div class="location">
-      <el-radio v-model="ruleObj.data.traditionalType" :label="0">繁体中文</el-radio>
-      <el-radio v-model="ruleObj.data.traditionalType" :label="1">港澳繁体</el-radio>
-      <el-radio v-model="ruleObj.data.traditionalType" :label="2">台湾正体</el-radio>
+      <el-radio v-model="ruleObj.data.traditionalType" :label="0">{{ $t('translateRule.traditionalChinese') }}</el-radio>
+      <el-radio v-model="ruleObj.data.traditionalType" :label="1">{{ $t('translateRule.hongKongTraditional') }}</el-radio>
+      <el-radio v-model="ruleObj.data.traditionalType" :label="2">{{ $t('translateRule.taiwanTraditional') }}</el-radio>
     </div>
   </div>
 </template>
@@ -20,14 +20,8 @@
 <script>
 import {InfoFilled} from "@element-plus/icons-vue";
 
-const traTypeMap = {
-  "0": "繁体中文",
-  "1": "港澳繁体",
-  "2": "台湾正体"
-}
-
 export default {
-  name: "InsertRule",
+  name: "TranslateRule",
   props: ["editRule"],
   components: {InfoFilled},
   data() {
@@ -50,7 +44,6 @@ export default {
   },
   methods: {
     exportObj() {
-      this.ruleObj.message = `简繁转换:"${this.ruleObj.data.type === 1 ? '简体转繁体' : '繁体转简体'}",繁体类型：${traTypeMap[this.ruleObj.data.traditionalType]}`;
       return this.ruleObj;
     },
   },
