@@ -5,11 +5,6 @@
                active-text-color="#ffd04b" router>
         <el-menu-item index="/">{{ $t("menu.rename") }}</el-menu-item>
         <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
-        <el-sub-menu index="/download">
-          <template #title>{{ $t("menu.download") }}</template>
-          <el-menu-item index="/download/center">{{ $t("menu.downloadHome") }}</el-menu-item>
-          <el-menu-item index="/download/config">{{ $t("menu.downloadConfig") }}</el-menu-item>
-        </el-sub-menu>
       </el-menu>
       <el-dropdown style="position: absolute;right:1em;top:1em;color: white;cursor: pointer" @command="langChange">
         {{ $t("langChange") }} : {{ data.curLangLabel }}
