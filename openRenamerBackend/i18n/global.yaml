@@ -5,3 +5,20 @@ qb:
   version-error:
     en: qBittorrent version must be V4.xx
     zh: qBittorrent 版本必须为V4.xx
+rename:
+  edit-target-folder-not-empty:
+    en: Target folder cannot be empty
+    zh: 目标文件夹不能为空
+  path-already-exists:
+    en: "Path already exists: "
+    zh: "路径已存在: "
+  source-not-file:
+    en: "Source path is not a file: "
+    zh: "源路径不是文件: "
+  unsupported-os:
+    en: "Unsupported operating system: "
+    zh: "不支持的操作系统: "
+  hardlink-create-failed:
+    en: "Failed to create hard link: "
+    zh: "创建硬链接失败:"
+  

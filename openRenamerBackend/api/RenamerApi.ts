@@ -8,17 +8,17 @@ const router: RouterDefinition = {};
  * 预览文件修改后的状态
  */
 router["POST /renamer/preview"] = async function (ctx: Context) {
-    const body = await ctx.request.body().value;
-    ctx.response.body = await RenamerService.preview(body.fileList, body.ruleList);
+  const body = await ctx.request.body().value;
+  ctx.response.body = await RenamerService.preview(body, ctx);
 };
 
 /**
  * 提交修改
  */
 router["POST /renamer/submit"] = async function (ctx: Context) {
-    const body = await ctx.request.body().value;
-    await RenamerService.rename(body.fileList, body.changedFileList);
-    ctx.response.body = { success: true };
+  const body = await ctx.request.body().value;
+  await RenamerService.rename(body, ctx);
+  ctx.response.body = { success: true };
 };
 
 export default router;

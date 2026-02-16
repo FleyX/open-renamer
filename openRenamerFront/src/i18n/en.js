@@ -56,7 +56,8 @@ export default {
     noFileSelected: "No file selected, cannot move",
     cannotMoveUp: "Cannot move up",
     cannotMoveDown: "Cannot move down",
-    addFiles: "Add files"
+    addFiles: "Add files",
+    pleaseInputTargetFolder: "Please input hard link target folder"
   },
   ruleBlock: {
     disableEnable: "Disable/Enable",

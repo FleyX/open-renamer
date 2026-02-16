@@ -1,11 +1,15 @@
 {
   "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM", "WebWorker", "deno.ns"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "WebWorker",
+      "deno.ns"
+    ],
     "strict": false,
     "strictNullChecks": false
   },
-  "nodeModulesDir": "auto",
   "imports": {
     "oak": "https://deno.land/x/oak@v12.6.1/mod.ts",
     "oak/router": "https://deno.land/x/oak@v12.6.1/router.ts",

@@ -56,7 +56,8 @@ export default {
     noFileSelected: "未选中文件，无法移动",
     cannotMoveUp: "无法上移",
     cannotMoveDown: "无法下移",
-    addFiles: "新增文件"
+    addFiles: "新增文件",
+    pleaseInputTargetFolder: "请输入硬链接目标目录"
   },
   ruleBlock: {
     disableEnable: "禁用/启用",

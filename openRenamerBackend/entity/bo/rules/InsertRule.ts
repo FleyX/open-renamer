@@ -3,7 +3,7 @@ import FileObj from "../../vo/FileObj.ts";
 import * as path from 'std/path/mod.ts';
 import {getSeason} from "../../../util/MediaUtil.ts";
 
-interface InsertRuleData {
+export interface InsertRuleData {
     insertContent: string;
     type: string;
     atInput: number;

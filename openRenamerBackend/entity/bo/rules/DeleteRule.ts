@@ -2,12 +2,12 @@ import RuleInterface from "./RuleInterface.ts";
 import {dealFileName} from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
 
-interface DeleteRuleItemData {
+export interface DeleteRuleItemData {
     type: string;
     value: string;
 }
 
-interface DeleteRuleData {
+export interface DeleteRuleData {
     type: string;
     regI: boolean;
     start: DeleteRuleItemData;

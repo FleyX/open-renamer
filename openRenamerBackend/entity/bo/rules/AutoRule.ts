@@ -10,7 +10,7 @@ const resolutionPattern = new RegExp(/(\d{3,}[pP])/);
 const resolutionArr = ['1k', '1K', '2k', '2K', '4k', '4K', '8k', '8K'];
 const charSet = new Set([' ', '[', '.', '(', '（']);
 
-interface AutoRuleData {
+export interface AutoRuleData {
     type: string;
     frontAdd: string;
     endAdd: string;

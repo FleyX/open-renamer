@@ -3,7 +3,7 @@ import * as ValUtil from "../../../util/ValUtil.ts";
 import FileObj from "../../vo/FileObj.ts";
 import {dealFileName} from './RuleInterface.ts';
 
-interface ReplaceRuleData {
+export interface ReplaceRuleData {
     type: number;
     source: string;
     target: string;

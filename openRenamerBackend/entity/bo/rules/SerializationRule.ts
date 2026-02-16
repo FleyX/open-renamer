@@ -2,7 +2,7 @@ import RuleInterface from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
 import * as path from 'std/path/mod.ts';
 
-interface SerializationRuleData {
+export interface SerializationRuleData {
     start: number;
     increment: number;
     addZero: boolean;

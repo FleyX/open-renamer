@@ -1,16 +1,15 @@
 import Logger from "../util/Logger.ts";
 import config from "../config.ts";
-import { getMessage } from "../i18n/index.ts";
+import { getCtxMessage } from "../i18n/index.ts";
 import { Context, Next } from "oak";
 
 export default async function handleError(ctx: Context, next: Next) {
-  const lang = ctx.request.headers.get("lang") || "";
   try {
     if (checkToken(ctx)) {
       await next();
     } else {
       ctx.response.status = 401;
-      ctx.response.body = getMessage(lang, "key-error");
+      ctx.response.body = getCtxMessage(ctx, "key-error");
     }
   } catch (error) {
     const err = error as Error & { status?: number };
@@ -19,7 +18,7 @@ export default async function handleError(ctx: Context, next: Next) {
     } else {
       ctx.response.status = 500;
     }
-    ctx.response.body = getMessage(lang, err.message);
+    ctx.response.body = getCtxMessage(ctx, err.message);
     Logger.error("请求处理出错: {},{}", err.message, err.stack);
   }
 }
