@@ -7,7 +7,6 @@ import * as log from "std/log/mod.ts";
 import config from "./config.ts";
 import handleError from "./middleware/handleError.ts";
 import SqliteUtil from "./util/SqliteHelper.ts";
-import qbService from "./service/QbService.ts";
 import * as i18n from "./i18n/index.ts";
 import ProcesHelper from "./util/ProcesHelper.ts";
 
@@ -62,7 +61,6 @@ try {
 }
 
 await SqliteUtil.createPool();
-await qbService.init();
 i18n.init();
 
 app.listen({
