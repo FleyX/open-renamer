@@ -1,29 +1,29 @@
 <template>
   <div class="main">
     <div class="menu">
-      <el-button v-if="rules == undefined" type="warning" size="small" @click="block">禁用/启用</el-button>
-      <el-button type="danger" size="small" @click="deleteRule">删除</el-button>
+      <el-button v-if="rules == undefined" type="warning" size="small" @click="block">{{ $t('ruleBlock.disableEnable') }}</el-button>
+      <el-button type="danger" size="small" @click="deleteRule">{{ $t('ruleBlock.delete') }}</el-button>
       <template v-if="rules == undefined">
-        <el-button type="primary" size="small" @click="templateSubmit">保存</el-button>
-        <el-button type="primary" size="small" @click="ruleTemplateShow = true">选择模板</el-button>
+        <el-button type="primary" size="small" @click="templateSubmit">{{ $t('ruleBlock.save') }}</el-button>
+        <el-button type="primary" size="small" @click="ruleTemplateShow = true">{{ $t('ruleBlock.selectTemplate') }}</el-button>
       </template>
       <template v-if="checkedRules.length == 1">
         <el-button type="primary" size="small" @click="editClick">
-          <el-tooltip effect="dark" content="编辑规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('ruleBlock.editRule')" placement="top">
             <el-icon>
               <edit/>
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="move('top')">
-          <el-tooltip effect="dark" content="上移规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('ruleBlock.moveUpRule')" placement="top">
             <el-icon>
               <top/>
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="move('bottom')">
-          <el-tooltip effect="dark" content="下移规则" placement="top"
+          <el-tooltip effect="dark" :content="$t('ruleBlock.moveDownRule')" placement="top"
           >
             <el-icon>
               <bottom/>
@@ -35,18 +35,18 @@
     </div>
     <div class="ruleBlock">
       <el-checkbox v-model="item.checked" v-for="(item, index) in ruleList" :key="index" @dblclick="editClick(item)">
-        <s v-if="item.blocked">{{ item.message }}</s>
-        <span v-else>{{ item.message }}</span>
+        <s v-if="item.blocked">{{ getRuleMessage(item) }}</s>
+        <span v-else>{{ getRuleMessage(item) }}</span>
       </el-checkbox>
       <div style="padding-top: 0.5em">
-        <el-button type="primary" size="small" text @click="addRuleDialogShow = true">+ 新增规则</el-button>
+        <el-button type="primary" size="small" text @click="addRuleDialogShow = true">+ {{ $t('ruleBlock.addRule') }}</el-button>
       </div>
     </div>
-    <el-dialog :title="editRule ? '编辑规则' : '新增规则'" v-model="addRuleDialogShow" width="70%"
+    <el-dialog :title="editRule ? $t('ruleBlock.editRuleTitle') : $t('ruleBlock.addRuleTitle')" v-model="addRuleDialogShow" width="70%"
                @close="ruleDialogClose">
       <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" :isAutoPlan="rules != undefined"/>
     </el-dialog>
-    <el-dialog title="模板管理" v-model="ruleTemplateShow" width="70%">
+    <el-dialog :title="$t('ruleBlock.templateManagement')" v-model="ruleTemplateShow" width="70%">
       <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate"/>
     </el-dialog>
   </div>
@@ -100,6 +100,88 @@ export default {
     },
   },
   methods: {
+    //获取规则的国际化消息
+    getRuleMessage(rule) {
+      const { type, data } = rule;
+      
+      switch (type) {
+        case 'insert':
+          return this.$t('insertRule.insertMessage', { content: data.insertContent });
+        
+        case 'delete':
+          if (data.type === 'deleteAll') {
+            return `${this.$t('deleteRule.delete')}:${this.$t('deleteRule.deleteAllText')}`;
+          } else {
+            const endValue = data.end.type === 'end' ? this.$t('deleteRule.toEnd') : data.end.value;
+            return `${this.$t('deleteRule.delete')}:${this.$t('deleteRule.deleteFromTo', { start: data.start.value, end: endValue })}`;
+          }
+        
+        case 'replace':
+          const option = data.type === 1 ? this.$t('replaceRule.replaceFirst') : 
+                        data.type === 2 ? this.$t('replaceRule.replaceLast') : 
+                        this.$t('replaceRule.replaceAll');
+          return this.$t('replaceRule.replaceText', { 
+            source: data.source, 
+            target: data.target, 
+            option: option 
+          });
+        
+        case 'serialization':
+          return this.$t('serializationRule.serializationMessage', { 
+            start: data.start, 
+            increment: data.increment 
+          });
+        
+        case 'auto':
+          let typeLabel = '';
+          switch (data.type) {
+            case 'season':
+              typeLabel = this.$t('autoRule.seasonRecognition');
+              break;
+            case 'eNum':
+              typeLabel = this.$t('autoRule.episodeRecognition');
+              break;
+            case 'name':
+              typeLabel = this.$t('autoRule.titleRecognition');
+              break;
+            case 'resolution':
+              typeLabel = this.$t('autoRule.resolutionRecognition');
+              break;
+          }
+          let message = this.$t('autoRule.autoIdentifyMessage', { type: typeLabel });
+          if (data.type === 'eNum') {
+            message += this.$t('autoRule.episodeWidthLabel') + data.eNumWidth + ';';
+          }
+          if (data.frontAdd) {
+            message += this.$t('autoRule.frontAddLabel') + data.frontAdd;
+          }
+          if (data.endAdd) {
+            message += this.$t('autoRule.endAddLabel') + data.endAdd;
+          }
+          return message;
+        
+        case 'translate':
+          const translateType = data.type === 1 ? this.$t('translateRule.simplifiedToTraditional') : 
+                               this.$t('translateRule.traditionalToSimplified');
+          let traditionalTypeText = '';
+          switch (data.traditionalType) {
+            case 0:
+              traditionalTypeText = this.$t('translateRule.traditionalChinese');
+              break;
+            case 1:
+              traditionalTypeText = this.$t('translateRule.hongKongTraditional');
+              break;
+            case 2:
+              traditionalTypeText = this.$t('translateRule.taiwanTraditional');
+              break;
+          }
+          return `${this.$t('translateRule.translate')}:"${translateType}",${this.$t('translateRule.traditionalTypeLabel')}${traditionalTypeText}`;
+        
+        default:
+          return rule.message;
+      }
+    },
+    
     //规则更新
     ruleUpdate(preview) {
       if (preview !== undefined && preview === false) {
@@ -114,7 +196,7 @@ export default {
     async templateSubmit() {
       this.chosedTemplate.content = JSON.stringify(this.ruleList);
       await HttpUtil.post("/applicationRule", null, this.chosedTemplate);
-      this.$message.success("操作成功");
+      this.$message.success(this.$t('action.success'));
     },
     //切换模板
     async templateUpdate(newVal) {

@@ -1,45 +1,54 @@
-import * as path from 'path';
-import * as process from "process";
-import {getPort} from './util/NetUtil';
+import * as path from "std/path/mod.ts";
+import { getPort } from "./util/NetUtil.ts";
+import * as logger from "std/log/mod.ts";
 
-//后台所在绝对路径
-const rootPath = path.resolve(__dirname, '..');
-let map = {};
-console.log(process.argv);
-//argv 传递 port，dataPath,env,token
-for (let i = 2; i < process.argv.length; i++) {
-    if (process.argv[i] != null && process.argv[i] != '') {
-        let strings = process.argv[i].split(":");
-        map[strings[0]] = strings[1];
-    }
+const __dirname = path.dirname(path.fromFileUrl(import.meta.url));
+
+const rootPath = __dirname;
+const map: Record<string, string> = {};
+logger.info(Deno.args);
+// argv 传递 port，dataPath,env,token
+for (let i = 0; i < Deno.args.length; i++) {
+  if (Deno.args[i] != null && Deno.args[i] != "") {
+    const strings = Deno.args[i].split(":");
+    map[strings[0]] = strings[1];
+  }
 }
-//dev,prod,desktop
-let env = map['env'] ? map['env'] : process.env.ENV ? process.env.ENV : "dev";
-let basePort = map['port'] ? parseInt(map['port']) : process.env.PORT ? parseInt(process.env.PORT) : 8089;
 
-let config = {
-    rootPath,
-    dataPath: map['dataPath'] ? map['dataPath'] : process.env.DATA_PATH ? process.env.DATA_PATH :
-        env == 'desktop' ? path.join(process.argv[0], "..", 'data') : path.join(rootPath, 'data'),
-    port: env == 'desktop' ? getPort(20000, 50000) : basePort,
-    token: map['token'] ? map['token'] : process.env.TOKEN ? process.env.TOKEN : null,
-    env,
-    urlPrefix: '/openRenamer/api',
-    //是否为windows平台
-    isWindows: process.platform.toLocaleLowerCase().includes("win32"),
-    isMac: process.platform.toLocaleLowerCase().includes("darwin"),
-    bodyLimit: {
-        formLimit: '200mb',
-        jsonLimit: '200mb',
-        urlencoded: true,
-        multipart: true,
-        formidable: {
-            uploadDir: path.join(rootPath, 'files', 'temp', 'uploads'),
-            keepExtenstions: true,
-            maxFieldsSize: 1024 * 1024 * 200
-        }
-    },
-    publicPath: new Set(["POST/public/checkToken"])
+const env = map["env"]
+  ? map["env"]
+  : Deno.env.get("ENV")
+  ? Deno.env.get("ENV")
+  : "dev";
+const basePort = map["port"]
+  ? parseInt(map["port"])
+  : Deno.env.get("PORT")
+  ? parseInt(Deno.env.get("PORT")!)
+  : 8089;
+
+const config = {
+  rootPath,
+  dataPath: map["dataPath"]
+    ? map["dataPath"]
+    : Deno.env.get("DATA_PATH")
+    ? Deno.env.get("DATA_PATH")!
+    : env == "desktop"
+    ? path.join(path.dirname(Deno.execPath()), "data")
+    : path.join(rootPath, "data"),
+  port: env == "desktop" ? getPort(20000, 50000) : basePort,
+  token: map["token"]
+    ? map["token"]
+    : Deno.env.get("TOKEN")
+    ? Deno.env.get("TOKEN")!
+    : null,
+  env,
+  urlPrefix: "/openRenamer/api",
+  isWindows: Deno.build.os === "windows",
+  isMac: Deno.build.os === "darwin",
+  publicPath: new Set([
+    "POST/public/checkToken",
+    "GET/file/isWindows",
+  ]),
 };
 
 export default config;

@@ -1,15 +1,23 @@
-import RuleInterface from "./RuleInterface";
-import FileObj from "../../vo/FileObj";
-import path from 'path';
-import {getSeason} from "../../../util/MediaUtil";
+import RuleInterface from "./RuleInterface.ts";
+import FileObj from "../../vo/FileObj.ts";
+import * as path from 'std/path/mod.ts';
+import {getSeason} from "../../../util/MediaUtil.ts";
 
 
-let pattern = new RegExp(/s(eason)?(\d+)/);
-let eNumPatternArr = [new RegExp(/ep?(\d+)/), new RegExp(/[\(\[（](\d+)[\)\]）]/), new RegExp(/[\.-](\d+)/), new RegExp(/(\d+)/)];
-let resolutionPattern = new RegExp(/(\d{3,}[pP])/);
-let resolutionArr = ['1k', '1K', '2k', '2K', '4k', '4K', '8k', '8K'];
-let charSet = new Set([' ', '[', '.', '(', '（']);
-export default class InsertRule implements RuleInterface {
+const _pattern = new RegExp(/s(eason)?(\d+)/);
+const eNumPatternArr = [new RegExp(/ep?(\d+)/), new RegExp(/[\(\[（](\d+)[\)\]）]/), new RegExp(/[\.-](\d+)/), new RegExp(/(\d+)/)];
+const resolutionPattern = new RegExp(/(\d{3,}[pP])/);
+const resolutionArr = ['1k', '1K', '2k', '2K', '4k', '4K', '8k', '8K'];
+const charSet = new Set([' ', '[', '.', '(', '（']);
+
+export interface AutoRuleData {
+    type: string;
+    frontAdd: string;
+    endAdd: string;
+    eNumWidth: number;
+}
+
+export default class AutoRule implements RuleInterface {
 
     /**
      * 识别类型，season：季号，name：剧名/电影名识别
@@ -25,7 +33,7 @@ export default class InsertRule implements RuleInterface {
     endAdd: string;
     eNumWidth: number;
 
-    constructor(data: any) {
+    constructor(data: AutoRuleData) {
         this.type = data.type;
         this.frontAdd = data.frontAdd;
         this.endAdd = data.endAdd;
@@ -36,7 +44,7 @@ export default class InsertRule implements RuleInterface {
     deal(file: FileObj): void {
         //识别到的内容
         let getStr = null;
-        let season = getSeason(path.basename(file.path));
+        const season = getSeason(path.basename(file.path));
         if (this.type === 'season') {
             getStr = season;
         } else if (this.type === 'name') {
@@ -50,18 +58,18 @@ export default class InsertRule implements RuleInterface {
             }
             getStr = '';
             for (let i = 0; i < originName.length; i++) {
-                let char = originName.charAt(i);
+                const char = originName.charAt(i);
                 if (charSet.has(char)) {
                     break;
                 }
                 getStr += char;
             }
         } else if (this.type === 'eNum') {
-            let lowName = file.originName.toLocaleLowerCase().replace(/ /g, '')
+            const lowName = file.originName.toLocaleLowerCase().replace(/ /g, '')
                 .replace(/\d+[kp]/g, '')//去除4k,1080p等
                 .replace(/[xh]\d+/g, '')//去除x264,h264等 ;
-            for (let i in eNumPatternArr) {
-                let patternRes = lowName.match(eNumPatternArr[i]);
+            for (const i in eNumPatternArr) {
+                const patternRes = lowName.match(eNumPatternArr[i]);
                 if (patternRes && patternRes.length > 1) {
                     getStr = patternRes[1];
                     for (let i = 0; i < this.eNumWidth - getStr.length; i++) {
@@ -71,7 +79,7 @@ export default class InsertRule implements RuleInterface {
                 }
             }
         } else if (this.type === 'resolution') {
-            let res = file.originName.match(resolutionPattern);
+            const res = file.originName.match(resolutionPattern);
             if (res && res.length > 1) {
                 getStr = res[1];
             } else {

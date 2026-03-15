@@ -1,8 +1,16 @@
-import RuleInterface from "./RuleInterface";
-import * as ValUtil from "../../../util/ValUtil";
-import FileObj from "../../vo/FileObj";
-import {dealFileName} from './RuleInterface';
-import path from 'path';
+import RuleInterface from "./RuleInterface.ts";
+import * as ValUtil from "../../../util/ValUtil.ts";
+import FileObj from "../../vo/FileObj.ts";
+import {dealFileName} from './RuleInterface.ts';
+
+export interface ReplaceRuleData {
+    type: number;
+    source: string;
+    target: string;
+    regFlag?: boolean;
+    regI?: boolean;
+    ignorePostfix?: boolean;
+}
 
 
 export default class ReplaceRule implements RuleInterface {
@@ -32,7 +40,7 @@ export default class ReplaceRule implements RuleInterface {
      */
     ignorePostfix: boolean;
 
-    constructor(data: any) {
+    constructor(data: ReplaceRuleData) {
         this.type = data.type;
         this.source = data.source;
         this.target = data.target;
@@ -43,16 +51,16 @@ export default class ReplaceRule implements RuleInterface {
 
 
     deal(file: FileObj): void {
-        let targetStr = this.ignorePostfix ? file.realName : file.name;
-        let res = this.regFlag ? this.dealReg(targetStr) : this.dealNoReg(targetStr);
+        const targetStr = this.ignorePostfix ? file.realName : file.name;
+        const res = this.regFlag ? this.dealReg(targetStr) : this.dealNoReg(targetStr);
         dealFileName(file, res, this.ignorePostfix);
     }
 
     private dealNoReg(targetStr: string): string {
         let start = 0;
-        let arr: number[] = [];
+        const arr: number[] = [];
         for (let i = 0; i < (this.type == 1 ? 1 : 1000); i++) {
-            let one = targetStr.indexOf(this.source, start);
+            const one = targetStr.indexOf(this.source, start);
             if (one == -1) {
                 break;
             }
@@ -63,7 +71,7 @@ export default class ReplaceRule implements RuleInterface {
             return targetStr;
         }
         let res = "";
-        let needDealArr: number[] = this.type === 1 ? [arr[0]] : this.type === 2 ? [arr[arr.length - 1]] : arr;
+        const needDealArr: number[] = this.type === 1 ? [arr[0]] : this.type === 2 ? [arr[arr.length - 1]] : arr;
         let lastIndex = 0;
         for (let i = 0; i < needDealArr.length; i++) {
             res += targetStr.substring(lastIndex, needDealArr[i]) + this.target;
@@ -74,20 +82,20 @@ export default class ReplaceRule implements RuleInterface {
     }
 
     private dealReg(targetStr: string): string {
-        let templateReg = new RegExp("#\{group(\\d+\)}", "g");
-        let templateArr: string[][] = [];
+        const templateReg = new RegExp("#\\{group(\\d+)\\}", "g");
+        const templateArr: string[][] = [];
         while (true) {
-            let one = templateReg.exec(this.target);
+            const one = templateReg.exec(this.target);
             if (one == null) {
                 break;
             }
             templateArr.push([one[0], one[1]]);
         }
 
-        let reg = new RegExp(this.source, this.regI ? "g" : "ig");
-        let arr: RegExpExecArray[] = [];
+        const reg = new RegExp(this.source, this.regI ? "g" : "ig");
+        const arr: RegExpExecArray[] = [];
         for (let i = 0; i < (this.type == 1 ? 1 : 1000); i++) {
-            let one = reg.exec(targetStr);
+            const one = reg.exec(targetStr);
             if (one == null) {
                 break;
             }
@@ -97,14 +105,14 @@ export default class ReplaceRule implements RuleInterface {
             return targetStr;
         }
         let res = "";
-        let needDealReg: RegExpExecArray[] = this.type === 1 ? [arr[0]] : this.type === 2 ? [arr[arr.length - 1]] : arr;
+        const needDealReg: RegExpExecArray[] = this.type === 1 ? [arr[0]] : this.type === 2 ? [arr[arr.length - 1]] : arr;
         let lastIndex = 0;
         for (let i = 0; i < needDealReg.length; i++) {
-            let reg = needDealReg[i];
+            const regMatch = needDealReg[i];
             let target = this.target;
-            templateArr.forEach(item => target = target.replace(item[0], ValUtil.nullToDefault(reg[parseInt(item[1])], '')));
-            res += targetStr.substring(lastIndex, reg.index) + target;
-            lastIndex = reg.index + reg[0].length;
+            templateArr.forEach(item => target = target.replace(item[0], ValUtil.nullToDefault(regMatch[parseInt(item[1])], '')));
+            res += targetStr.substring(lastIndex, regMatch.index) + target;
+            lastIndex = regMatch.index + regMatch[0].length;
         }
         res += targetStr.substring(lastIndex);
         return res;

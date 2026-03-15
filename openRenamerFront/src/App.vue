@@ -5,11 +5,6 @@
                active-text-color="#ffd04b" router>
         <el-menu-item index="/">{{ $t("menu.rename") }}</el-menu-item>
         <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
-        <el-sub-menu index="/download">
-          <template #title>{{ $t("menu.download") }}</template>
-          <el-menu-item index="/download/center">{{ $t("menu.downloadHome") }}</el-menu-item>
-          <el-menu-item index="/download/config">{{ $t("menu.downloadConfig") }}</el-menu-item>
-        </el-sub-menu>
       </el-menu>
       <el-dropdown style="position: absolute;right:1em;top:1em;color: white;cursor: pointer" @command="langChange">
         {{ $t("langChange") }} : {{ data.curLangLabel }}
@@ -50,6 +45,7 @@
 <script setup>
 import { onBeforeMount, reactive } from "vue";
 import { useI18n } from "vue-i18n";
+import axios from "axios";
 
 const { locale, t } = useI18n();
 import httpUtil from "./utils/HttpUtil";
@@ -69,9 +65,13 @@ onBeforeMount(async () => {
   window.token = localStorage.getItem("token");
   window.isWindows = await httpUtil.get("/file/isWindows");
   //获取最新版本
-  let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
-  data.latestVersion = config.version;
-  data.showNewVersion = checkVersion(data.version, data.latestVersion);
+  try {
+    let res = await axios.get("https://api.github.com/repos/FleyX/open-renamer/releases/latest");
+    data.latestVersion = res.data.tag_name.replace(/^v/, '');
+    data.showNewVersion = checkVersion(data.version, data.latestVersion);
+  } catch (e) {
+    console.error("获取最新版本失败", e);
+  }
   data.curLangLabel = data.langList.filter(item => item.code === locale.value)[0].label;
   console.log(data.curLangLabel);
 });

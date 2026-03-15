@@ -1,11 +1,9 @@
-import NumberUtil from './NumberUtil'
-import {execSync} from 'child_process';
-import * as process from "process";
+import * as logger from 'std/log/mod.ts';
 
-export function getPort(start, end): number {
+export function getPort(start: number, end: number): number {
     let count = 100;
     while (count-- > 0) {
-        let num = NumberUtil.getRandom(start, end);
+        const num = Math.floor(Math.random() * (end - start + 1) + start);
         if (checkFree(num)) {
             return num;
         }
@@ -14,25 +12,12 @@ export function getPort(start, end): number {
 }
 
 export function checkFree(port: number): boolean {
-    let stdout = null
-    let platform = process.platform.toLocaleLowerCase();
     try {
-        if (platform.includes("win32")) {
-            //windows
-            stdout = execSync(`netstat -ano | findstr :${port}`);
-        } else if (platform.includes('darwin')) {
-            //mac
-            stdout = execSync(`lsof -i:${port}`);
-        } else {
-            //Linux
-            stdout = execSync(`netstat -tulpn | grep :${port}`);
-            if (stdout.includes("command not found") || stdout.includes("未找到命令")) {
-                stdout = execSync(`ss -tulpn | grep :${port}`);
-            }
-        }
-        console.log(stdout);
-    } catch (e) {
+        const listener = Deno.listen({ port, hostname: "0.0.0.0" });
+        listener.close();
         return true;
+    } catch (e) {
+        logger.debug(`端口 ${port} 已被占用: ${e}`);
+        return false;
     }
-    return !stdout;
 }

@@ -1,6 +1,6 @@
-import ErrorHelper from "../util/ErrorHelper";
-import ApplicationRule from "../entity/po/ApplicationRule";
-import SqliteHelper from "../util/SqliteHelper";
+import ErrorHelper from "../util/ErrorHelper.ts";
+import ApplicationRule from "../entity/po/ApplicationRule.ts";
+import SqliteHelper from "../util/SqliteHelper.ts";
 
 export default class ApplicationRuleDao {
 	/**
@@ -8,19 +8,17 @@ export default class ApplicationRuleDao {
 	 * @param obj 
 	 * @returns 
 	 */
-	static async getAll(): Promise<Array<ApplicationRule>> {
-		let res = await SqliteHelper.pool.all('select id,createdDate,updatedDate,name,comment,content from application_rule');
-		return res;
+	static getAll(): Array<ApplicationRule> {
+		const stmt = SqliteHelper.pool.prepare('select id,createdDate,updatedDate,name,comment,content from application_rule');
+		return stmt.all() as unknown as Array<ApplicationRule>;
 	}
 
 	/**
-		 * 查询id
-		 * @param id id
-		 * @returns 
-		 */
-	static async getById(id: number): Promise<ApplicationRule> {
-		let res = await SqliteHelper.pool.get('select * from application_rule where id=?', id);
-		return res;
+	 * 查询id
+	 */
+	static getById(id: number): ApplicationRule | null {
+		const stmt = SqliteHelper.pool.prepare('select * from application_rule where id=?');
+		return stmt.get(id) as unknown as ApplicationRule | null;
 	}
 
 
@@ -32,9 +30,9 @@ export default class ApplicationRuleDao {
 	 * @returns 
 	 */
 	static async addOne(obj: ApplicationRule): Promise<number> {
-		let res = await SqliteHelper.pool.run('insert into application_rule(createdDate,updatedDate,name,comment,content) values(?,?,?,?,?)'
-			, obj.createdDate, obj.updatedDate, obj.name, obj.comment, obj.content);
-		return res.lastID;
+		const result = await SqliteHelper.pool.run('insert into application_rule(createdDate,updatedDate,name,comment,content) values(?,?,?,?,?)'
+			, [obj.createdDate, obj.updatedDate, obj.name, obj.comment, obj.content]);
+		return result.lastInsertRowId ?? 0;
 	}
 
 	/**
@@ -42,9 +40,9 @@ export default class ApplicationRuleDao {
 	 * @param obj 
 	 */
 	static async updateOne(obj: ApplicationRule): Promise<void> {
-		let res = await SqliteHelper.pool.run('update application_rule set updatedDate=?,name=?,comment=?,content=? where id=?'
-			, obj.updatedDate, obj.name, obj.comment, obj.content, obj.id);
-		if (res.changes == 0) {
+		const result = await SqliteHelper.pool.run('update application_rule set updatedDate=?,name=?,comment=?,content=? where id=?'
+			, [obj.updatedDate, obj.name, obj.comment, obj.content, obj.id]);
+		if (result.changes == 0) {
 			throw ErrorHelper.Error404("数据不存在");
 		}
 	}
@@ -54,8 +52,8 @@ export default class ApplicationRuleDao {
 	 * @param id 
 	 */
 	static async delete(id: number): Promise<void> {
-		let res = await SqliteHelper.pool.run('delete from application_rule  where id=?', id);
-		if (res.changes == 0) {
+		const result = await SqliteHelper.pool.run('delete from application_rule  where id=?', [id]);
+		if (result.changes == 0) {
 			throw ErrorHelper.Error404("数据不存在");
 		}
 	}

@@ -1,8 +1,18 @@
-import RuleInterface from "./RuleInterface";
-import FileObj from "../../vo/FileObj";
-import path from 'path';
-import {getSeason} from "../../../util/MediaUtil";
+import RuleInterface from "./RuleInterface.ts";
+import FileObj from "../../vo/FileObj.ts";
+import * as path from 'std/path/mod.ts';
+import {getSeason} from "../../../util/MediaUtil.ts";
 
+export interface InsertRuleData {
+    insertContent: string;
+    type: string;
+    atInput: number;
+    atIsRightToleft: boolean;
+    ignorePostfix: boolean;
+    autoSeason: boolean;
+    endFilter: boolean;
+    validEnd: Array<string>;
+}
 
 export default class InsertRule implements RuleInterface {
 
@@ -37,9 +47,9 @@ export default class InsertRule implements RuleInterface {
     /**
      有效后缀
      */
-    validEnd: Array<String>;
+    validEnd: Array<string>;
 
-    constructor(data: any) {
+    constructor(data: InsertRuleData) {
         this.insertContent = data.insertContent;
         this.type = data.type;
         this.atInput = data.atInput;
@@ -69,10 +79,11 @@ export default class InsertRule implements RuleInterface {
             case "backend":
                 str = str + this.insertContent + season;
                 break;
-            case "at":
-                let index = this.atIsRightToleft ? str.length - this.atInput + 1 : this.atInput - 1;
+            case "at": {
+                const index = this.atIsRightToleft ? str.length - this.atInput + 1 : this.atInput - 1;
                 str = str.substring(0, index) + this.insertContent + season + str.substring(index);
                 break;
+            }
             case "replace":
                 str = this.insertContent + season;
                 break;

@@ -1,4 +1,3 @@
-const path = require("path")
 const videoSet = new Set(["flv", 'avi', 'wmv', 'dat', 'vob', 'mpg', 'mpeg', 'mp4', '3gp', '3g2', 'mkv', 'rm', 'rmvb', 'mov', 'qt', 'ogg', 'ogv', 'oga', 'mod']);
 
 /**
@@ -36,10 +35,10 @@ export function isNfo(str: string) {
     return "nfo" == str;
 }
 
-let pattern1 = new RegExp(/s(eason)?\.?(\d+)/);
-let pattern2 = new RegExp(/(\d+)/);
-let pattern3 = new RegExp(/([一二三四五六七八九十]+)/);
-let chineseNumMap = {
+const pattern1 = new RegExp(/s(eason)?\.?(\d+)/);
+const pattern2 = new RegExp(/(\d+)/);
+const pattern3 = new RegExp(/([一二三四五六七八九十]+)/);
+const chineseNumMap = {
     "一": "1",
     "二": "2",
     "三": "3",
@@ -70,8 +69,8 @@ export function getSeason(name: string): string {
     //中文支持
     patternRes = name.match(pattern3);
     if (patternRes && patternRes[1]) {
-        let str = patternRes[1];
-        let strs = str.split("");
+        const str = patternRes[1];
+        const strs = str.split("");
         if (strs.length == 1) {
             return str == '十' ? "10" : chineseNumMap[str];
         } else if (strs.length == 2) {

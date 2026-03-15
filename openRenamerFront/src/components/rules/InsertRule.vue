@@ -1,39 +1,39 @@
 <template>
   <div class="flex">
-    <span class="left">插入：</span>
+    <span class="left">{{ $t('insertRule.insert') }}</span>
     <el-input style="flex: 1" v-model="ruleObj.data.insertContent" />
   </div>
   <div class="flex">
-    <span class="left">位置：</span>
+    <span class="left">{{ $t('insertRule.position') }}</span>
     <div class="location">
-      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="front">前缀</el-radio>
-      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="backend">后缀</el-radio>
+      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="front">{{ $t('insertRule.prefix') }}</el-radio>
+      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="backend">{{ $t('insertRule.suffix') }}</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="at"
-        >位置:<el-input-number size="small" v-model="ruleObj.data.atInput" />
+        >{{ $t('insertRule.positionLabel') }}<el-input-number size="small" v-model="ruleObj.data.atInput" />
         &nbsp;&nbsp;
-        <el-switch v-model="ruleObj.data.atIsRightToleft" :min="1" active-text="从右到左" inactive-text="从左到右" />
+        <el-switch v-model="ruleObj.data.atIsRightToleft" :min="1" :active-text="$t('insertRule.fromRightToLeft')" :inactive-text="$t('insertRule.fromLeftToRight')" />
       </el-radio>
-      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="replace">替换当前文件名</el-radio>
+      <el-radio style="margin-top: 1em" v-model="ruleObj.data.type" label="replace">{{ $t('insertRule.replaceCurrentFileName') }}</el-radio>
     </div>
   </div>
   <div class="flex">
-    <div class="left">忽略拓展名:</div>
+    <div class="left">{{ $t('insertRule.ignoreExtension') }}</div>
     <el-switch v-model="ruleObj.data.ignorePostfix" />
   </div>
   <div class="flex">
-    <div class="left">季号识别:</div>
+    <div class="left">{{ $t('insertRule.seasonIdentification') }}</div>
     <el-switch v-model="ruleObj.data.autoSeason" />
     <el-tooltip effect="dark" :content="message1" placement="top">
       <el-icon><InfoFilled /></el-icon>
     </el-tooltip>
   </div>
   <div class="flex">
-    <div class="left">有效后缀:</div>
+    <div class="left">{{ $t('insertRule.validSuffix') }}</div>
     <el-switch v-model="ruleObj.data.endFilter" />
     <template v-if="ruleObj.data.endFilter">
       <el-tag v-for="item in ruleObj.data.validEnd" closable :key="item" @close="deleteEnd(item)" text>{{ item }}</el-tag>
       <el-input v-if="validEndInputShow" v-model="validEndInput" style="width: 5em" size="small" @keyup.enter="validEndAdd" @blur="validEndAdd" />
-      <el-button v-else class="button-new-tag ml-1" size="small" @click="validEndInputShow = true">+ 新增</el-button>
+      <el-button v-else class="button-new-tag ml-1" size="small" @click="validEndInputShow = true">+ {{ $t('insertRule.add') }}</el-button>
     </template>
     <el-tooltip effect="dark" :content="message2" placement="top">
       <el-icon><InfoFilled /></el-icon>
@@ -49,8 +49,8 @@ export default {
   components: { InfoFilled },
   data() {
     return {
-      message1: '通过识别文件夹名称获取季号，放在插入文本最后,可识别"s1","s01","season 01","season01"等以s或season开头后接数字的',
-      message2: '开启本选项后，本规则只在后缀匹配时才会生效.(输入后缀不包含".")',
+      message1: this.$t('insertRule.seasonIdentificationTip'),
+      message2: this.$t('insertRule.validSuffixTip'),
       validEndInputShow: false,
       validEndInput: "",
       ruleObj: {
@@ -78,10 +78,9 @@ export default {
   methods: {
     exportObj() {
       if (this.ruleObj.data.insertContent.length == 0 || this.ruleObj.data.type.length == 0) {
-        this.$message({ message: "请填写完整", type: "warning" });
+        this.$message({ message: this.$t('insertRule.pleaseFillComplete'), type: "warning" });
         return null;
       }
-      this.ruleObj.message = `插入:"${this.ruleObj.data.insertContent}"`;
       return this.ruleObj;
     },
     validEndAdd() {

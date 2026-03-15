@@ -1,22 +1,24 @@
-import { Context } from "koa";
-import RenamerService from "../service/RenamerService";
+import { Context } from "oak";
+import RenamerService from "../service/RenamerService.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router = {};
+const router: RouterDefinition = {};
 
 /**
- * 预览文件修改后的状态 
+ * 预览文件修改后的状态
  */
 router["POST /renamer/preview"] = async function (ctx: Context) {
-	ctx.body = await RenamerService.preview(ctx.request.body.fileList, ctx.request.body.ruleList);
+  const body = await ctx.request.body().value;
+  ctx.response.body = await RenamerService.preview(body, ctx);
 };
 
 /**
  * 提交修改
  */
 router["POST /renamer/submit"] = async function (ctx: Context) {
-	ctx.body = await RenamerService.rename(ctx.request.body.fileList, ctx.request.body.changedFileList);
+  const body = await ctx.request.body().value;
+  await RenamerService.rename(body, ctx);
+  ctx.response.body = { success: true };
 };
-
-
 
 export default router;
