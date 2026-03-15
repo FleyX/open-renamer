@@ -1,4 +1,4 @@
-import { DB } from "deno-sqlite";
+import { DB, QueryParameter } from "deno-sqlite";
 import config from "../config.ts";
 import * as path from "std/path/mod.ts";
 import * as log from "std/log/mod.ts";
@@ -7,8 +7,6 @@ interface DatabaseConfig {
   dataPath: string;
   rootPath: string;
 }
-
-
 
 interface QueryResult {
   [key: string]: unknown;
@@ -153,14 +151,45 @@ class MigrationManager {
   }
 
   private parseSqlStatements(sqlContent: string): string[] {
-    return sqlContent
+    const lines = sqlContent
       .split(/[\r\n]+/)
       .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith("--"))
-      .join(" ")
-      .split(";")
-      .map((stmt) => stmt.trim())
-      .filter((stmt) => stmt.length > 0);
+      .filter((line) => line && !line.startsWith("--"));
+
+    const statements: string[] = [];
+    let currentStatement = "";
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+
+    for (const line of lines) {
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const prevChar = i > 0 ? line[i - 1] : "";
+
+        if (char === "'" && !inDoubleQuote && prevChar !== "\\") {
+          inSingleQuote = !inSingleQuote;
+        } else if (char === '"' && !inSingleQuote && prevChar !== "\\") {
+          inDoubleQuote = !inDoubleQuote;
+        } else if (char === ";" && !inSingleQuote && !inDoubleQuote) {
+          const stmt = currentStatement.trim();
+          if (stmt.length > 0) {
+            statements.push(stmt);
+          }
+          currentStatement = "";
+          continue;
+        }
+
+        currentStatement += char;
+      }
+      currentStatement += " ";
+    }
+
+    const finalStmt = currentStatement.trim();
+    if (finalStmt.length > 0) {
+      statements.push(finalStmt);
+    }
+
+    return statements;
   }
 
   private async saveMigrationHistory(migrations: string[]): Promise<void> {
@@ -253,8 +282,8 @@ class PreparedStatement {
     }
   }
 
-  private normalizeParams(params: unknown[]): unknown[] {
-    return params.length === 1 && Array.isArray(params[0]) ? params[0] : params;
+  private normalizeParams(params: unknown[]): QueryParameter[] {
+    return (params.length === 1 && Array.isArray(params[0]) ? params[0] : params) as QueryParameter[];
   }
 }
 
