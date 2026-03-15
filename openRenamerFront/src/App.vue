@@ -45,6 +45,7 @@
 <script setup>
 import { onBeforeMount, reactive } from "vue";
 import { useI18n } from "vue-i18n";
+import axios from "axios";
 
 const { locale, t } = useI18n();
 import httpUtil from "./utils/HttpUtil";
@@ -64,9 +65,13 @@ onBeforeMount(async () => {
   window.token = localStorage.getItem("token");
   window.isWindows = await httpUtil.get("/file/isWindows");
   //获取最新版本
-  let config = await httpUtil.get("https://s3.fleyx.com/picbed/openRenamer/config.json");
-  data.latestVersion = config.version;
-  data.showNewVersion = checkVersion(data.version, data.latestVersion);
+  try {
+    let res = await axios.get("https://api.github.com/repos/FleyX/open-renamer/releases/latest");
+    data.latestVersion = res.data.tag_name.replace(/^v/, '');
+    data.showNewVersion = checkVersion(data.version, data.latestVersion);
+  } catch (e) {
+    console.error("获取最新版本失败", e);
+  }
   data.curLangLabel = data.langList.filter(item => item.code === locale.value)[0].label;
   console.log(data.curLangLabel);
 });
