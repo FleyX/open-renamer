@@ -1,64 +1,106 @@
-import fs, {writeFileSync, readFileSync, pathExistsSync} from 'fs-extra';
-import koa from "koa";
-import Router from "koa-router";
-import koaBody from "koa-body";
-import * as path from "path";
-import RouterMW from "./middleware/controllerEngine";
+import * as path from "std/path/mod.ts";
+import { Application } from "oak";
+import { Router } from "oak/router";
+import { send } from "oak/send";
+import RouterMW from "./middleware/controllerEngine.ts";
+import * as log from "std/log/mod.ts";
+import config from "./config.ts";
+import handleError from "./middleware/handleError.ts";
+import SqliteUtil from "./util/SqliteHelper.ts";
+import * as i18n from "./i18n/index.ts";
+import ProcesHelper from "./util/ProcesHelper.ts";
 
-import config from "./config";
-import handleError from "./middleware/handleError";
-import SqliteUtil from './util/SqliteHelper';
-import log from './util/LogUtil';
-import qbService from "./service/QbService";
-import * as i18n from './i18n';
-import * as process from "process";
-import ProcesHelper from "./util/ProcesHelper";
-import {execSync} from 'child_process';
+const start = Date.now();
+log.info(JSON.stringify(config));
 
-let start = Date.now();
-console.log(config);
+const app = new Application();
 
-const app = new koa();
-
-let router = new Router({
-    prefix: config.urlPrefix
+const router = new Router({
+  prefix: config.urlPrefix,
 });
 
-app.use(require('koa-static')(path.join(config.rootPath, 'static')));
+// 静态文件服务 - 优先从 static 目录提供文件
+app.use(async (ctx, next) => {
+  const url = ctx.request.url.pathname;
+  // 移除开头的斜杠，得到文件路径
+  const filePath = url === "/" ? "index.html" : url.replace(/^\//, "");
+  
+  try {
+    await send(ctx, filePath, {
+      root: path.join(config.rootPath, "static"),
+    });
+  } catch {
+    // 文件不存在，继续执行后续中间件（如 API 路由）
+    await next();
+  }
+});
 
-//表单解析
-app.use(koaBody(config.bodyLimit));
-//错误处理
+// 错误处理（包含 token 校验）
 app.use(handleError);
 
-app.use(RouterMW(router, path.join(config.rootPath, "dist/api")));
-(async () => {
-    let pidPath = path.join(config.dataPath, 'pid');
-    //尝试杀死历史进程
-    if (pathExistsSync(pidPath)) {
-        let pid = readFileSync(pidPath, 'utf-8');
-        ProcesHelper.kill(parseInt(pid));
-    }
-    await SqliteUtil.createPool();
-    await qbService.init();
-    i18n.init();
-    app.listen(config.port);
-    log.info(`server listened ${config.port},cost:${Date.now() - start}ms`);
-    //写启动端口
-    writeFileSync(path.join(config.dataPath, 'port'), config.port.toString());
-    //写进程号
-    writeFileSync(pidPath, process.pid.toString());
-    //如果为桌面环境，打开浏览器
-    if (config.env == 'desktop') {
-        await openBrowser(`http://localhost:${config.port}`);
-    }
-})();
+// 注册路由
+app.use(await RouterMW(router, path.join(config.rootPath, "api")));
 
-app.on("error", (error) => {
-    console.error(error);
-})
+// 初始化
+const pidPath = path.join(config.dataPath, "pid");
 
+try {
+  await Deno.stat(config.dataPath);
+} catch {
+  await Deno.mkdir(config.dataPath, { recursive: true });
+}
 
-async function openBrowser(url: string) {
-    execSync(config.isWindows ? `start "" "${url}"` : config.isMac ? `open '${url}'` : `xdg-open ${url}`);
+// 尝试杀死历史进程
+try {
+  const pidContent = await Deno.readTextFile(pidPath);
+  const pid = parseInt(pidContent);
+  ProcesHelper.kill(pid);
+} catch {
+  // 文件不存在，忽略
+}
+
+await SqliteUtil.createPool();
+i18n.init();
+
+app.listen({
+  port: config.port,
+  hostname: "0.0.0.0",
+});
+
+log.info(`server listened ${config.port},cost:${Date.now() - start}ms`);
+
+// 写启动端口
+await Deno.writeTextFile(
+  path.join(config.dataPath, "port"),
+  config.port.toString(),
+);
+
+// 写进程号
+await Deno.writeTextFile(pidPath, Deno.pid.toString());
+
+// 如果为桌面环境，打开浏览器
+if (config.env == "desktop") {
+  log.info(
+    "如果未自动打开浏览器，可手动访问 http://localhost:" + config.port,
+  );
+  openBrowser(`http://localhost:${config.port}`);
+}
+
+app.addEventListener("error", (event) => {
+  log.error("应用程序错误:", event);
+});
+
+function openBrowser(url: string) {
+  const cmd = config.isWindows
+    ? ["cmd.exe", "/c", `start "" "${url}"`]
+    : config.isMac
+    ? ["open", url]
+    : ["xdg-open", url];
+
+  new Deno.Command(cmd[0], {
+    args: cmd.slice(1),
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  }).spawn();
 }

@@ -1,50 +1,50 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import log from '../util/LogUtil';
+import * as path from 'std/path/mod.ts';
+import Logger from '../util/Logger.ts';
+import { Router } from "oak/router";
+import { Context } from "oak";
 
-async function addMapping(router, filePath: string) {
-  let mapping = require(filePath).default;
-  for (let url in mapping) {
+type RouteHandler = (ctx: Context) => Promise<void>;
+
+async function addMapping(router: Router, filePath: string) {
+  const mapping = await import(filePath);
+  for (const url of Object.keys(mapping.default)) {
     if (url.startsWith('GET ')) {
-      let temp = url.substring(4);
-      router.get(temp, mapping[url]);
-      log.info(`----GET：${temp}`);
+      const temp = url.substring(4);
+      router.get(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----GET：${temp}`);
     } else if (url.startsWith('POST ')) {
-      let temp = url.substring(5);
-      router.post(temp, mapping[url]);
-      log.info(`----POST：${temp}`);
+      const temp = url.substring(5);
+      router.post(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----POST：${temp}`);
     } else if (url.startsWith('PUT ')) {
-      let temp = url.substring(4);
-      router.put(temp, mapping[url]);
-      log.info(`----PUT：${temp}`);
+      const temp = url.substring(4);
+      router.put(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----PUT：${temp}`);
     } else if (url.startsWith('DELETE ')) {
-      let temp = url.substring(7);
-      router.delete(temp, mapping[url]);
-      log.info(`----DELETE: ${temp}`);
+      const temp = url.substring(7);
+      router.delete(temp, mapping.default[url] as RouteHandler);
+      Logger.info(`----DELETE: ${temp}`);
     } else {
-      log.info(`xxxxx无效路径：${url}`);
+      Logger.info(`xxxxx无效路径：${url}`);
     }
   }
 }
 
-function addControllers(router, filePath) {
-  let files = fs.readdirSync(filePath).filter(item => item.endsWith('.js'));
-  for (let index in files) {
-    let element = files[index];
-    let temp = path.join(filePath, element);
-    let state = fs.statSync(temp);
-    if (state.isDirectory()) {
-      addControllers(router, temp);
-    } else {
-      if (!temp.endsWith('Helper.js')) {
-        log.info('\n--开始处理: ' + element + '路由');
-        addMapping(router, temp);
-      }
+async function addControllers(router: Router, filePath: string) {
+  for await (const entry of Deno.readDir(filePath)) {
+    const temp = path.join(filePath, entry.name);
+    const state = await Deno.stat(temp);
+
+    if (state.isDirectory) {
+      await addControllers(router, temp);
+    } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('Helper.ts') && !entry.name.startsWith('types')) {
+      Logger.info(`\n--开始处理: ${entry.name}路由`);
+      await addMapping(router, temp);
     }
   }
 }
 
-export default function engine(router, folder) {
-  addControllers(router, folder);
+export default async function engine(router: Router, folder: string) {
+  await addControllers(router, folder);
   return router.routes();
 }

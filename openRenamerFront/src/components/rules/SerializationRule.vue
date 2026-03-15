@@ -1,30 +1,30 @@
 <template>
   <div class="flex">
-    <span class="left">起始数：</span>
+    <span class="left">{{ $t('serializationRule.startNumber') }}</span>
     <div class="right">
       <el-input-number :min="1" size="small" v-model="ruleObj.data.start"/>
     </div>
   </div>
   <div class="flex">
-    <span class="left">增量：</span>
+    <span class="left">{{ $t('serializationRule.increment') }}</span>
     <div class="right">
       <el-input-number :min="1" size="small" v-model="ruleObj.data.increment"/>
     </div>
   </div>
   <div class="flex">
-    <span class="left">填充0补足：</span>
+    <span class="left">{{ $t('serializationRule.padWithZero') }}</span>
     <div class="right">
       <el-switch v-model="ruleObj.data.addZero"/>
       <el-input-number size="small" :min="1" :disabled="!ruleObj.data.addZero" v-model="ruleObj.data.numLength"/>
     </div>
   </div>
   <div class="flex">
-    <span class="left">位置：</span>
+    <span class="left">{{ $t('serializationRule.position') }}</span>
     <div class="location">
-      <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="front">前缀</el-radio>
-      <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="backend">后缀</el-radio>
+      <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="front">{{ $t('serializationRule.prefix') }}</el-radio>
+      <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="backend">{{ $t('serializationRule.suffix') }}</el-radio>
       <el-radio style="margin-top: 1em" v-model="ruleObj.data.insertType" label="at"
-      >位置:
+      >{{ $t('serializationRule.positionLabel') }}
         <el-input-number size="small" :min="1" :disabled="ruleObj.data.insertType !== 'at'"
                          v-model="ruleObj.data.insertValue"/>
       </el-radio>
@@ -32,13 +32,13 @@
   </div>
 
   <div class="flex">
-    <div class="left">忽略拓展名:</div>
+    <div class="left">{{ $t('serializationRule.ignoreExtension') }}</div>
     <el-switch v-model="ruleObj.data.ignorePostfix"/>
   </div>
   <div class="flex">
-    <div class="left">拓展名分组:</div>
+    <div class="left">{{ $t('serializationRule.extensionGroup') }}</div>
     <el-switch v-model="ruleObj.data.postfixGroup"/>
-    <el-tooltip effect="dark" content="按照文件拓展名分别计数,方便多种类型文件同时生成序列" placement="right">
+    <el-tooltip effect="dark" :content="$t('serializationRule.extensionGroupTip')" placement="right">
       <el-icon>
         <InfoFilled/>
       </el-icon>
@@ -78,7 +78,6 @@ export default {
   },
   methods: {
     exportObj() {
-      this.ruleObj.message = `序列化:从开始${this.ruleObj.data.start}，增量${this.ruleObj.data.increment}`;
       return this.ruleObj;
     },
   },

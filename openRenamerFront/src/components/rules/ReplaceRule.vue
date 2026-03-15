@@ -1,14 +1,14 @@
 <template>
   <div class="flex">
-    <span class="left">源：</span>
+    <span class="left">{{ $t('replaceRule.source') }}</span>
     <el-input style="width:20em" v-model="ruleObj.data.source" />
   </div>
   <div class="flex">
-    <span class="left">目标：</span>
+    <span class="left">{{ $t('replaceRule.target') }}</span>
     <el-input style="width:20em" v-model="ruleObj.data.target" />
   </div>
   <div class="flex">
-    <div class="left">正则模式:</div>
+    <div class="left">{{ $t('replaceRule.regexMode') }}</div>
     <el-switch v-model="ruleObj.data.regFlag" />
     <el-tooltip effect="dark" :content="regTip" placement="right">
       <el-icon>
@@ -17,11 +17,11 @@
     </el-tooltip>
   </div>
   <div class="flex">
-    <div class="left">区分大小写:</div>
+    <div class="left">{{ $t('replaceRule.caseSensitive') }}</div>
     <el-switch v-model="ruleObj.data.regI" />
   </div>
   <div class="flex">
-    <span class="left">替换选项：</span>
+    <span class="left">{{ $t('replaceRule.replaceOption') }}</span>
     <div class="location">
       <el-radio v-for="item in radioList" :key="item.code" v-model="ruleObj.data.type" :label="item.code"
       >{{ item.label }}
@@ -29,7 +29,7 @@
     </div>
   </div>
   <div class="flex">
-    <div class="left">忽略拓展名:</div>
+    <div class="left">{{ $t('replaceRule.ignoreExtension') }}</div>
     <el-switch v-model="ruleObj.data.ignorePostfix"/>
   </div>
 </template>
@@ -44,18 +44,18 @@ export default {
   props: ["editRule"],
   data() {
     return {
-      regTip: `开启支持js正则匹配，支持分组匹配,目标字符串支持模板#{groupN},N表示匹配到的第几组。比如#{group1}将被替换为匹配到的第一组数据`,
+      regTip: this.$t('replaceRule.regexTip'),
       radioList: [
         {
-          label: "替换第一个",
+          label: this.$t('replaceRule.replaceFirst'),
           code: 1
         },
         {
-          label: "替换最后一个",
+          label: this.$t('replaceRule.replaceLast'),
           code: 2
         },
         {
-          label: "全部替换",
+          label: this.$t('replaceRule.replaceAll'),
           code: 3
         }
       ],
@@ -85,15 +85,13 @@ export default {
   methods: {
     exportObj() {
       if (!this.ruleObj.data.source) {
-        this.$message({ message: "源不能为空", type: "warning" });
+        this.$message({ message: this.$t('replaceRule.sourceCannotBeEmpty'), type: "warning" });
         return null;
       }
       if (!this.ruleObj.data.type) {
-        this.$message({ message: "请选择替换选项", type: "warning" });
+        this.$message({ message: this.$t('replaceRule.pleaseSelectReplaceOption'), type: "warning" });
         return null;
       }
-      this.ruleObj.message = `替换:将${this.ruleObj.data.source}替换为${this.ruleObj.data.target};`
-        + this.radioList.filter(item => item.code === this.ruleObj.data.type)[0].label;
       return this.ruleObj;
     }
   }

@@ -3,6 +3,6 @@
  * @param value
  * @param defaultVal
  */
-export function nullToDefault(value: any, defaultVal: any): any {
+export function nullToDefault<T>(value: T | null | undefined, defaultVal: T): T {
     return value === undefined || value == null ? defaultVal : value;
 }

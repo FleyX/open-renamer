@@ -1,38 +1,38 @@
-import { Context } from "koa";
-import ApplicationRuleService from "../service/ApplicationRuleService";
+import { Context } from "oak";
+import ApplicationRuleService from "../service/ApplicationRuleService.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router = {};
+const router: RouterDefinition = {};
 
 /**
- * 获取目录下的文件列表 
+ * 获取所有规则模板
  */
 router["GET /applicationRule"] = async function (ctx: Context) {
-	ctx.body = await ApplicationRuleService.getAll();
+    ctx.response.body = await ApplicationRuleService.getAll();
 };
 
 /**
  * 获取默认模板
  */
 router["GET /applicationRule/default"] = async function (ctx: Context) {
-	;
-	ctx.body = await ApplicationRuleService.getDefault();
+    ctx.response.body = await ApplicationRuleService.getDefault();
 };
 
 /**
  * 更新或者插入
  */
 router['POST /applicationRule'] = async function (ctx: Context) {
-	ctx.body = await ApplicationRuleService.saveOrAdd(ctx.request.body);
-}
+    const body = await ctx.request.body().value;
+    ctx.response.body = await ApplicationRuleService.saveOrAdd(body);
+};
 
 /**
  * 删除
  */
 router["DELETE /applicationRule/:id"] = async function (ctx: Context) {
-	await ApplicationRuleService.deleteById(ctx.params.id);
-	ctx.body = "";
+    const params = (ctx as Context & { params: { id: string } }).params;
+    await ApplicationRuleService.deleteById(parseInt(params.id));
+    ctx.response.body = "";
 };
-
-
 
 export default router;

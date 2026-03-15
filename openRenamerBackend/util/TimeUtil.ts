@@ -1,19 +1,14 @@
-import moment from 'moment';
 class TimeUtil {
   /**
    * 获取今天的零点
    */
   static getZeroTime(): Date {
-    return moment()
-      .millisecond(0)
-      .second(0)
-      .minute(0)
-      .hour(0)
-      .toDate();
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
   }
 
-  static async sleep(duration: number): Promise<void> {
-    return new Promise((resolve, reject) => {
+  static sleep(duration: number): Promise<void> {
+    return new Promise((resolve) => {
       setTimeout(() => resolve(), duration);
     });
   }

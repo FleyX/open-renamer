@@ -1,7 +1,7 @@
 <template>
   <div v-loading="loading" class="main">
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item><a @click.prevent="breadcrumbClick(-1)">根</a></el-breadcrumb-item>
+      <el-breadcrumb-item><a @click.prevent="breadcrumbClick(-1)">{{ $t('fileChose.root') }}</a></el-breadcrumb-item>
       <el-breadcrumb-item v-for="(item, index) in pathList" :key="index">
         <a v-if="index < pathList.length - 1" @click.prevent="breadcrumbClick(index)">{{ item }}</a>
         <span v-else>{{ item }}</span>
@@ -10,14 +10,14 @@
 
     <div class="fileList">
       <div>
-        <el-input style="display: inline-block; width: 150px" type="text" size="small" placeholder="关键词过滤"
+        <el-input style="display: inline-block; width: 150px" type="text" size="small" :placeholder="$t('fileChose.filterPlaceholder')"
                   v-model="filterText" clearable/>
         <template v-if="type === 'file'">
-          <el-button type="primary" @click="selectAll(true)" size="small">全选</el-button>
-          <el-button type="primary" @click="selectAll(false)" size="small">全不选</el-button>
-          <el-button type="primary" @click="refresh" size="small">刷新</el-button>
-          <el-button v-if="curSavePathId" type="warning" @click="cancelSavePath" size="small">取消收藏</el-button>
-          <el-button v-else type="primary" @click="showSave = true" size="small">收藏路径</el-button>
+          <el-button type="primary" @click="selectAll(true)" size="small">{{ $t('fileChose.selectAll') }}</el-button>
+          <el-button type="primary" @click="selectAll(false)" size="small">{{ $t('fileChose.deselectAll') }}</el-button>
+          <el-button type="primary" @click="refresh" size="small">{{ $t('fileChose.refresh') }}</el-button>
+          <el-button v-if="curSavePathId" type="warning" @click="cancelSavePath" size="small">{{ $t('fileChose.cancelSavePath') }}</el-button>
+          <el-button v-else type="primary" @click="showSave = true" size="small">{{ $t('fileChose.savePath') }}</el-button>
         </template>
       </div>
       <div v-for="(item, index) in filterFileList" :key="index">
@@ -29,12 +29,12 @@
     </div>
 
     <div>
-      <el-button type="primary" @click="submit">确定</el-button>
+      <el-button type="primary" @click="submit">{{ $t('fileChose.confirm') }}</el-button>
     </div>
 
-    <el-dialog title="保存路径" v-model="showSave" width="40em">
-      <el-input type="text" v-model="saveName" placeholder="输入名称"/>
-      <el-button type="primary" @click="savePath" style="padding-top: 1em">提交</el-button>
+    <el-dialog :title="$t('fileChose.savePathTitle')" v-model="showSave" width="40em">
+      <el-input type="text" v-model="saveName" :placeholder="$t('fileChose.savePathNamePlaceholder')"/>
+      <el-button type="primary" @click="savePath" style="padding-top: 1em">{{ $t('fileChose.submit') }}</el-button>
     </el-dialog>
   </div>
 </template>
@@ -143,7 +143,7 @@ export default {
     async submit() {
       let chosenFiles = this.fileList.filter((item) => item.checked);
       if (chosenFiles.length === 0) {
-        this.$message({message: "未选择文件", type: "warning"});
+        this.$message({message: this.$t('fileChose.noFileSelected'), type: "warning"});
         return;
       }
       if (this.type === 'file') {

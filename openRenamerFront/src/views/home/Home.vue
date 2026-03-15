@@ -1,58 +1,74 @@
 <template>
-  <div v-loading="loading" element-loading-text="后台处理中，请稍候">
-    <br/>
-    <el-button type="success" @click="submit" size="default">开始重命名</el-button>
+  <div v-loading="loading" :element-loading-text="$t('homeDialog.loadingText')">
+    <br />
+    <el-button type="success" @click="submit" size="default">{{ $t('home.startRename') }}</el-button>
     <el-divider content-position="left">
-      <div class="head-text">规则设置</div>
+      <div class="head-text">{{ $t('home.ruleSetting') }}</div>
     </el-divider>
     <!-- 规则列表 -->
-    <rule-block @ruleUpdate="ruleUpdate"/>
+    <rule-block @ruleUpdate="ruleUpdate" />
+
+    <!-- 选择修改模式 -->
     <el-divider content-position="left">
-      <div class="head-text">文件预览</div>
+      <div class="head-text">{{ $t('home.editMode') }}</div>
+    </el-divider>
+    <div style="text-align: left;">
+      <el-radio-group v-model="editMode" @change="showResult">
+        <el-radio label="direct">{{ $t('home.directEdit') }}</el-radio>
+        <el-radio label="hardLink">{{ $t('home.hardLinkEdit') }}</el-radio>
+        <el-radio label="hardLinkNewFolder">{{ $t('home.hardLinkNewFolderEdit') }}</el-radio>
+      </el-radio-group>
+      <el-input v-model="editTargetFoler" v-if="editMode === 'hardLinkNewFolder'" type="text" style="width:80%"
+        :placeholder="$t('home.targetFolderPlaceholder')" @blur="showResult" />
+    </div>
+
+    <el-divider content-position="left">
+      <div class="head-text">{{ $t('home.filePreview') }}</div>
     </el-divider>
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>
-        <el-tooltip effect="dark" content="添加需要重命名的文件" placement="top">
-          <el-button type="primary" @click="showFileAdd" size="small">添加</el-button>
+        <el-tooltip effect="dark" :content="$t('homeTooltip.addFiles')" placement="top">
+          <el-button type="primary" @click="showFileAdd" size="small">{{ $t('home.addFile') }}</el-button>
         </el-tooltip>
-        收藏路径:
+        {{ $t('home.savePath') }}
         <el-tag v-for="item in savePathList" :round="true" class="savePath" closable :key="item.id"
-                @click="clickSavePath(item)" @close="deleteSavePath(item)" text>{{ item.name }}
+          @click="clickSavePath(item)" @close="deleteSavePath(item)" text>{{ item.name }}
         </el-tag>
       </div>
       <div style="margin-top: 5px">
-        <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? "不选" : "全选" }}</el-button>
-        <el-tooltip effect="dark" content="一键选中所有的非视频、字幕文件和小于5MB的视频文件" placement="bottom">
-          <el-button type="success" size="small" @click="choseAdFile">一键选择</el-button>
+        <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? $t('home.deselectAll') :
+          $t('home.selectAll') }}</el-button>
+        <el-tooltip effect="dark" :content="$t('homeTooltip.oneClickSelect')" placement="bottom">
+          <el-button type="success" size="small" @click="choseAdFile">{{ $t('home.oneClickSelect') }}</el-button>
         </el-tooltip>
-        <el-tooltip effect="dark" content="移除（非删除）需要重命名的文件" placement="bottom">
-          <el-button type="warning" size="small" @click="removeCheckedFiles">移除</el-button>
+        <el-tooltip effect="dark" :content="$t('homeTooltip.removeFiles')" placement="bottom">
+          <el-button type="warning" size="small" @click="removeCheckedFiles">{{ $t('home.remove') }}</el-button>
         </el-tooltip>
-        <el-popconfirm width="250" confirm-button-text="确认" cancel-button-text="取消"
-                       title="确认删除勾选的文件(无法恢复)？" @confirm="deleteCheckedFiles">
+        <el-popconfirm width="250" :confirm-button-text="$t('homeDialog.confirmButton')" :cancel-button-text="$t('homeDialog.cancelButton')" :title="$t('homeDialog.deleteConfirmTitle')"
+          @confirm="deleteCheckedFiles">
           <template #reference>
-            <el-button type="danger" size="small">删除</el-button>
+            <el-button type="danger" size="small">{{ $t('home.delete') }}</el-button>
           </template>
         </el-popconfirm>
         <el-button type="primary" size="small" @click="moveIndex('top')">
-          <el-tooltip effect="dark" content="上移规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.moveUp')" placement="top">
             <el-icon>
-              <top/>
+              <top />
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="moveIndex('bottom')">
-          <el-tooltip effect="dark" content="下移规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.moveDown')" placement="top">
             <el-icon>
-              <bottom/>
+              <bottom />
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="editFile">
-          <el-tooltip effect="dark" content="修改文件名" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.editFileName')" placement="top">
             <el-icon>
-              <Edit/>
+              <Edit />
             </el-icon>
           </el-tooltip>
         </el-button>
@@ -83,14 +99,14 @@
     </div>
     <!-- 新增文件弹窗 -->
 
-    <el-dialog title="新增文件" v-model="dialogVisible" width="70%">
+    <el-dialog :title="$t('home.addFiles')" v-model="dialogVisible" width="70%">
       <file-chose ref="fileChose" type="file" :curChoosePath="curChoosePath" @addData="addData"
-                  @refreshSavePathList="refreshSavePathList"/>
+        @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
-    <el-dialog title="编辑名称" v-model="showNameEditDialog" width="50%">
-      <el-input type="text" v-model="newName"/>
+    <el-dialog :title="$t('homeDialog.editNameTitle')" v-model="showNameEditDialog" width="50%">
+      <el-input type="text" v-model="newName" />
       <div>
-        <el-button type="primary" @click="doEditFile">确认</el-button>
+        <el-button type="primary" @click="doEditFile">{{ $t('home.confirm') }}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -98,7 +114,7 @@
 
 <script>
 // @ is an alias to /src
-import {Top, Bottom, Edit} from "@element-plus/icons-vue";
+import { Top, Bottom, Edit } from "@element-plus/icons-vue";
 import HttpUtil from "../../utils/HttpUtil";
 import FileChose from "@/components/FileChose";
 import RuleBlock from "@/components/rules/RuleBlock.vue";
@@ -125,7 +141,9 @@ export default {
       timer: null, //修改顺序计时器
       newName: "", //新的文件名
       currentEditFile: null,
-      showNameEditDialog: false //显示编辑文件弹窗
+      showNameEditDialog: false, //显示编辑文件弹窗
+      editMode: "direct",//修改模式
+      editTargetFoler: "" //创建硬链接目标目录
     };
   },
   computed: {
@@ -165,7 +183,7 @@ export default {
     //预览结果
     async showResult() {
       if (this.fileList.length > 500) {
-        this.$message.info("文件数过多，仅展示前500个(不影响重命名)");
+        this.$message.info(this.$t('home.fileTooMany'));
       }
       this.changedFileList = [];
       if (!this.checkRuleAndFile()) {
@@ -175,6 +193,8 @@ export default {
       let body = {
         fileList: this.fileList,
         ruleList: this.ruleList.filter((item) => !item.blocked),
+        editMode: this.editMode,
+        editTargetFoler: this.editTargetFoler,
       };
       this.changedFileList = await HttpUtil.post("/renamer/preview", null, body);
       this.fileList = [...this.fileList];
@@ -186,17 +206,19 @@ export default {
         return;
       }
       if (this.changedFileList.filter((item) => item.errorMessage).length > 0) {
-        this.$message({message: "存在错误，无法执行操作", type: "error"});
+        this.$message({ message: this.$t('homeMessage.hasErrorCannotExecute'), type: "error" });
         return;
       }
       this.loading = true;
       let body = {
         fileList: this.fileList,
         changedFileList: this.changedFileList,
+        editMode:this.editMode,
+        editTargetFoler:this.editTargetFoler
       };
       try {
         await HttpUtil.post("/renamer/submit", null, body);
-        this.$message({message: "重命名成功", type: "success"});
+        this.$message({ message: this.$t('home.renameSuccess'), type: "success" });
       } finally {
         this.loading = false;
       }
@@ -217,7 +239,7 @@ export default {
     async editFile() {
       let list = this.fileList.filter((item) => item.checked);
       if (list.length === 0 || list.length > 1) {
-        this.$message({message: "只能选择一个进行编辑", type: "warning"});
+        this.$message({ message: this.$t('home.onlySelectOne'), type: "warning" });
         return;
       }
       this.newName = list[0].name;
@@ -226,12 +248,12 @@ export default {
     },
     async doEditFile() {
       if (!this.newName) {
-        this.$message({message: "文件名不能为空", type: "warning"});
+        this.$message({ message: this.$t('home.fileNameCannotBeEmpty'), type: "warning" });
         return;
       }
       let target = JSON.parse(JSON.stringify(this.currentEditFile));
       target.name = this.newName;
-      await HttpUtil.post("/file/rename", null, {source: this.currentEditFile, target});
+      await HttpUtil.post("/file/rename", null, { source: this.currentEditFile, target });
       this.currentEditFile.name = this.newName;
       this.fileList = [...this.fileList];
       this.currentEditFile = null;
@@ -245,11 +267,15 @@ export default {
     //检查规则和文件
     checkRuleAndFile() {
       if (this.fileList.length === 0) {
-        this.$message({message: "请选择文件", type: "warning"});
+        this.$message({ message: this.$t('home.pleaseSelectFile'), type: "warning" });
         return false;
       }
       if (this.ruleList.filter((item) => !item.blocked).length === 0) {
-        this.$message({message: "无生效规则", type: "warning"});
+        this.$message({ message: this.$t('home.noValidRule'), type: "warning" });
+        return false;
+      }
+      if(this.editMode === "hardLinkNewFolder" && !this.editTargetFoler){
+        this.$message({ message: this.$t('home.pleaseInputTargetFolder'), type: "warning" });
         return false;
       }
       return true;
@@ -258,17 +284,17 @@ export default {
     async moveIndex(type) {
       let temps = this.fileList.filter((item) => item.checked === true);
       if (temps.length === 0) {
-        this.$message({type: "warning", message: "未选中文件，无法移动"});
+        this.$message({ type: "warning", message: this.$t('home.noFileSelected') });
         return;
       }
       if (type == "top") {
         if (this.fileList.indexOf(temps[0]) == 0) {
-          this.$message({type: "warning", message: "无法上移"});
+          this.$message({ type: "warning", message: this.$t('home.cannotMoveUp') });
           return;
         }
       } else {
         if (this.fileList.indexOf(temps[temps.length - 1]) == this.fileList.length - 1) {
-          this.$message({type: "warning", message: "无法下移"});
+          this.$message({ type: "warning", message: this.$t('home.cannotMoveDown') });
           return;
         }
         temps = temps.reverse();
@@ -299,7 +325,7 @@ export default {
     },
     async deleteSavePath(item) {
       console.log(item);
-      await HttpUtil.delete("/file/path/delete", {id: item.id});
+      await HttpUtil.delete("/file/path/delete", { id: item.id });
       Bus.$emit("refreshSavePathList");
     },
     async refreshSavePathList() {

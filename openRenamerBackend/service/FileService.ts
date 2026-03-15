@@ -1,57 +1,57 @@
-import config from '../config';
-import * as path from 'path';
-import * as fs from 'fs-extra';
+import config from '../config.ts';
+import * as path from 'std/path/mod.ts';
 
-import ProcessHelper from '../util/ProcesHelper';
-import FileObj from '../entity/vo/FileObj';
-import SavePathDao from '../dao/SavePathDao';
-import SavePath from '../entity/po/SavePath';
-import ErrorHelper from "../util/ErrorHelper";
+import ProcessHelper from '../util/ProcesHelper.ts';
+import FileObj from '../entity/vo/FileObj.ts';
+import SavePathDao from '../dao/SavePathDao.ts';
+import SavePath from '../entity/po/SavePath.ts';
+import ErrorHelper from "../util/ErrorHelper.ts";
+import * as logger from 'std/log/mod.ts';
 
-let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+const numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
 class FileService {
     static async readPath(pathStr: string, showHidden: boolean): Promise<Array<FileObj>> {
         pathStr = decodeURIComponent(pathStr);
-        let fileList = [];
+        let fileList: string[] = [];
         if (pathStr.trim().length == 0) {
-            //获取根目录路径
             if (config.isWindows) {
-                //windows下
-                let std: string = (await ProcessHelper.exec('wmic logicaldisk get caption')).replace('Caption', '');
+                const std: string = (await ProcessHelper.exec('wmic logicaldisk get caption')).replace('Caption', '');
                 fileList = std
                     .split('\r\n')
                     .filter((item) => item.trim().length > 0)
                     .map((item) => item.trim());
             } else {
-                //linux下
                 pathStr = '/';
-                fileList = await fs.readdir(pathStr);
+                fileList = [];
+                for await (const entry of Deno.readDir(pathStr)) {
+                    fileList.push(entry.name);
+                }
             }
         } else {
-            if (!(fs.pathExists(pathStr))) {
+            try {
+                await Deno.stat(pathStr);
+            } catch {
                 throw new Error("路径不存在");
             }
-            fileList = await fs.readdir(pathStr);
+            fileList = [];
+            for await (const entry of Deno.readDir(pathStr)) {
+                fileList.push(entry.name);
+            }
         }
-        let folderList: Array<FileObj> = [];
-        let files: Array<FileObj> = [];
-        for (let index in fileList) {
+        const folderList: Array<FileObj> = [];
+        const files: Array<FileObj> = [];
+        for (const fileName of fileList) {
             try {
-                let stat = await fs.stat(path.join(pathStr, fileList[index]));
-                if (fileList[index].startsWith('.')) {
-                    if (showHidden) {
-                        (stat.isDirectory() ? folderList : files).push(
-                            new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
-                        );
-                    }
-                } else {
-                    (stat.isDirectory() ? folderList : files).push(
-                        new FileObj(fileList[index], pathStr, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime()),
-                    );
+                const fileStat = await Deno.stat(path.join(pathStr, fileName));
+                if (fileName.startsWith('.') && !showHidden) {
+                    continue;
                 }
+                (fileStat.isDirectory ? folderList : files).push(
+                    new FileObj(fileName, pathStr, fileStat.isDirectory, fileStat.size, fileStat.birthtime?.getTime() || 0, fileStat.mtime?.getTime() || 0),
+                );
             } catch (e) {
-                console.error(e);
+                logger.error(e);
             }
         }
         folderList.sort((a, b) => FileService.compareStr(a.name, b.name)).push(...files.sort((a, b) => FileService.compareStr(a.name, b.name)));
@@ -62,7 +62,7 @@ class FileService {
      * 递归读取文件夹下所有的文件
      */
     static async readRecursion(folders: Array<FileObj>): Promise<Array<FileObj>> {
-        let res = [];
+        const res: Array<FileObj> = [];
         await this.readDirRecursion(res, folders, 1);
         return res;
     }
@@ -74,29 +74,32 @@ class FileService {
         if (folders == null || folders.length == 0) {
             return;
         }
-        for (let i in folders) {
-            let file = folders[i];
+        for (const file of folders) {
             if (!file.isFolder) {
                 res.push(file);
             } else {
-                let filePath = path.join(file.path, file.name);
-                let temp = (await fs.readdir(filePath)).map(item => {
-                    let stat = fs.statSync(path.join(filePath, item));
-                    return new FileObj(item, filePath, stat.isDirectory(), stat.size, stat.birthtime.getTime(), stat.mtime.getTime());
-                });
+                const filePath = path.join(file.path, file.name);
+                const temp: FileObj[] = [];
+                for await (const item of Deno.readDir(filePath)) {
+                    const fileStat = await Deno.stat(path.join(filePath, item.name));
+                    temp.push(new FileObj(item.name, filePath, fileStat.isDirectory, fileStat.size, fileStat.birthtime?.getTime() || 0, fileStat.mtime?.getTime() || 0));
+                }
                 await FileService.readDirRecursion(res, temp, depth + 1);
             }
         }
     }
 
-    static async checkExist(pathStr: string) {
-        return await fs.pathExists(pathStr);
+    static async checkExist(pathStr: string): Promise<boolean> {
+        try {
+            await Deno.stat(pathStr);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**
      * 收藏路径
-     * @param saveObj
-     * @returns
      */
     static async savePath(saveObj: SavePath) {
         await SavePathDao.addOne(saveObj);
@@ -105,7 +108,6 @@ class FileService {
 
     /**
      * 获取保存列表
-     * @returns
      */
     static async getSaveList() {
         return await SavePathDao.getAll();
@@ -113,52 +115,41 @@ class FileService {
 
     /**
      * 删除
-     * @param id
-     * @returns
      */
-    static async deleteOne(id) {
-        return await SavePathDao.delete(id);
+    static async deleteOne(id: number): Promise<void> {
+        await SavePathDao.delete(id);
     }
 
     /**
      * 数字字母混合排序
-     * @param a str
-     * @param b str
      */
     static compareStr(a: string, b: string) {
-        let an = a.length;
-        let bn = b.length;
+        const an = a.length;
+        const bn = b.length;
         for (let i = 0; i < an;) {
-            let charA = FileService.readChar(a, i, an);
-            let charB = FileService.readChar(b, i, bn);
+            const charA = FileService.readChar(a, i, an);
+            const charB = FileService.readChar(b, i, bn);
             if (charB.length == 0) {
                 return 1;
             }
             if (charA !== charB) {
-                //读取字符串不相等说明可以得到排序结果
-                //如果都为数字，按照数字的比较方法，否则按照字符串比较
                 return numberSet.has(charA.charAt(0)) && numberSet.has(charB.charAt(0)) ? Number(charA) - Number(charB) : charA.localeCompare(charB);
             }
             i += charA.length;
         }
-        //排到最后都没分结果说明相等
         return 0;
     }
 
     /**
      * 读取字符，如果字符为数字就读取整个数字
-     * @param a a
-     * @param n 数字长度
      */
     static readChar(a: string, i: number, n: number) {
         let res = "";
         for (; i < n; i++) {
-            let char = a.charAt(i);
+            const char = a.charAt(i);
             if (numberSet.has(char)) {
-                //如果当前字符是数字，添加到结果中
                 res += char;
             } else {
-                //如果不为数字，但是为第一个字符，直接返回，否则返回res
                 if (res.length == 0) {
                     return char;
                 } else {
@@ -170,25 +161,22 @@ class FileService {
     }
 
     /**
-     * delete batch
-     * @param files files
+     * 批量删除
      */
     static async deleteBatch(files: Array<FileObj>): Promise<void> {
         if (files == null || files.length == 0) {
             return;
         }
-        for (let i in files) {
-            await fs.remove(path.join(files[i].path, files[i].name));
+        for (const file of files) {
+            await Deno.remove(path.join(file.path, file.name), { recursive: true });
         }
     }
 
     /**
-     * rename file from source to target
-     * @param source sourceFile
-     * @param target targetFile
+     * 重命名文件
      */
     static async rename(source: FileObj, target: FileObj): Promise<void> {
-        await fs.rename(path.join(source.path, source.name), path.join(target.path, target.name));
+        await Deno.rename(path.join(source.path, source.name), path.join(target.path, target.name));
     }
 }
 

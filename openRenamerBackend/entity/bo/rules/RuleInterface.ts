@@ -1,5 +1,5 @@
-import FileObj from "../../vo/FileObj";
-import * as path from 'path';
+import FileObj from "../../vo/FileObj.ts";
+import * as path from 'std/path/mod.ts';
 
 export default interface RuleInterface {
 

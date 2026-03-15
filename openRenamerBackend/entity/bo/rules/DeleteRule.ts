@@ -1,7 +1,19 @@
-import RuleInterface from "./RuleInterface";
-import {dealFileName} from "./RuleInterface";
-import FileObj from "../../vo/FileObj";
-import path from 'path';
+import RuleInterface from "./RuleInterface.ts";
+import {dealFileName} from "./RuleInterface.ts";
+import FileObj from "../../vo/FileObj.ts";
+
+export interface DeleteRuleItemData {
+    type: string;
+    value: string;
+}
+
+export interface DeleteRuleData {
+    type: string;
+    regI: boolean;
+    start: DeleteRuleItemData;
+    end: DeleteRuleItemData;
+    ignorePostfix: boolean;
+}
 
 export default class DeleteRule implements RuleInterface {
     /**
@@ -26,7 +38,7 @@ export default class DeleteRule implements RuleInterface {
      */
     regI: boolean;
 
-    constructor(data: any) {
+    constructor(data: DeleteRuleData) {
         this.type = data.type;
         this.regI = data.regI != undefined && data.regI;
         this.start = new DeleteRuleItem(data.start, this.regI);
@@ -41,8 +53,8 @@ export default class DeleteRule implements RuleInterface {
             target = "";
         } else {
             let str = file.realName + (this.ignorePostfix ? "" : file.expandName);
-            let startIndex = this.start.calIndex(str, false);
-            let endIndex = this.end.calIndex(str, true);
+            const startIndex = this.start.calIndex(str, false);
+            const endIndex = this.end.calIndex(str, true);
             if (startIndex < 0 || endIndex < 0 || startIndex > endIndex) {
                 return;
             }
@@ -68,7 +80,7 @@ class DeleteRuleItem {
      */
     reg: RegExp;
 
-    constructor(data: any, regI: boolean) {
+    constructor(data: DeleteRuleItemData, regI: boolean) {
         this.type = data.type;
         this.value = data.value;
         if (this.type === 'reg') {
@@ -83,15 +95,15 @@ class DeleteRuleItem {
      */
     calIndex(str: string, end: boolean): number {
         if (this.type === 'location') {
-            let val = parseInt(this.value);
+            const val = parseInt(this.value);
             return val > 0 ? val - 1 : str.length + val;
         } else if (this.type === 'text') {
-            let index = str.indexOf(this.value);
+            const index = str.indexOf(this.value);
             return index + (end ? this.value.length - 1 : 0);
         } else if (this.type === 'end') {
             return str.length - 1;
         } else if (this.type === 'reg') {
-            let res = this.reg.exec(str);
+            const res = this.reg.exec(str);
             return res == null ? -1 : (res.index + (end ? res[0].length - 1 : 0));
         }
         return -1;

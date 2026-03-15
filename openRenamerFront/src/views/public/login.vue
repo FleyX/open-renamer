@@ -1,7 +1,7 @@
 <template>
   <div class="app">
-    <el-input v-model="token" placeholder="请输入密钥" style="width: 40em; margin-bottom: 1em" />
-    <el-button type="primary" @click="checkToken">确认</el-button>
+    <el-input v-model="token" :placeholder="$t('login.tokenPlaceholder')" style="width: 40em; margin-bottom: 1em" />
+    <el-button type="primary" @click="checkToken">{{ $t('login.confirmButton') }}</el-button>
   </div>
 </template>
 
@@ -18,7 +18,7 @@ export default {
     async checkToken() {
       let res = await httpUtil.post("/public/checkToken", null, { token: this.token });
       if (!res) {
-        this.$message.error("密钥错误");
+        this.$message.error(this.$t('login.tokenError'));
         return;
       }
       window.token = this.token;

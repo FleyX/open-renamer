@@ -110,3 +110,4 @@ data
 /.idea/vcs.xml
 
 package-lock.json
+.DS_Store

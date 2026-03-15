@@ -1,41 +1,37 @@
-import * as childPrecess from 'child_process';
-import logUtil from "./LogUtil";
-import logger from "./LogUtil";
-import config from "../config";
+import * as log from 'std/log/mod.ts';
 
 class ProcessHelper {
-    static exec(cmd): Promise<string> {
-        return new Promise((resolve, reject) => {
-            childPrecess.exec(cmd, (error, stdout, stderr) => {
-                if (error) {
-                    reject(error);
+    static async exec(cmd: string): Promise<string> {
+        try {
+            const command = new Deno.Command(
+                "sh",
+                {
+                    args: ["-c", cmd],
+                    stdout: "piped",
+                    stderr: "piped"
                 }
-                if (stderr) {
-                    reject(stderr);
-                } else {
-                    resolve(stdout)
-                }
-            })
-        })
+            );
+
+            const output = await command.output();
+
+            const stderr = new TextDecoder().decode(output.stderr);
+            if (stderr) {
+                throw new Error(stderr);
+            }
+
+            return new TextDecoder().decode(output.stdout);
+        } catch (error) {
+            throw error;
+        }
     }
 
     static kill(pid: number): void {
         try {
-            if(config.isWindows){
-                childPrecess.execSync("taskkill /pid " + pid)
-            }else{
-                childPrecess.execSync("kill " + pid)
-            }
+            Deno.kill(pid);
         } catch (e) {
-            logger.info("进程kill报错:" + (e as Error).message);
+            log.info("进程kill报错:" + (e as Error).message);
         }
     }
 }
 
-
-// (async()=>{
-//     let res= await ProcessHelper.exec('cd /d e://workspace&&dir');
-//     console.log(res);
-// })()
-
-export default ProcessHelper
+export default ProcessHelper;
