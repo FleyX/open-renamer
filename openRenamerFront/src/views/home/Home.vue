@@ -1,5 +1,5 @@
 <template>
-  <div v-loading="loading" element-loading-text="后台处理中，请稍候">
+  <div v-loading="loading" :element-loading-text="$t('homeDialog.loadingText')">
     <br />
     <el-button type="success" @click="submit" size="default">{{ $t('home.startRename') }}</el-button>
     <el-divider content-position="left">
@@ -10,16 +10,16 @@
 
     <!-- 选择修改模式 -->
     <el-divider content-position="left">
-      <div class="head-text">修改模式</div>
+      <div class="head-text">{{ $t('home.editMode') }}</div>
     </el-divider>
     <div style="text-align: left;">
       <el-radio-group v-model="editMode" @change="showResult">
-        <el-radio label="direct">直接修改</el-radio>
-        <el-radio label="hardLink">新建硬链接修改</el-radio>
-        <el-radio label="hardLinkNewFolder">新建硬链接修改并移动到指定目录</el-radio>
+        <el-radio label="direct">{{ $t('home.directEdit') }}</el-radio>
+        <el-radio label="hardLink">{{ $t('home.hardLinkEdit') }}</el-radio>
+        <el-radio label="hardLinkNewFolder">{{ $t('home.hardLinkNewFolderEdit') }}</el-radio>
       </el-radio-group>
       <el-input v-model="editTargetFoler" v-if="editMode === 'hardLinkNewFolder'" type="text" style="width:80%"
-        placeholder="请输入目标目录" @blur="showResult" />
+        :placeholder="$t('home.targetFolderPlaceholder')" @blur="showResult" />
     </div>
 
     <el-divider content-position="left">
@@ -28,7 +28,7 @@
     <!-- 文件预览列表 -->
     <div class="fileList">
       <div>
-        <el-tooltip effect="dark" content="添加需要重命名的文件" placement="top">
+        <el-tooltip effect="dark" :content="$t('homeTooltip.addFiles')" placement="top">
           <el-button type="primary" @click="showFileAdd" size="small">{{ $t('home.addFile') }}</el-button>
         </el-tooltip>
         {{ $t('home.savePath') }}
@@ -39,34 +39,34 @@
       <div style="margin-top: 5px">
         <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? $t('home.deselectAll') :
           $t('home.selectAll') }}</el-button>
-        <el-tooltip effect="dark" content="一键选中所有的非视频、字幕文件和小于5MB的视频文件" placement="bottom">
+        <el-tooltip effect="dark" :content="$t('homeTooltip.oneClickSelect')" placement="bottom">
           <el-button type="success" size="small" @click="choseAdFile">{{ $t('home.oneClickSelect') }}</el-button>
         </el-tooltip>
-        <el-tooltip effect="dark" content="移除（非删除）需要重命名的文件" placement="bottom">
+        <el-tooltip effect="dark" :content="$t('homeTooltip.removeFiles')" placement="bottom">
           <el-button type="warning" size="small" @click="removeCheckedFiles">{{ $t('home.remove') }}</el-button>
         </el-tooltip>
-        <el-popconfirm width="250" confirm-button-text="确认" cancel-button-text="取消" title="确认删除勾选的文件(无法恢复)？"
+        <el-popconfirm width="250" :confirm-button-text="$t('homeDialog.confirmButton')" :cancel-button-text="$t('homeDialog.cancelButton')" :title="$t('homeDialog.deleteConfirmTitle')"
           @confirm="deleteCheckedFiles">
           <template #reference>
             <el-button type="danger" size="small">{{ $t('home.delete') }}</el-button>
           </template>
         </el-popconfirm>
         <el-button type="primary" size="small" @click="moveIndex('top')">
-          <el-tooltip effect="dark" content="上移规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.moveUp')" placement="top">
             <el-icon>
               <top />
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="moveIndex('bottom')">
-          <el-tooltip effect="dark" content="下移规则" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.moveDown')" placement="top">
             <el-icon>
               <bottom />
             </el-icon>
           </el-tooltip>
         </el-button>
         <el-button type="primary" size="small" @click="editFile">
-          <el-tooltip effect="dark" content="修改文件名" placement="top">
+          <el-tooltip effect="dark" :content="$t('homeTooltip.editFileName')" placement="top">
             <el-icon>
               <Edit />
             </el-icon>
@@ -103,7 +103,7 @@
       <file-chose ref="fileChose" type="file" :curChoosePath="curChoosePath" @addData="addData"
         @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
-    <el-dialog title="编辑名称" v-model="showNameEditDialog" width="50%">
+    <el-dialog :title="$t('homeDialog.editNameTitle')" v-model="showNameEditDialog" width="50%">
       <el-input type="text" v-model="newName" />
       <div>
         <el-button type="primary" @click="doEditFile">{{ $t('home.confirm') }}</el-button>
@@ -206,7 +206,7 @@ export default {
         return;
       }
       if (this.changedFileList.filter((item) => item.errorMessage).length > 0) {
-        this.$message({ message: "存在错误，无法执行操作", type: "error" });
+        this.$message({ message: this.$t('homeMessage.hasErrorCannotExecute'), type: "error" });
         return;
       }
       this.loading = true;

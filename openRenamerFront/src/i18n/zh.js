@@ -1,5 +1,5 @@
 export default {
-  langChange: "选择语言",
+  langChange: "change language",
   version: "版本",
   newestVersion: "最新版本",
   openSourceLocation: "开源地址",
@@ -57,7 +57,12 @@ export default {
     cannotMoveUp: "无法上移",
     cannotMoveDown: "无法下移",
     addFiles: "新增文件",
-    pleaseInputTargetFolder: "请输入硬链接目标目录"
+    pleaseInputTargetFolder: "请输入硬链接目标目录",
+    editMode: "修改模式",
+    directEdit: "直接修改",
+    hardLinkEdit: "新建硬链接修改",
+    hardLinkNewFolderEdit: "新建硬链接修改并移动到指定目录",
+    targetFolderPlaceholder: "请输入目标目录"
   },
   ruleBlock: {
     disableEnable: "禁用/启用",
@@ -178,5 +183,37 @@ export default {
     taiwanTraditional: "台湾正体",
     translate: "简繁转换",
     traditionalTypeLabel: "繁体类型："
+  },
+  fileChose: {
+    root: "根",
+    filterPlaceholder: "关键词过滤",
+    selectAll: "全选",
+    deselectAll: "全不选",
+    refresh: "刷新",
+    cancelSavePath: "取消收藏",
+    savePath: "收藏路径",
+    savePathTitle: "保存路径",
+    savePathNamePlaceholder: "输入名称",
+    submit: "提交",
+    confirm: "确定",
+    noFileSelected: "未选择文件"
+  },
+  homeTooltip: {
+    addFiles: "添加需要重命名的文件",
+    oneClickSelect: "一键选中所有的非视频、字幕文件和小于5MB的视频文件",
+    removeFiles: "移除（非删除）需要重命名的文件",
+    moveUp: "上移规则",
+    moveDown: "下移规则",
+    editFileName: "修改文件名"
+  },
+  homeDialog: {
+    editNameTitle: "编辑名称",
+    deleteConfirmTitle: "确认删除勾选的文件(无法恢复)？",
+    confirmButton: "确认",
+    cancelButton: "取消",
+    loadingText: "后台处理中，请稍候"
+  },
+  homeMessage: {
+    hasErrorCannotExecute: "存在错误，无法执行操作"
   }
 };

@@ -1,5 +1,5 @@
 export default {
-  langChange: "change language",
+  langChange: "选择语言",
   version: "version",
   newestVersion: "latest version",
   openSourceLocation: "Open source address",
@@ -57,7 +57,12 @@ export default {
     cannotMoveUp: "Cannot move up",
     cannotMoveDown: "Cannot move down",
     addFiles: "Add files",
-    pleaseInputTargetFolder: "Please input hard link target folder"
+    pleaseInputTargetFolder: "Please input hard link target folder",
+    editMode: "Edit Mode",
+    directEdit: "Direct Edit",
+    hardLinkEdit: "Create Hard Link Edit",
+    hardLinkNewFolderEdit: "Create Hard Link Edit and Move to Specified Directory",
+    targetFolderPlaceholder: "Please input target folder"
   },
   ruleBlock: {
     disableEnable: "Disable/Enable",
@@ -179,5 +184,37 @@ export default {
     taiwanTraditional: "Taiwan Traditional",
     translate: "Translate",
     traditionalTypeLabel: "Traditional type:"
+  },
+  fileChose: {
+    root: "Root",
+    filterPlaceholder: "Filter by keyword",
+    selectAll: "Select All",
+    deselectAll: "Deselect All",
+    refresh: "Refresh",
+    cancelSavePath: "Cancel Favorite",
+    savePath: "Save Path",
+    savePathTitle: "Save Path",
+    savePathNamePlaceholder: "Enter name",
+    submit: "Submit",
+    confirm: "Confirm",
+    noFileSelected: "No file selected"
+  },
+  homeTooltip: {
+    addFiles: "Add files to rename",
+    oneClickSelect: "One-click to select all non-video, subtitle files and video files smaller than 5MB",
+    removeFiles: "Remove (not delete) files to be renamed",
+    moveUp: "Move up",
+    moveDown: "Move down",
+    editFileName: "Edit file name"
+  },
+  homeDialog: {
+    editNameTitle: "Edit Name",
+    deleteConfirmTitle: "Confirm to delete selected files (cannot be recovered)?",
+    confirmButton: "Confirm",
+    cancelButton: "Cancel",
+    loadingText: "Processing in background, please wait"
+  },
+  homeMessage: {
+    hasErrorCannotExecute: "There are errors, cannot execute operation"
   }
 };
