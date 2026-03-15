@@ -1,10 +1,15 @@
-FROM node:hydrogen-slim
+FROM denoland/deno:alpine
 WORKDIR /app
 COPY ./openRenamerBackend /app
-# RUN chmod 777 -R /app && npm install -g pnpm typescript --registry https://registry.npmmirror.com
-# 注意此处未添加npm代理
-RUN chmod 777 -R /app && npm install -g pnpm typescript 
-ENV PORT 80
+
+# 配置权限
+RUN chmod 777 -R /app
+
+# 配置 Deno 环境变量
+ENV PORT=80
+ENV DENO_DIR=/app/.deno
+
+# 预缓存依赖
+RUN deno cache index.ts
+
 CMD ["bash", "start.sh"]
-
-
