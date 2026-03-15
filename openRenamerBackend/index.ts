@@ -19,19 +19,18 @@ const router = new Router({
   prefix: config.urlPrefix,
 });
 
-// 静态文件服务
+// 静态文件服务 - 优先从 static 目录提供文件
 app.use(async (ctx, next) => {
   const url = ctx.request.url.pathname;
-  if (url.startsWith("/static/")) {
-    const fileUrl = url.replace("/static/", "");
-    try {
-      await send(ctx, fileUrl, {
-        root: path.join(config.rootPath, "static"),
-      });
-    } catch {
-      await next();
-    }
-  } else {
+  // 移除开头的斜杠，得到文件路径
+  const filePath = url === "/" ? "index.html" : url.replace(/^\//, "");
+  
+  try {
+    await send(ctx, filePath, {
+      root: path.join(config.rootPath, "static"),
+    });
+  } catch {
+    // 文件不存在，继续执行后续中间件（如 API 路由）
     await next();
   }
 });

@@ -33,7 +33,7 @@ const config = {
     : Deno.env.get("DATA_PATH")
     ? Deno.env.get("DATA_PATH")!
     : env == "desktop"
-    ? path.join(Deno.execPath(), "..", "data")
+    ? path.join(path.dirname(Deno.execPath()), "data")
     : path.join(rootPath, "data"),
   port: env == "desktop" ? getPort(20000, 50000) : basePort,
   token: map["token"]
