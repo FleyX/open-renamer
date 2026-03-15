@@ -28,8 +28,15 @@ function checkToken(ctx: Context): boolean {
     return true;
   }
 
-  const requestPath = ctx.request.method +
-    ctx.request.url.pathname.replace(config.urlPrefix, "");
+  const pathname = ctx.request.url.pathname;
+  
+  // 静态文件请求不需要 token 校验
+  // 根路径和没有前缀的路径（如 /index.html, /js/app.js）都视为静态文件请求
+  if (pathname === "/" || !pathname.startsWith(config.urlPrefix)) {
+    return true;
+  }
+
+  const requestPath = ctx.request.method + pathname.replace(config.urlPrefix, "");
   if (config.publicPath.has(requestPath)) {
     return true;
   }

@@ -215,5 +215,10 @@ export default {
   },
   homeMessage: {
     hasErrorCannotExecute: "存在错误，无法执行操作"
+  },
+  login: {
+    tokenPlaceholder: "请输入密钥",
+    confirmButton: "确认",
+    tokenError: "密钥错误"
   }
 };

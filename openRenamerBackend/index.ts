@@ -35,7 +35,7 @@ app.use(async (ctx, next) => {
   }
 });
 
-// 错误处理
+// 错误处理（包含 token 校验）
 app.use(handleError);
 
 // 注册路由

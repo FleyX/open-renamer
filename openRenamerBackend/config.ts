@@ -45,7 +45,10 @@ const config = {
   urlPrefix: "/openRenamer/api",
   isWindows: Deno.build.os === "windows",
   isMac: Deno.build.os === "darwin",
-  publicPath: new Set(["POST/public/checkToken"]),
+  publicPath: new Set([
+    "POST/public/checkToken",
+    "GET/file/isWindows",
+  ]),
 };
 
 export default config;

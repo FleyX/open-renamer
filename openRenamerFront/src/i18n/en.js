@@ -216,5 +216,10 @@ export default {
   },
   homeMessage: {
     hasErrorCannotExecute: "There are errors, cannot execute operation"
+  },
+  login: {
+    tokenPlaceholder: "Please enter token",
+    confirmButton: "Confirm",
+    tokenError: "Invalid token"
   }
 };
