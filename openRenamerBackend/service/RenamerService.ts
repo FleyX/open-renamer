@@ -1,4 +1,4 @@
-import { join } from "std/path/mod.ts";
+import { join, dirname } from "std/path/mod.ts";
 import { exists } from "std/fs/mod.ts";
 import { Context } from "oak";
 
@@ -94,7 +94,7 @@ async function createHardLink(
     }
 
     // 确保目标目录存在
-    const targetDir = newPath.substring(0, newPath.lastIndexOf("/"));
+    const targetDir = dirname(newPath);
     if (targetDir && !(await exists(targetDir))) {
       await Deno.mkdir(targetDir, { recursive: true });
     }

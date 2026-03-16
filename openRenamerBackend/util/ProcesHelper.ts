@@ -1,16 +1,21 @@
 import * as log from 'std/log/mod.ts';
 
+const isWindows = Deno.build.os === "windows";
+
 class ProcessHelper {
     static async exec(cmd: string): Promise<string> {
         try {
-            const command = new Deno.Command(
-                "sh",
-                {
+            const command = isWindows
+                ? new Deno.Command("cmd.exe", {
+                    args: ["/c", cmd],
+                    stdout: "piped",
+                    stderr: "piped"
+                })
+                : new Deno.Command("sh", {
                     args: ["-c", cmd],
                     stdout: "piped",
                     stderr: "piped"
-                }
-            );
+                });
 
             const output = await command.output();
 
