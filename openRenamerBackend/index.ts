@@ -39,7 +39,7 @@ app.use(async (ctx, next) => {
 app.use(handleError);
 
 // 注册路由
-app.use(await RouterMW(router, path.join(config.rootPath, "api")));
+app.use(RouterMW(router));
 
 // 初始化
 const pidPath = path.join(config.dataPath, "pid");
@@ -92,15 +92,15 @@ app.addEventListener("error", (event) => {
 
 function openBrowser(url: string) {
   const cmd = config.isWindows
-    ? ["cmd.exe", "/c", `start "" "${url}"`]
+    ? ["explorer", url]
     : config.isMac
     ? ["open", url]
     : ["xdg-open", url];
 
   new Deno.Command(cmd[0], {
     args: cmd.slice(1),
-    stdin: "inherit",
-    stdout: "inherit",
-    stderr: "inherit",
+    stdin: "null",
+    stdout: "null",
+    stderr: "null",
   }).spawn();
 }
