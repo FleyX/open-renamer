@@ -1,5 +1,7 @@
 # open-renamer
 
+*[ENGLISH VERSION](./README-EN.md)*
+
 ![预览图](https://s3.fleyx.com/picbed/2022/11/18386180128d01eb1a59b8eacf652895.png)
 
 renamer 的开源实现版本，BS 应用，支持全平台部署使用
@@ -25,27 +27,29 @@ renamer 的开源实现版本，BS 应用，支持全平台部署使用
 - 支持将规则保存为模板，方便下次使用
 - 全平台(arm,x86)支持，可直接部署在 nas 中，通过浏览器访问;也可直接下载客户端应用本地启动
 - 针对 nas 视频文件有特殊优化,智能识别剧集名称，季号，集数，方便 jellyfin、emby 等软件识别
+- 支持创建硬链接方式重命名，bt/pt友好
 
-## 客户端安装
+
+
+## 使用方式
+
+非专业人士建议使用客户端直接运行方式，无需部署服务端，直接在本地运行即可。如果需要在 nas 中部署，建议使用服务端部署方式。
+
+### 客户端直接运行
 
 跳转[github.com/FleyX/open-renamer/releases/latest](https://github.com/FleyX/open-renamer/releases/latest) 下载对应平台的 zip 压缩包，解压后执行
 
-## docker 部署
+升级方式：下载最新版本 zip 压缩包，解压后执行即可。
 
-**非必须，建议直接下载可执行文件本地运行**
+### docker部署
 
-### 首次部署
-
-推荐通过 docker 部署到 nas 中，即可管理 nas 媒体文件
-
-#### docker 部署
-
+- docker直接运行
 ```bash
 # 管理/mnt/vdisk目录中的文件，通过8089端口访问服务
 docker run -itd  --name openRenamer -v /mnt/vdisk:/data -p 8089:8089 -e PORT="8089" -e TOKEN="123456" fleyx/open-renamer:latest
 ```
 
-- docker-compose 运行：
+- docker-compose 运行(推荐)：
 
 ```yaml
 version: "3.6"
@@ -67,15 +71,7 @@ version: "3.6"
     # 使用宿主机网络.即可通过"宿主机ip:11004"访问程序
     network_mode: host
 ```
-
-#### 代码部署
-
-1. 安装最新的 node 环境
-2. 下载代码
-3. 编译前后端
-4. 将前端打包后 dist 目录下所有的文件复制到后端的 static 目录下
-
-### 升级
+升级方式:
 
 1. 如果使用 latest 版本，通过`docker pull fleyx/open-renamer:latest`命令更新镜像
 2. 如果使用版本号，直接修改 docker 版本号为最新的版本号,重新运行即可
@@ -83,7 +79,9 @@ version: "3.6"
 ## TODO
 
 ## 版本更新记录
+### 1.9.2
 
+后端使用deno重构 & 支持硬链接重命名
 
 ### 1.9.1
 
