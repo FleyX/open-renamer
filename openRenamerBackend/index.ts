@@ -51,13 +51,13 @@ try {
 }
 
 // 尝试杀死历史进程
-try {
-  const pidContent = await Deno.readTextFile(pidPath);
-  const pid = parseInt(pidContent);
-  ProcesHelper.kill(pid);
-} catch {
-  // 文件不存在，忽略
-}
+// try {
+//   const pidContent = await Deno.readTextFile(pidPath);
+//   const pid = parseInt(pidContent);
+//   ProcesHelper.kill(pid);
+// } catch {
+//   // 文件不存在，忽略
+// }
 
 await SqliteUtil.createPool();
 i18n.init();
