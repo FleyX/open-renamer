@@ -1,12 +1,13 @@
 <template>
   <div class="app">
     <div class="header">
-      <el-menu :default-active="activeIndex" mode="horizontal" background-color="#545c64" text-color="#fff"
+      <el-menu :default-active="activeIndex" mode="horizontal" :ellipsis="true" background-color="#545c64"
+               text-color="#fff"
                active-text-color="#ffd04b" router>
         <el-menu-item index="/">{{ $t("menu.rename") }}</el-menu-item>
         <!--      <el-menu-item index="/auto">自动化</el-menu-item>-->
       </el-menu>
-      <el-dropdown style="position: absolute;right:1em;top:1em;color: white;cursor: pointer" @command="langChange">
+      <el-dropdown class="lang-dropdown" @command="langChange">
         {{ $t("langChange") }} : {{ data.curLangLabel }}
         <template #dropdown>
           <el-dropdown-menu>
@@ -134,6 +135,37 @@ body {
   .content {
     flex: 1;
     padding: 0 10px 0 10px;
+  }
+}
+
+.lang-dropdown {
+  position: absolute;
+  right: 1em;
+  top: 1em;
+  color: white;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .app {
+    width: 100%;
+    min-width: auto;
+
+    .content {
+      padding: 0 5px 0 5px;
+    }
+  }
+
+  .lang-dropdown {
+    right: 0.5em;
+    top: 0.8em;
+  }
+
+  .footer {
+    font-size: 0.8em;
+    padding: 0.5em;
+    line-height: 1.8;
+    word-break: break-all;
   }
 }
 

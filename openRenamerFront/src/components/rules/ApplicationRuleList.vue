@@ -4,25 +4,27 @@
       <el-button type="primary" @click="showEditAddModal = true">新增模板</el-button>
     </div>
     <el-table :data="applicationRuleList" style="width: 100%">
-      <el-table-column prop="createdDate" label="创建时间" width="130" :formatter="formatDateTime" />
-      <el-table-column prop="updatedDate" label="更新时间" width="130" :formatter="formatDateTime" />
+      <el-table-column class-name="hide-on-mobile" prop="createdDate" label="创建时间" width="130" :formatter="formatDateTime" />
+      <el-table-column class-name="hide-on-mobile" prop="updatedDate" label="更新时间" width="130" :formatter="formatDateTime" />
       <el-table-column prop="name" label="名称" width="180" />
       <el-table-column prop="comment" label="备注" />
       <el-table-column label="操作" width="250">
         <template #default="scope">
-          <el-button text type="primary" style="margin-left: 0" size="small"
-            @click="ruleTemplateAction('chose', scope.row)">选择</el-button>
-          <el-button text type="primary" style="margin-left: 0" size="small"
-            @click="ruleTemplateAction('edit', scope.row)">编辑</el-button>
-          <el-button text type="warning" style="margin-left: 0" size="small"
-            @click="ruleTemplateAction('delete', scope.row)">删除</el-button>
-          <el-button v-if="defaultTemplateId != scope.row.id" text type="primary" size="small"
-            @click="ruleTemplateAction('default', scope.row)">设为默认</el-button>
+          <div class="action-btns">
+            <el-button text type="primary" style="margin-left: 0" size="small"
+              @click="ruleTemplateAction('chose', scope.row)">选择</el-button>
+            <el-button text type="primary" style="margin-left: 0" size="small"
+              @click="ruleTemplateAction('edit', scope.row)">编辑</el-button>
+            <el-button text type="warning" style="margin-left: 0" size="small"
+              @click="ruleTemplateAction('delete', scope.row)">删除</el-button>
+            <el-button v-if="defaultTemplateId != scope.row.id" text type="primary" size="small"
+              @click="ruleTemplateAction('default', scope.row)">设为默认</el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
   </div>
-  <el-dialog :title="curEdit != null ? '修改' : '新增模板'" v-model="showEditAddModal" width="40em" @close="closeAddEdit"
+  <el-dialog :title="curEdit != null ? '修改' : '新增模板'" v-model="showEditAddModal" :width="dialogWidth" @close="closeAddEdit"
     append-to-body>
     <el-form-item label="名称">
       <el-input v-model="templateForm.name"></el-input>
@@ -57,6 +59,11 @@ export default {
         comment: "",
       },
     };
+  },
+  computed: {
+    dialogWidth() {
+      return window.innerWidth <= 768 ? '100%' : '40em';
+    }
   },
   async created () {
     await this.init();
@@ -117,5 +124,16 @@ export default {
 </script>
 
 <style>
+.action-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+}
 
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
 </style>

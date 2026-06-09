@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <el-input v-model="token" :placeholder="$t('login.tokenPlaceholder')" style="width: 40em; margin-bottom: 1em" />
+    <el-input v-model="token" :placeholder="$t('login.tokenPlaceholder')" style="width: 40em; max-width: 90%; margin-bottom: 1em" />
     <el-button type="primary" @click="checkToken">{{ $t('login.confirmButton') }}</el-button>
   </div>
 </template>

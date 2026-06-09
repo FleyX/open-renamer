@@ -12,13 +12,13 @@
     <el-divider content-position="left">
       <div class="head-text">{{ $t('home.editMode') }}</div>
     </el-divider>
-    <div style="text-align: left;">
+    <div class="edit-mode">
       <el-radio-group v-model="editMode" @change="showResult">
         <el-radio label="direct">{{ $t('home.directEdit') }}</el-radio>
         <el-radio label="hardLink">{{ $t('home.hardLinkEdit') }}</el-radio>
         <el-radio label="hardLinkNewFolder">{{ $t('home.hardLinkNewFolderEdit') }}</el-radio>
       </el-radio-group>
-      <el-input v-model="editTargetFoler" v-if="editMode === 'hardLinkNewFolder'" type="text" style="width:80%"
+      <el-input v-model="editTargetFoler" v-if="editMode === 'hardLinkNewFolder'" type="text" class="target-folder-input"
         :placeholder="$t('home.targetFolderPlaceholder')" @blur="showResult" />
     </div>
 
@@ -27,16 +27,16 @@
     </el-divider>
     <!-- 文件预览列表 -->
     <div class="fileList">
-      <div>
+      <div class="save-path-line">
         <el-tooltip effect="dark" :content="$t('homeTooltip.addFiles')" placement="top">
           <el-button type="primary" @click="showFileAdd" size="small">{{ $t('home.addFile') }}</el-button>
         </el-tooltip>
-        {{ $t('home.savePath') }}
+        <span class="save-path-label">{{ $t('home.savePath') }}</span>
         <el-tag v-for="item in savePathList" :round="true" class="savePath" closable :key="item.id"
           @click="clickSavePath(item)" @close="deleteSavePath(item)" text>{{ item.name }}
         </el-tag>
       </div>
-      <div style="margin-top: 5px">
+      <div class="file-action-btns">
         <el-button type="primary" size="small" @click="selectAllFiles">{{ allChecked ? $t('home.deselectAll') :
           $t('home.selectAll') }}</el-button>
         <el-tooltip effect="dark" :content="$t('homeTooltip.oneClickSelect')" placement="bottom">
@@ -99,11 +99,11 @@
     </div>
     <!-- 新增文件弹窗 -->
 
-    <el-dialog :title="$t('home.addFiles')" v-model="dialogVisible" width="70%">
+    <el-dialog :title="$t('home.addFiles')" v-model="dialogVisible" :width="dialogWidth">
       <file-chose ref="fileChose" type="file" :curChoosePath="curChoosePath" @addData="addData"
         @refreshSavePathList="refreshSavePathList" />
     </el-dialog>
-    <el-dialog :title="$t('homeDialog.editNameTitle')" v-model="showNameEditDialog" width="50%">
+    <el-dialog :title="$t('homeDialog.editNameTitle')" v-model="showNameEditDialog" :width="editDialogWidth">
       <el-input type="text" v-model="newName" />
       <div>
         <el-button type="primary" @click="doEditFile">{{ $t('home.confirm') }}</el-button>
@@ -155,6 +155,12 @@ export default {
     },
     showChangedFileList() {
       return this.changedFileList && this.changedFileList.length > 500 ? this.changedFileList.slice(0, 500) : this.changedFileList;
+    },
+    dialogWidth() {
+      return window.innerWidth <= 768 ? '100%' : '70%';
+    },
+    editDialogWidth() {
+      return window.innerWidth <= 768 ? '100%' : '50%';
     }
   },
   async created() {
@@ -391,6 +397,33 @@ function readChar(a, i, n) {
 .savePath {
   cursor: pointer;
   margin-right: 0.5em;
+  margin-bottom: 0.3em;
+}
+
+.edit-mode {
+  text-align: left;
+}
+
+.target-folder-input {
+  width: 80%;
+}
+
+.save-path-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+
+  .save-path-label {
+    margin-right: 0.3em;
+  }
+}
+
+.file-action-btns {
+  margin-top: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .fileList {
@@ -404,7 +437,6 @@ function readChar(a, i, n) {
     .el-checkbox__label {
       width: 95%;
     }
-
 
     .oneLine {
       display: flex;
@@ -428,6 +460,24 @@ function readChar(a, i, n) {
     .oneFileName {
       display: flex;
       align-items: center;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .target-folder-input {
+    width: 100%;
+    margin-top: 0.5em;
+  }
+
+  .fileList {
+    .fileBlock {
+      .oneLine {
+        height: 2.2em;
+        font-size: 0.85em;
+        padding-top: 0.2em;
+        padding-bottom: 0.2em;
+      }
     }
   }
 }
