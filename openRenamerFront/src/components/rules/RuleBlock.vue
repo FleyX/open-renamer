@@ -290,6 +290,7 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: baseline;
+    margin-top: 10px;
 
     :deep(.el-checkbox) {
       margin-right: 1em;

@@ -225,6 +225,8 @@ export default {
       try {
         await HttpUtil.post("/renamer/submit", null, body);
         this.$message({ message: this.$t('home.renameSuccess'), type: "success" });
+        this.fileList = [];
+        this.changedFileList = [];
       } finally {
         this.loading = false;
       }
@@ -323,11 +325,17 @@ export default {
     },
     showFileAdd() {
       this.dialogVisible = true;
+      this.$nextTick(() => {
+        this.$refs.fileChose.refresh();
+      });
     },
     //点击收藏路径
     async clickSavePath(item) {
       this.curChoosePath = JSON.parse(item.content);
       this.dialogVisible = true;
+      this.$nextTick(() => {
+        this.$refs.fileChose.refresh();
+      });
     },
     async deleteSavePath(item) {
       console.log(item);
