@@ -165,4 +165,21 @@ export default {
     }
   }
 }
+
+@media (max-width: 768px) {
+  .flex {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .left {
+      width: auto;
+      margin-bottom: 0.3em;
+      font-weight: 600;
+    }
+
+    .location {
+      flex-direction: column;
+    }
+  }
+}
 </style>

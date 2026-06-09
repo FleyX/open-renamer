@@ -1,6 +1,6 @@
 <template>
   <div v-loading="loading" class="main">
-    <el-breadcrumb separator="/">
+    <el-breadcrumb class="file-breadcrumb" separator="/">
       <el-breadcrumb-item><a @click.prevent="breadcrumbClick(-1)">{{ $t('fileChose.root') }}</a></el-breadcrumb-item>
       <el-breadcrumb-item v-for="(item, index) in pathList" :key="index">
         <a v-if="index < pathList.length - 1" @click.prevent="breadcrumbClick(index)">{{ item }}</a>
@@ -9,8 +9,8 @@
     </el-breadcrumb>
 
     <div class="fileList">
-      <div>
-        <el-input style="display: inline-block; width: 150px" type="text" size="small" :placeholder="$t('fileChose.filterPlaceholder')"
+      <div class="file-toolbar">
+        <el-input class="filter-input" type="text" size="small" :placeholder="$t('fileChose.filterPlaceholder')"
                   v-model="filterText" clearable/>
         <template v-if="type === 'file'">
           <el-button type="primary" @click="selectAll(true)" size="small">{{ $t('fileChose.selectAll') }}</el-button>
@@ -20,8 +20,8 @@
           <el-button v-else type="primary" @click="showSave = true" size="small">{{ $t('fileChose.savePath') }}</el-button>
         </template>
       </div>
-      <div v-for="(item, index) in filterFileList" :key="index">
-        <el-checkbox style="height: 1.4em" v-model="item.checked" :disabled="type==='folder' && !item.isFolder">
+      <div class="file-item" v-for="(item, index) in filterFileList" :key="index">
+        <el-checkbox v-model="item.checked" :disabled="type==='folder' && !item.isFolder">
           <a v-if="item.isFolder" @click="fileClick(item)" style="color: #289fff">{{ item.name }}</a>
           <span v-else>{{ item.name }}</span>
         </el-checkbox>
@@ -32,7 +32,7 @@
       <el-button type="primary" @click="submit">{{ $t('fileChose.confirm') }}</el-button>
     </div>
 
-    <el-dialog :title="$t('fileChose.savePathTitle')" v-model="showSave" width="40em">
+    <el-dialog :title="$t('fileChose.savePathTitle')" v-model="showSave" :width="saveDialogWidth">
       <el-input type="text" v-model="saveName" :placeholder="$t('fileChose.savePathNamePlaceholder')"/>
       <el-button type="primary" @click="savePath" style="padding-top: 1em">{{ $t('fileChose.submit') }}</el-button>
     </el-dialog>
@@ -69,6 +69,9 @@ export default {
       let targetList = this.savePathList.filter((item) => item.content === curPath);
       return targetList.length > 0 ? targetList[0].id : null;
     },
+    saveDialogWidth() {
+      return window.innerWidth <= 768 ? '100%' : '40em';
+    }
   },
   watch: {
     async curChoosePath(newVal) {
@@ -181,6 +184,12 @@ export default {
   height: 65vh;
 }
 
+.file-breadcrumb {
+  white-space: nowrap;
+  overflow-x: auto;
+  padding: 0.3em 0;
+}
+
 .fileList {
   padding: 1em;
   text-align: left;
@@ -193,6 +202,58 @@ export default {
     display: inline-block;
     min-width: 3em;
     line-height: 1.4em;
+  }
+
+  .file-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+
+    .filter-input {
+      display: inline-block;
+      width: 150px;
+    }
+  }
+
+  .file-item {
+    min-height: 1.8em;
+    padding: 0.2em 0;
+
+    :deep(.el-checkbox) {
+      height: auto;
+      min-height: 1.4em;
+      align-items: center;
+    }
+
+    a, span {
+      display: inline-block;
+      padding: 0.15em 0;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    height: 55vh;
+  }
+
+  .fileList {
+    height: 75%;
+    padding: 0.5em;
+
+    .file-toolbar {
+      .filter-input {
+        width: 100%;
+      }
+    }
+
+    .file-item {
+      min-height: 2em;
+      padding: 0.3em 0;
+      font-size: 0.95em;
+    }
   }
 }
 </style>

@@ -10,6 +10,7 @@ import SqliteUtil from "./util/SqliteHelper.ts";
 import * as i18n from "./i18n/index.ts";
 import ProcesHelper from "./util/ProcesHelper.ts";
 
+const isDesktop = config.env == "desktop";
 const start = Date.now();
 log.info(JSON.stringify(config));
 
@@ -24,7 +25,7 @@ app.use(async (ctx, next) => {
   const url = ctx.request.url.pathname;
   // 移除开头的斜杠，得到文件路径
   const filePath = url === "/" ? "index.html" : url.replace(/^\//, "");
-  
+
   try {
     await send(ctx, filePath, {
       root: path.join(config.rootPath, "static"),
@@ -50,14 +51,16 @@ try {
   await Deno.mkdir(config.dataPath, { recursive: true });
 }
 
-// 尝试杀死历史进程
-// try {
-//   const pidContent = await Deno.readTextFile(pidPath);
-//   const pid = parseInt(pidContent);
-//   ProcesHelper.kill(pid);
-// } catch {
-//   // 文件不存在，忽略
-// }
+//尝试杀死历史进程
+try {
+  if (isDesktop) {
+    const pidContent = await Deno.readTextFile(pidPath);
+    const pid = parseInt(pidContent);
+    ProcesHelper.kill(pid);
+  }
+} catch {
+  // 文件不存在，忽略
+}
 
 await SqliteUtil.createPool();
 i18n.init();
@@ -79,7 +82,7 @@ await Deno.writeTextFile(
 await Deno.writeTextFile(pidPath, Deno.pid.toString());
 
 // 如果为桌面环境，打开浏览器
-if (config.env == "desktop") {
+if (isDesktop) {
   log.info(
     "如果未自动打开浏览器，可手动访问 http://localhost:" + config.port,
   );

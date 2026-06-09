@@ -42,11 +42,11 @@
         <el-button type="primary" size="small" text @click="addRuleDialogShow = true">+ {{ $t('ruleBlock.addRule') }}</el-button>
       </div>
     </div>
-    <el-dialog :title="editRule ? $t('ruleBlock.editRuleTitle') : $t('ruleBlock.addRuleTitle')" v-model="addRuleDialogShow" width="70%"
+    <el-dialog :title="editRule ? $t('ruleBlock.editRuleTitle') : $t('ruleBlock.addRuleTitle')" v-model="addRuleDialogShow" :width="dialogWidth"
                @close="ruleDialogClose">
       <rule :editRule="editRule" @ruleAdd="ruleAdd" v-if="addRuleDialogShow" :isAutoPlan="rules != undefined"/>
     </el-dialog>
-    <el-dialog :title="$t('ruleBlock.templateManagement')" v-model="ruleTemplateShow" width="70%">
+    <el-dialog :title="$t('ruleBlock.templateManagement')" v-model="ruleTemplateShow" :width="dialogWidth">
       <application-rule-list v-if="ruleTemplateShow" :curId="chosedTemplate.id" @templateUpdate="templateUpdate"/>
     </el-dialog>
   </div>
@@ -82,6 +82,9 @@ export default {
     checkedRules() {
       return this.ruleList.filter((item) => item.checked);
     },
+    dialogWidth() {
+      return window.innerWidth <= 768 ? '100%' : '70%';
+    }
   },
   async created() {
     //如果外部传入了规则
@@ -278,6 +281,8 @@ export default {
     display: flex;
     justify-content: left;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
   }
 
   .ruleBlock {
@@ -285,6 +290,16 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: baseline;
+    margin-top: 10px;
+
+    :deep(.el-checkbox) {
+      margin-right: 1em;
+      margin-bottom: 0.3em;
+      align-items: flex-start;
+      white-space: normal;
+      height: auto;
+      min-height: 1.5em;
+    }
   }
 
   .choseTemplate {

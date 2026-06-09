@@ -1,22 +1,22 @@
 <template>
   <div>
-    <el-form ref="configRuleRef" label-width="100px" :model="body" :rules="bodyRule">
+    <el-form ref="configRuleRef" :label-width="labelWidth" :model="body" :rules="bodyRule">
       <input type="text" class="form-control" style="display: none" />
       <el-form-item label="剧集目录" prop="paths">
-        <div style="text-align: left">
+        <div class="tag-list">
           <template v-for="(item, index) in body.paths" :key="item">
-            <el-tag closable @close="closePath(index, 'folder')">{{ item }}</el-tag> <br />
+            <el-tag closable @close="closePath(index, 'folder')">{{ item }}</el-tag>
           </template>
-          <div style="display: flex; align-items: center">
+          <div class="tag-actions">
             <el-button type="primary" link @click="showFolderDialog = true">+新增目录</el-button>
-            <tips message="添加剧集的上级目录，此目录下的每一个文件夹都将被认为是一部剧" />
+            <tips message="添加剧集的上级目录，此目录下的每一个文件夹都将认为是一部剧" />
           </div>
         </div>
       </el-form-item>
       <el-form-item label="忽略文件">
-        <div style="text-align: left; display: flex; align-items: center">
+        <div class="tag-list">
           <template v-for="(item, index) in body.ignorePaths" :key="item">
-            <el-tag closable @close="closePath(index, 'ignore')">{{ item }}</el-tag> <br />
+            <el-tag closable @close="closePath(index, 'ignore')">{{ item }}</el-tag>
           </template>
           <el-input
             v-if="ignoreInputVisible"
@@ -51,7 +51,7 @@
       </el-form-item>
     </el-form>
     <el-button type="primary" @click="submit"> 保存自动化配置 </el-button>
-    <el-dialog title="选择目录" v-model="showFolderDialog" width="70%">
+    <el-dialog title="选择目录" v-model="showFolderDialog" :width="dialogWidth">
       <file-chose ref="fileChose" type="folder" @folderChose="folderChose" />
     </el-dialog>
   </div>
@@ -62,7 +62,7 @@ import FileChose from "@/components/FileChose.vue";
 import RuleBlock from "@/components/rules/RuleBlock.vue";
 import Tips from "@/components/Tips.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import http from "@/utils/HttpUtil";
 
 //配置中心数据
@@ -84,6 +84,9 @@ const configRuleRef = ref();
 let showFolderDialog = ref(false);
 let ignoreInputVisible = ref(false);
 let ignoreInput = ref("");
+
+const labelWidth = computed(() => window.innerWidth <= 768 ? '80px' : '100px');
+const dialogWidth = computed(() => window.innerWidth <= 768 ? '100%' : '70%');
 
 onMounted(async () => {
   let res = await http.post("/config/multCode", null, ["autoConfig", "firstUse"]);
@@ -159,6 +162,21 @@ async function submit() {
 
   .right {
     flex: 1;
+  }
+}
+
+.tag-list {
+  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+
+  .tag-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
   }
 }
 </style>

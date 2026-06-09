@@ -1,6 +1,6 @@
 <template>
   <div class="main">
-    <el-menu style="width: 8em" mode="vertical" :default-active="currentIndex" @select="menuChange">
+    <el-menu class="rule-menu" mode="vertical" :default-active="currentIndex" @select="menuChange">
       <el-menu-item :disabled="editRule != null" index="insert">{{ $t('rule.insert') }}</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="delete">{{ $t('rule.delete') }}</el-menu-item>
       <el-menu-item :disabled="editRule != null" index="replace">{{ $t('rule.replace') }}</el-menu-item>
@@ -66,9 +66,39 @@ export default {
   height: 65vh;
   text-align: left;
 
+  .rule-menu {
+    width: 8em;
+  }
+
   .rule {
     padding: 5px;
     flex: 1;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+    height: auto;
+    max-height: 70vh;
+
+    .rule-menu {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      overflow-x: auto;
+
+      :deep(.el-menu-item) {
+        height: 40px;
+        line-height: 40px;
+        padding: 0 10px;
+      }
+    }
+
+    .rule {
+      padding: 5px;
+    }
   }
 }
 </style>
