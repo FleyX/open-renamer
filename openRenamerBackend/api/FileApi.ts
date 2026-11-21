@@ -2,9 +2,9 @@ import { Context } from "oak";
 import FileService from "../service/FileService.ts";
 import FileObj from "../entity/vo/FileObj.ts";
 import config from "../config.ts";
-import type { RouterDefinition } from "./types.ts";
+import type { OakRouterDefinition } from "./oakTypes.ts";
 
-const router: RouterDefinition = {};
+const router: OakRouterDefinition = {};
 
 /**
  * 获取目录下的文件列表

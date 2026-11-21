@@ -1,5 +1,5 @@
 import GlobalConfigDao from '../dao/GlobalConfigDao.ts';
-import GlobalConfig from '../entity/po/GlobalConfig.ts';
+import type GlobalConfig from '../entity/po/GlobalConfig.ts';
 
 
 class GlobalConfigService {

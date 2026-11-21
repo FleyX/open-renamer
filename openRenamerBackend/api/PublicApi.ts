@@ -1,8 +1,8 @@
 import { Context } from "oak";
 import config from "../config.ts";
-import type { RouterDefinition } from "./types.ts";
+import type { OakRouterDefinition } from "./oakTypes.ts";
 
-const router: RouterDefinition = {};
+const router: OakRouterDefinition = {};
 
 /**
  * 判断token是否正确

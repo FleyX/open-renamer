@@ -1,8 +1,8 @@
 import { Context } from "oak";
 import RenamerService from "../service/RenamerService.ts";
-import type { RouterDefinition } from "./types.ts";
+import type { OakRouterDefinition } from "./oakTypes.ts";
 
-const router: RouterDefinition = {};
+const router: OakRouterDefinition = {};
 
 /**
  * 预览文件修改后的状态

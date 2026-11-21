@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "index.node.ts",
+    "server/**/*.ts",
+    "api/ApplicationRuleApi.ts",
+    "api/GlobalConfigApi.ts",
+    "api/TemplateFileApi.ts",
+    "api/types.ts",
+    "dao/**/*.ts",
+    "entity/po/**/*.ts",
+    "i18n/nodeI18n.ts",
+    "service/ApplicationRuleService.ts",
+    "service/GlobalConfigService.ts",
+    "util/ErrorHelper.ts",
+    "util/MigrationManager.ts",
+    "test/**/*.ts"
+  ]
+}
