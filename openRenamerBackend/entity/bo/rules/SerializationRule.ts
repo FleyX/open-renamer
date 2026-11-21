@@ -1,6 +1,6 @@
-import RuleInterface from "./RuleInterface.ts";
+import type RuleInterface from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
-import * as path from 'std/path/mod.ts';
+import path from "node:path";
 
 export interface SerializationRuleData {
     start: number;
@@ -65,7 +65,7 @@ export default class SerializationRule implements RuleInterface {
 
     deal(file: FileObj): void {
         const expand = this.postfixGroup ? file.expandName : "";
-        const currentIndex = this.currentIndexMap.has(expand) ? this.currentIndexMap.get(expand) : this.start;
+        const currentIndex = this.currentIndexMap.has(expand) ? this.currentIndexMap.get(expand)! : this.start;
         const length = currentIndex.toString().length;
         const numStr = (this.addZero && this.numLength > length ? "0".repeat(this.numLength - length) : "") + currentIndex;
         let str = this.ignorePostfix ? file.realName : file.name;

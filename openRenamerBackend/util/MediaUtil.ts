@@ -38,7 +38,7 @@ export function isNfo(str: string) {
 const pattern1 = new RegExp(/s(eason)?\.?(\d+)/);
 const pattern2 = new RegExp(/(\d+)/);
 const pattern3 = new RegExp(/([一二三四五六七八九十]+)/);
-const chineseNumMap = {
+const chineseNumMap: Record<string, string> = {
     "一": "1",
     "二": "2",
     "三": "3",

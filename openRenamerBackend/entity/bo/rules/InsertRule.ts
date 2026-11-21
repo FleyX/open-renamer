@@ -1,6 +1,6 @@
-import RuleInterface from "./RuleInterface.ts";
+import type RuleInterface from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
-import * as path from 'std/path/mod.ts';
+import path from "node:path";
 import {getSeason} from "../../../util/MediaUtil.ts";
 
 export interface InsertRuleData {

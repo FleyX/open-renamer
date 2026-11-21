@@ -1,4 +1,4 @@
-import RuleInterface from "./RuleInterface.ts";
+import type RuleInterface from "./RuleInterface.ts";
 import {dealFileName} from "./RuleInterface.ts";
 import FileObj from "../../vo/FileObj.ts";
 

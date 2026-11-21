@@ -1,4 +1,4 @@
-import RuleInterface from "../bo/rules/RuleInterface.ts";
+import type RuleInterface from "../bo/rules/RuleInterface.ts";
 import DeleteRule from "../bo/rules/DeleteRule.ts";
 import type { DeleteRuleData } from "../bo/rules/DeleteRule.ts";
 import InsertRule from "../bo/rules/InsertRule.ts";

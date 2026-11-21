@@ -1,24 +1,37 @@
-import { Context } from "oak";
 import RenamerService from "../service/RenamerService.ts";
-import type { OakRouterDefinition } from "./oakTypes.ts";
+import type PreviewDto from "../entity/dto/PreviewDto.ts";
+import type RenameDto from "../entity/dto/RenameDto.ts";
+import type { RouterDefinition } from "./types.ts";
 
-const router: OakRouterDefinition = {};
+export type MessageLookup = (lang: string, key: string) => string;
 
-/**
- * 预览文件修改后的状态
- */
-router["POST /renamer/preview"] = async function (ctx: Context) {
-  const body = await ctx.request.body().value;
-  ctx.response.body = await RenamerService.preview(body, ctx);
-};
+export default function createRenamerRoutes(
+  getMessage: MessageLookup,
+): RouterDefinition {
+  const router: RouterDefinition = {};
 
-/**
- * 提交修改
- */
-router["POST /renamer/submit"] = async function (ctx: Context) {
-  const body = await ctx.request.body().value;
-  await RenamerService.rename(body, ctx);
-  ctx.response.body = { success: true };
-};
+  /**
+   * 预览文件修改后的状态
+   */
+  router["POST /renamer/preview"] = async function ({ request, response }) {
+    const lang = request.headers.get("lang") ?? "";
+    response.body = RenamerService.preview(
+      request.body as PreviewDto,
+      (key) => getMessage(lang, key),
+    );
+  };
 
-export default router;
+  /**
+   * 提交修改
+   */
+  router["POST /renamer/submit"] = async function ({ request, response }) {
+    const lang = request.headers.get("lang") ?? "";
+    await RenamerService.rename(
+      request.body as RenameDto,
+      (key) => getMessage(lang, key),
+    );
+    response.body = { success: true };
+  };
+
+  return router;
+}

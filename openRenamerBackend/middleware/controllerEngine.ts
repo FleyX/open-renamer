@@ -3,24 +3,29 @@ import { Router } from "oak/router";
 import { Context } from "oak";
 
 import ApplicationRuleApi from "../api/ApplicationRuleApi.ts";
-import FileApi from "../api/FileApi.ts";
+import createFileRoutes from "../api/FileApi.ts";
 import GlobalConfigApi from "../api/GlobalConfigApi.ts";
 import PublicApi from "../api/PublicApi.ts";
-import RenamerApi from "../api/RenamerApi.ts";
+import createRenamerRoutes from "../api/RenamerApi.ts";
 import type { ApiHandler, RouterDefinition } from "../api/types.ts";
 import type { OakRouterDefinition } from "../api/oakTypes.ts";
+import config from "../config.ts";
+import { getMessage } from "../i18n/index.ts";
 
 type OakRouteHandler = (ctx: Context) => Promise<void>;
 
 const sharedApiModules: Array<{ name: string; module: RouterDefinition }> = [
   { name: "ApplicationRuleApi.ts", module: ApplicationRuleApi },
+  {
+    name: "FileApi.ts",
+    module: createFileRoutes(() => config.isWindows),
+  },
   { name: "GlobalConfigApi.ts", module: GlobalConfigApi },
+  { name: "RenamerApi.ts", module: createRenamerRoutes(getMessage) },
 ];
 
 const oakApiModules: Array<{ name: string; module: OakRouterDefinition }> = [
-  { name: "FileApi.ts", module: FileApi },
   { name: "PublicApi.ts", module: PublicApi },
-  { name: "RenamerApi.ts", module: RenamerApi },
 ];
 
 async function readJsonBody(ctx: Context): Promise<unknown> {

@@ -8,8 +8,9 @@ import express, {
   type Router,
 } from "express";
 import ApplicationRuleApi from "../api/ApplicationRuleApi.ts";
+import createFileRoutes from "../api/FileApi.ts";
 import GlobalConfigApi from "../api/GlobalConfigApi.ts";
-import createTemplateFileRoutes from "../api/TemplateFileApi.ts";
+import createRenamerRoutes from "../api/RenamerApi.ts";
 import type {
   ApiContext,
   ApiHeaders,
@@ -183,15 +184,13 @@ export async function startNodeServer(
       .send(getNodeMessage(request.get("lang"), "key-error"));
   });
 
-  app.use(express.json());
+  app.use(express.json({ limit: "50mb" }));
 
   const apiRouter = express.Router();
   mountRoutes(apiRouter, ApplicationRuleApi);
   mountRoutes(apiRouter, GlobalConfigApi);
-  mountRoutes(
-    apiRouter,
-    createTemplateFileRoutes(() => config.isWindows),
-  );
+  mountRoutes(apiRouter, createFileRoutes(() => config.isWindows));
+  mountRoutes(apiRouter, createRenamerRoutes(getNodeMessage));
   apiRouter.post("/public/checkToken", (request, response) => {
     response.json(request.body?.token === config.token);
   });

@@ -7,13 +7,13 @@ class TrieNode {
     Index = 0;
     Layer = 0;
     End = false;
-    Char = '';
-    Results = [];
-    m_values = {};
-    Failure = null;
-    Parent = null;
+    Char = 0;
+    Results: number[] = [];
+    m_values: Record<number, TrieNode> = {};
+    Failure: TrieNode | null = null;
+    Parent: TrieNode | null = null;
 
-    public Add(c) {
+    public Add(c: number): TrieNode {
         if (this.m_values[c] != null) {
             return this.m_values[c];
         }
@@ -25,7 +25,7 @@ class TrieNode {
     }
 
 
-    public SetResults(index) {
+    public SetResults(index: number) {
         if (this.End == false) {
             this.End = true;
         }
@@ -36,12 +36,12 @@ class TrieNode {
 
 class TrieNode2 {
     End = false;
-    Results = [];
-    m_values = {};
+    Results: number[] = [];
+    m_values: Record<number, TrieNode2> = {};
     minflag = 1;
     maxflag = 0;
 
-    public Add(c, node3) {
+    public Add(c: number | string, node3: TrieNode2) {
         if (typeof c !== 'number') {
             c = parseInt(c);
         }
@@ -54,7 +54,7 @@ class TrieNode2 {
         this.m_values[c] = node3;
     }
 
-    public SetResults(index) {
+    public SetResults(index: number) {
         if (this.End == false) {
             this.End = true;
         }
@@ -63,11 +63,11 @@ class TrieNode2 {
         }
     }
 
-    public HasKey(c) {
-        return this.m_values[c] != undefined;
+    public HasKey(c: number | string) {
+        return this.m_values[typeof c === "number" ? c : parseInt(c)] != undefined;
     }
 
-    public TryGetValue(c) {
+    public TryGetValue(c: number): TrieNode2 | null {
         if (this.minflag <= c && this.maxflag >= c) {
             return this.m_values[c];
         }
@@ -75,19 +75,27 @@ class TrieNode2 {
     }
 }
 
+interface Match {
+    Keyword: string;
+    Success: true;
+    End: number;
+    Start: number;
+    Index: number;
+}
+
 
 class WordsSearch {
 
 
-    _first: TrieNode2 = null;
-    _keywords = [];
-    _others = [];
+    _first: TrieNode2 | null = null;
+    _keywords: string[] = [];
+    _others: string[] = [];
 
-    public SetKeywords(keywords) {
+    public SetKeywords(keywords: string[]) {
         this._keywords = keywords;
         let root = new TrieNode();
 
-        let allNodeLayer = {};
+        const allNodeLayer: Record<number, TrieNode[]> = {};
         for (let i = 0; i < this._keywords.length; i++) {
             const p = this._keywords[i];
             let nd = root;
@@ -106,20 +114,18 @@ class WordsSearch {
             nd.SetResults(i);
         }
 
-        let allNode: TrieNode[] = [];
+        const allNode: TrieNode[] = [];
         allNode.push(root);
         for (const key in allNodeLayer) {
-            const nds = allNodeLayer[key];
+            const nds = allNodeLayer[Number(key)];
             for (let i = 0; i < nds.length; i++) {
                 allNode.push(nds[i]);
             }
         }
-        allNodeLayer = null;
-
         for (let i = 1; i < allNode.length; i++) {
             const nd: TrieNode = allNode[i];
             nd.Index = i;
-            let r = nd.Parent.Failure;
+            let r = nd.Parent!.Failure;
             const c = nd.Char;
             while (r != null && !r.m_values[c])
                 r = r.Failure;
@@ -127,39 +133,39 @@ class WordsSearch {
                 nd.Failure = root;
             else {
                 nd.Failure = r.m_values[c];
-                for (const key2 in nd.Failure.Results) {
-                    if (!Object.prototype.hasOwnProperty.call(nd.Failure.Results, key2)) {
+                for (const key2 in nd.Failure!.Results) {
+                    if (!Object.prototype.hasOwnProperty.call(nd.Failure!.Results, key2)) {
                         continue;
                     }
-                    const result = nd.Failure.Results[key2];
+                    const result = nd.Failure!.Results[key2];
                     nd.SetResults(result);
                 }
             }
         }
         root.Failure = root;
 
-        const allNode2 = [];
+        const allNode2: TrieNode2[] = [];
         for (let i = 0; i < allNode.length; i++) {
             allNode2.push(new TrieNode2());
         }
         for (let i = 0; i < allNode2.length; i++) {
-            let oldNode = allNode[i];
+            let oldNode: TrieNode | null = allNode[i];
             const newNode = allNode2[i];
 
-            for (const key in oldNode.m_values) {
-                if (!Object.prototype.hasOwnProperty.call(oldNode.m_values, key)) {
+            for (const key in oldNode!.m_values) {
+                if (!Object.prototype.hasOwnProperty.call(oldNode!.m_values, key)) {
                     continue;
                 }
-                const index = oldNode.m_values[key].Index;
+                const index = oldNode!.m_values[Number(key)].Index;
                 newNode.Add(key, allNode2[index]);
             }
-            for (let index = 0; index < oldNode.Results.length; index++) {
-                const item = oldNode.Results[index];
+            for (let index = 0; index < oldNode!.Results.length; index++) {
+                const item = oldNode!.Results[index];
                 newNode.SetResults(item);
             }
 
-            oldNode = oldNode.Failure;
-            while (oldNode != root) {
+            oldNode = oldNode!.Failure;
+            while (oldNode != null && oldNode != root) {
                 for (const key in oldNode.m_values) {
                     if (Object.prototype.hasOwnProperty.call(oldNode.m_values, key) === false) {
                         continue;
@@ -173,27 +179,25 @@ class WordsSearch {
                     const item = oldNode.Results[index];
                     newNode.SetResults(item);
                 }
-                oldNode = oldNode.Failure;
+                oldNode = oldNode.Failure!;
             }
         }
-        allNode = null;
-        root = null;
         this._first = allNode2[0];
     }
 
-    public FindAll(text) {
-        let ptr = null;
-        const list = [];
+    public FindAll(text: string): Match[] {
+        let ptr: TrieNode2 | null = null;
+        const list: Match[] = [];
 
         for (let i = 0; i < text.length; i++) {
             const t = text.charCodeAt(i);
-            let tn = null;
+            let tn: TrieNode2 | null = null;
             if (ptr == null) {
-                tn = this._first.TryGetValue(t);
+                tn = this._first!.TryGetValue(t);
             } else {
                 tn = ptr.TryGetValue(t);
                 if (!tn) {
-                    tn = this._first.TryGetValue(t);
+                    tn = this._first!.TryGetValue(t);
                 }
             }
             if (tn != null) {
@@ -221,12 +225,12 @@ class WordsSearch {
 
 
 //-----------------------
-let s2tSearch = null; // WordsSearch
-let t2sSearch = null;// WordsSearch
-let t2twSearch = null;// WordsSearch
-let tw2tSearch = null;// WordsSearch
-let t2hkSearch = null;// WordsSearch
-let hk2tSearch = null;// WordsSearch
+let s2tSearch: WordsSearch | null = null;
+let t2sSearch: WordsSearch | null = null;
+let t2twSearch: WordsSearch | null = null;
+let tw2tSearch: WordsSearch | null = null;
+let t2hkSearch: WordsSearch | null = null;
+let hk2tSearch: WordsSearch | null = null;
 
 interface TranslationOptions {
     text: string;
@@ -282,7 +286,7 @@ function TransformationReplace(text: string, wordsSearch: WordsSearch) {
     let sb = "";
     let index = 0;
     while (index < text.length) {
-        let t = null;
+        let t: Match | null = null;
         let max = -1;
         for (let i = 0; i < ts.length; i++) {
             const f = ts[i];
@@ -303,7 +307,7 @@ function TransformationReplace(text: string, wordsSearch: WordsSearch) {
     return sb;
 }
 
-function GetWordsSearch(s2t: boolean, srcType: number) {
+function GetWordsSearch(s2t: boolean, srcType: number): WordsSearch {
     if (s2t) {
         if (srcType === 0) {
             if (s2tSearch == null) {
@@ -338,7 +342,7 @@ function GetWordsSearch(s2t: boolean, srcType: number) {
         }
         return tw2tSearch;
     }
-    return null;
+    throw new Error("不支持的转换类型: " + srcType);
 }
 
 function BuildWordsSearch(keywords: string[], toWords: string[]) {
