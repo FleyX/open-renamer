@@ -1,0 +1,28 @@
+{
+  "name": "open-renamer-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.22.3"
+  },
+  "packageManager": "pnpm@10.18.3",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "package:linux-x64": "node scripts/package.mjs --platform=linux --arch=x64",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "@types/node": "^24.10.1",
+    "electron": "45.4.1",
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
+}
