@@ -34,7 +34,7 @@
     </el-form-item>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="saveTemplateDilalogShow = false">取消</el-button>
+        <el-button @click="showEditAddModal = false">取消</el-button>
         <el-button type="primary" @click="templateSubmit">提交</el-button>
       </span>
     </template>
