@@ -16,11 +16,11 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.18.3
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.22.3
           cache: pnpm
           cache-dependency-path: openRenamerFront/pnpm-lock.yaml
 
@@ -65,12 +65,16 @@ jobs:
 
       - name: 计算镜像 tags
         id: meta
+        shell: bash
         run: |
-          TAGS="fleyx/open-renamer:${{ github.ref_name }}"
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            TAGS="$TAGS\nfleyx/open-renamer:latest"
-          fi
-          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "fleyx/open-renamer:${GITHUB_REF_NAME}"
+            if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+              echo "fleyx/open-renamer:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 构建推送镜像(amd64 + arm64)
         uses: docker/build-push-action@v5
