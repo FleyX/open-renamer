@@ -26,4 +26,9 @@ export default interface AiRenameRow {
    * 问题描述，空字符串表示可用
    */
   problem: string;
+  /**
+   * 问题是否来自生成失败（模型未给出可用目标），此类行可单独重试；
+   * 路径校验错误不可重试
+   */
+  retryable: boolean;
 }

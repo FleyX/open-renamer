@@ -245,7 +245,8 @@ export default {
     completed: "已完成",
     failed: "失败",
     pending: "未执行",
-    submitDone: "批次已提交"
+    submitDone: "批次已提交",
+    retry: "重试"
   },
   login: {
     tokenPlaceholder: "请输入密钥",

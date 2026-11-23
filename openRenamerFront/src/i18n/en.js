@@ -246,7 +246,8 @@ export default {
     completed: "Completed",
     failed: "Failed",
     pending: "Pending",
-    submitDone: "Batch submitted"
+    submitDone: "Batch submitted",
+    retry: "Retry"
   },
   login: {
     tokenPlaceholder: "Please enter token",

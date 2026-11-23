@@ -1,6 +1,7 @@
 import AiRenameService from "../service/AiRenameService.ts";
 import type AiGenerateDto from "../entity/dto/AiGenerateDto.ts";
 import type AiPreviewEditDto from "../entity/dto/AiPreviewEditDto.ts";
+import type AiRetryDto from "../entity/dto/AiRetryDto.ts";
 import type AiSubmitDto from "../entity/dto/AiSubmitDto.ts";
 import type { RouterDefinition } from "./types.ts";
 
@@ -34,6 +35,17 @@ export default function createAiRenameRoutes(
     const lang = request.headers.get("lang") ?? "";
     response.body = await service.validatePreview(
       request.body as AiPreviewEditDto,
+      (key) => getMessage(lang, key),
+    );
+  };
+
+  /**
+   * 重试生成失败的条目，保留其余行的已确认映射
+   */
+  router["POST /aiRename/retry"] = async function ({ request, response }) {
+    const lang = request.headers.get("lang") ?? "";
+    response.body = await service.retry(
+      request.body as AiRetryDto,
       (key) => getMessage(lang, key),
     );
   };

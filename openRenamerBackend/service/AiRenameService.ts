@@ -14,6 +14,8 @@ import {
 import path from "node:path";
 
 import type AiGenerateDto from "../entity/dto/AiGenerateDto.ts";
+import type { AiServiceConfig } from "../entity/dto/AiGenerateDto.ts";
+import type AiRetryDto from "../entity/dto/AiRetryDto.ts";
 import type AiPreviewEditDto from "../entity/dto/AiPreviewEditDto.ts";
 import type AiSubmitDto from "../entity/dto/AiSubmitDto.ts";
 import type AiRenameRow from "../entity/vo/AiRenameRow.ts";
@@ -24,6 +26,10 @@ export type MessageLookup = (key: string) => string;
 interface AiBatch {
   id: string;
   targetRoot: string;
+  /**
+   * 生成时使用的命名规范，重试沿用同一规范
+   */
+  instruction: string;
   rows: Array<AiRenameRow>;
   version: number;
   consumed: boolean;
@@ -75,61 +81,24 @@ class AiRenameService {
     if (!rootReal || !rootInfo || !rootInfo.isDirectory()) {
       return { ...empty, error: getMessage("ai.target-root-invalid") };
     }
+    if (!AiRenameService.validService(dto.service)) {
+      return { ...empty, error: getMessage("ai.model-config-invalid") };
+    }
 
-    const lines = sources.map((item, index) => ({
+    const rows: AiRenameRow[] = sources.map((item, index) => ({
       id: `L${String(index + 1).padStart(3, "0")}`,
-      source: item.source,
-      context: AiRenameService.contextPath(
+      sourcePath: item.source,
+      contextPath: AiRenameService.contextPath(
         item.source,
         item.sourceDir || (dto.baseDir ?? ""),
       ),
+      targetRel: "",
+      targetAbs: "",
+      problem: "",
+      retryable: true,
     }));
-
-    let parsed: Array<Record<string, unknown>>;
-    try {
-      parsed = await this.callModel(dto, lines, instruction);
-    } catch {
-      return { ...empty, error: getMessage("ai.model-request-failed") };
-    }
-
-    const rows = new Map<string, AiRenameRow>();
-    for (const line of lines) {
-      rows.set(line.id, {
-        id: line.id,
-        sourcePath: line.source,
-        contextPath: line.context,
-        targetRel: "",
-        targetAbs: "",
-        problem: getMessage("ai.missing-result"),
-      });
-    }
-    const seenIds = new Set<string>();
-    for (const item of parsed) {
-      if (
-        item === null ||
-        typeof item !== "object" ||
-        typeof item.id !== "string" ||
-        !rows.has(item.id) ||
-        seenIds.has(item.id)
-      ) {
-        return { ...empty, error: getMessage("ai.model-response-invalid") };
-      }
-      seenIds.add(item.id);
-      const row = rows.get(item.id)!;
-      if (typeof item.problem === "string" && item.problem.trim().length > 0) {
-        row.problem = item.problem.trim();
-      } else if (
-        typeof item.target === "string" &&
-        item.target.trim().length > 0
-      ) {
-        row.targetRel = item.target.trim();
-        row.problem = "";
-      } else {
-        row.problem = getMessage("ai.missing-result");
-      }
-    }
-
-    const batch = this.createBatch(rootReal, [...rows.values()]);
+    await this.generateTargets(rows, dto.service, instruction, getMessage);
+    const batch = this.createBatch(rootReal, rows, instruction);
     await this.validateBatch(batch, getMessage);
     return { batchId: batch.id, version: batch.version, rows: batch.rows };
   }
@@ -239,6 +208,98 @@ class AiRenameService {
     }
   }
 
+  /**
+   * 重试生成失败的条目：沿用原批次命名规范，只把这些行的相对路径发给模型。
+   * 其余行的方向、顺序和用户已确认的目标路径全部保留，结果按完整批次重新校验。
+   * 仍失败时保留明确反馈和重试入口。批次不保存 API Key。
+   * 复用版本与并发防护：重试期间禁止提交与其他校验，避免篡改已编辑或已执行的版本。
+   */
+  async retry(
+    dto: AiRetryDto,
+    getMessage: MessageLookup,
+  ): Promise<{ batchId: string; version: number; rows: Array<AiRenameRow> }> {
+    const { batch } = this.accessBatch(dto.batchId, getMessage);
+    this.sweepExpired();
+    if (this.inFlight.has(batch.id)) {
+      throw ErrorHelper.Error400(getMessage("ai.batch-in-flight"));
+    }
+    if (batch.consumed || batch.version !== dto.version) {
+      throw ErrorHelper.Error400(getMessage("ai.batch-version-mismatch"));
+    }
+    if (!AiRenameService.validService(dto.service)) {
+      throw ErrorHelper.Error400(getMessage("ai.model-config-invalid"));
+    }
+    if (!Array.isArray(dto.rowIds)) {
+      throw ErrorHelper.Error400(getMessage("ai.retry-rows-invalid"));
+    }
+    const targets = new Map<string, AiRenameRow>();
+    const draft: AiBatch = { ...batch, rows: batch.rows.map((row) => ({ ...row })) };
+    for (const id of dto.rowIds) {
+      const row = draft.rows.find((item) => item.id === id);
+      if (!row || targets.has(id) || !row.retryable) {
+        throw ErrorHelper.Error400(getMessage("ai.retry-rows-invalid"));
+      }
+      targets.set(id, row);
+    }
+    if (targets.size === 0) {
+      throw ErrorHelper.Error400(getMessage("ai.retry-rows-invalid"));
+    }
+
+    this.inFlight.add(batch.id);
+    try {
+      await this.generateTargets([...targets.values()], dto.service, batch.instruction, getMessage);
+      await this.validateBatch(draft, getMessage);
+      this.accessBatch(dto.batchId, getMessage);
+      batch.rows = draft.rows;
+      batch.version += 1;
+      return { batchId: batch.id, version: batch.version, rows: batch.rows };
+    } finally {
+      this.inFlight.delete(batch.id);
+    }
+  }
+
+  private async generateTargets(
+    rows: AiRenameRow[],
+    config: AiServiceConfig,
+    instruction: string,
+    getMessage: MessageLookup,
+  ): Promise<void> {
+    let failure = "ai.model-request-failed";
+    const results = new Map<string, Record<string, unknown>>();
+    try {
+      const parsed = await this.callModel(config, rows, instruction);
+      failure = "ai.model-response-invalid";
+      const allowed = new Set(rows.map((row) => row.id));
+      for (const item of parsed) {
+        if (!item || typeof item.id !== "string" ||
+          !allowed.has(item.id) || results.has(item.id)) {
+          throw new Error("Invalid model row id");
+        }
+        results.set(item.id, item);
+      }
+      failure = "ai.missing-result";
+    } catch {
+      results.clear();
+    }
+    const apiKey = config.apiKey?.trim();
+    for (const row of rows) {
+      const item = results.get(row.id);
+      const problem = typeof item?.problem === "string" ? item.problem.trim() : "";
+      const target = typeof item?.target === "string" ? item.target.trim() : "";
+      if (!problem && target && !(apiKey && target.includes(apiKey))) {
+        row.targetRel = target;
+        row.problem = "";
+        row.retryable = false;
+      } else {
+        row.targetRel = "";
+        row.problem = problem && !(apiKey && problem.includes(apiKey))
+          ? problem
+          : getMessage(failure);
+        row.retryable = true;
+      }
+    }
+  }
+
   /** 源文件按绝对路径去重，保留每个文件实际来自的所选目录 */
   private normalizeSources(
     dto: AiGenerateDto,
@@ -291,9 +352,24 @@ class AiRenameService {
     return `${trimmed}/chat/completions`;
   }
 
+  private static validService(config: AiServiceConfig | undefined): boolean {
+    if (!config || typeof config.baseUrl !== "string" ||
+      typeof config.model !== "string" || !config.model.trim() ||
+      (config.apiKey !== undefined && typeof config.apiKey !== "string")) {
+      return false;
+    }
+    try {
+      const url = new URL(config.baseUrl);
+      return (url.protocol === "http:" || url.protocol === "https:") &&
+        !url.username && !url.password && !url.search && !url.hash;
+    } catch {
+      return false;
+    }
+  }
+
   private async callModel(
-    dto: AiGenerateDto,
-    lines: Array<{ id: string; source: string; context: string }>,
+    service: AiServiceConfig,
+    lines: Array<Pick<AiRenameRow, "id" | "contextPath">>,
     instruction: string,
   ): Promise<Array<Record<string, unknown>>> {
     const messages = [
@@ -312,7 +388,7 @@ class AiRenameService {
           "Naming specification:\n" +
           instruction +
           "\n\nFiles (id and relative path):\n" +
-          lines.map((line) => `${line.id} ${line.context}`).join("\n"),
+          lines.map((line) => `${line.id} ${line.contextPath}`).join("\n"),
       },
     ];
     const controller = new AbortController();
@@ -323,15 +399,15 @@ class AiRenameService {
       const headers: Record<string, string> = {
         "content-type": "application/json",
       };
-      const apiKey = (dto.service.apiKey ?? "").trim();
+      const apiKey = (service.apiKey ?? "").trim();
       if (apiKey.length > 0) {
         headers.authorization = `Bearer ${apiKey}`;
       }
-      response = await fetch(AiRenameService.modelEndpoint(dto.service.baseUrl), {
+      response = await fetch(AiRenameService.modelEndpoint(service.baseUrl), {
         method: "POST",
         headers,
         body: JSON.stringify({
-          model: dto.service.model,
+          model: service.model,
           messages,
           temperature: 0,
         }),
@@ -382,11 +458,13 @@ class AiRenameService {
   private createBatch(
     targetRoot: string,
     rows: Array<AiRenameRow>,
+    instruction: string,
   ): AiBatch {
     const now = Date.now();
     const batch: AiBatch = {
       id: randomUUID(),
       targetRoot: path.resolve(targetRoot),
+      instruction,
       rows,
       version: 1,
       consumed: false,
@@ -470,6 +548,7 @@ class AiRenameService {
         row.targetAbs = "";
         continue;
       }
+      row.retryable = false;
       const normalized = AiRenameService.normalizeTarget(root, targetRel);
       if (normalized === null) {
         row.problem = getMessage("ai.target-outside-root");

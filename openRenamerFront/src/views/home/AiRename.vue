@@ -57,10 +57,14 @@
         <div v-for="row in preview.rows" :key="row.id" class="preview-row">
           <span class="col-source oneLineText" :title="row.sourcePath">{{ row.contextPath }}</span>
           <span class="col-target">
-            <el-input v-model="row.targetRel" type="text" size="small" @input="onRowEdit" />
+            <el-input v-model="row.targetRel" type="text" size="small" :disabled="retrying" @input="onRowEdit" />
           </span>
           <span class="col-full oneLineText" :title="row.targetAbs">{{ row.targetAbs }}</span>
-          <span class="col-problem problem-text">{{ row.problem }}</span>
+          <span class="col-problem">
+            <span class="problem-text">{{ row.problem }}</span>
+            <el-button v-if="row.retryable && row.problem" type="warning" size="small" text
+              :disabled="!canRetry" @click="retryRow(row)">{{ $t('aiRename.retry') }}</el-button>
+          </span>
         </div>
       </div>
       <div class="generate-line">
@@ -128,6 +132,7 @@ export default {
       revalidateChain: null, // 串行应用编辑校验
       editVersion: 0,
       validatedEditVersion: 0,
+      retrying: false,
     };
   },
   computed: {
@@ -141,12 +146,25 @@ export default {
       return (
         this.preview &&
         !this.loading &&
+        !this.retrying &&
         !this.preview.error &&
         this.editVersion === this.validatedEditVersion &&
         this.preview.rows.length > 0 &&
         this.revalidateTimer == null &&
         this.revalidateInFlight === 0 &&
         this.preview.rows.every((row) => row.problem === "")
+      );
+    },
+    // 重试要求当前编辑已完成校验且无其他请求进行中
+    canRetry() {
+      return (
+        this.preview &&
+        !this.preview.error &&
+        !this.loading &&
+        !this.retrying &&
+        this.editVersion === this.validatedEditVersion &&
+        this.revalidateTimer == null &&
+        this.revalidateInFlight === 0
       );
     },
   },
@@ -333,6 +351,37 @@ export default {
         // HttpUtil 已提示错误
       } finally {
         this.revalidateInFlight -= 1;
+      }
+    },
+    // 重试生成失败的行：只显示当前批次与版本的返回结果
+    async retryRow(row) {
+      if (!this.canRetry || this.retrying || !this.preview) {
+        return;
+      }
+      const seq = this.requestSeq;
+      const batchId = this.preview.batchId;
+      const version = this.preview.version;
+      const editVersion = this.editVersion;
+      this.retrying = true;
+      try {
+        const updated = await HttpUtil.post("/aiRename/retry", null, {
+          batchId,
+          version,
+          rowIds: [row.id],
+          service: {
+            baseUrl: this.service.baseUrl,
+            model: this.service.model,
+            apiKey: this.service.apiKey,
+          },
+        });
+        if (seq !== this.requestSeq || editVersion !== this.editVersion ||
+          !this.preview || this.preview.batchId !== batchId ||
+          this.preview.version !== version) {
+          return; // 预览已被修改或替换，丢弃过期结果
+        }
+        this.preview = updated;
+      } finally {
+        this.retrying = false;
       }
     },
     async submit() {

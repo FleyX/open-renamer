@@ -22,6 +22,9 @@ rename:
     en: "Failed to create hard link: "
     zh: "创建硬链接失败:"
 ai:
+  model-config-invalid:
+    en: Enter a valid model service URL and model name
+    zh: 请输入有效的模型服务地址和模型名
   no-files:
     en: No source files selected
     zh: 未选择源文件
@@ -73,6 +76,9 @@ ai:
   batch-in-flight:
     en: Batch is already being submitted
     zh: 批次正在提交中
+  retry-rows-invalid:
+    en: Only rows that failed generation can be retried
+    zh: 只能重试生成失败的条目
   batch-has-problems:
     en: "Batch still has unresolved problems: "
     zh: "批次仍有未解决的问题: "

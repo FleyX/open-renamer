@@ -632,10 +632,23 @@ test("ai rename model errors surface as preview feedback without the key", async
     });
     assert.equal(response.status, 200);
     const preview = (await response.json()) as PreviewResponse;
-    assert.equal(preview.batchId, "");
-    assert.match(preview.error ?? "", /模型请求失败/);
+    // 模型暂时不可用：条目保留在预览中并标为可重试
+    assert.ok(preview.batchId);
+    assert.equal(preview.error, undefined);
+    assert.equal(preview.rows.length, 1);
+    assert.match(preview.rows[0].problem, /模型请求失败/);
+    assert.equal(preview.rows[0].retryable, true);
     const text = JSON.stringify(preview);
     assert.ok(!text.includes("sk-secret"), "api key leaked in feedback");
+    // 生成失败未解决时整批无法提交
+    const submit = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: preview.batchId,
+        version: preview.version,
+      }),
+    });
+    assert.equal(submit.status, 400);
     assert.equal(await readFile(sourceA, "utf8"), "a");
   } finally {
     await server.close();
@@ -1104,6 +1117,332 @@ test("ai rename per-file sourceDir scopes model context across directories", asy
     await rm(dataPath, { recursive: true, force: true });
     await rm(dirA, { recursive: true, force: true });
     await rm(dirB, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename retry resends only failed rows and keeps edited successes", async () => {
+  const dataPath = await createFixtureRoot("ai16-data");
+  const sourceRoot = await createFixtureRoot("ai16-src");
+  const targetRoot = await createFixtureRoot("ai16-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  let calls = 0;
+  const model = await startMockModel(() => {
+    calls += 1;
+    return chatCompletion(
+      JSON.stringify(
+        calls === 1
+          ? [{ id: "L001", target: "Out/a.mkv" }]
+          : [{ id: "L002", target: "Out/b.mkv" }],
+      ),
+    );
+  });
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    // 同一批中成功与失败并存：失败行可重试，成功行保留结果
+    assert.equal(generated.rows[0].problem, "");
+    assert.equal(generated.rows[0].retryable, false);
+    assert.match(generated.rows[1].problem, /未返回/);
+    assert.equal(generated.rows[1].retryable, true);
+
+    // 用户先编辑成功行，再重试失败行
+    const edited = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          rows: [
+            { id: "L001", targetRel: "Edited/a.mkv" },
+            { id: "L002", targetRel: "" },
+          ],
+        }),
+      })
+    ).json()) as PreviewResponse;
+
+    const retried = (await (
+      await request(server, "/aiRename/retry", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: edited.version,
+          rowIds: ["L002"],
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(retried.batchId, generated.batchId);
+    assert.equal(retried.version, edited.version + 1);
+    assert.deepEqual(
+      retried.rows.map((row) => row.targetRel),
+      ["Edited/a.mkv", "Out/b.mkv"],
+    );
+    assert.deepEqual(
+      retried.rows.map((row) => row.problem),
+      ["", ""],
+    );
+
+    // 只把失败行发给模型：第二次请求不含成功行的路径与标识
+    assert.equal(model.requests.length, 2);
+    const resent = model.requests[1];
+    assert.equal(resent.model, "m");
+    const text = JSON.stringify(resent);
+    const userMessage = JSON.stringify(
+      (resent.messages as Array<{ content: string }>)[1].content,
+    );
+    assert.ok(userMessage.includes("L002"), "retried line missing");
+    assert.ok(!userMessage.includes("L001"), "successful line resent to model");
+    assert.ok(!text.includes("Edited"), "edited target leaked to model");
+    assert.ok(!text.includes(sourceRoot), "absolute path leaked to model");
+
+    // 解决后允许按确认映射整批执行
+    const submit = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: retried.batchId,
+          version: retried.version,
+        }),
+      })
+    ).json()) as { completed: Array<AiRenameRow> };
+    assert.equal(submit.completed.length, 2);
+    assert.equal(
+      await readFile(path.join(targetRoot, "Edited", "a.mkv"), "utf8"),
+      "a",
+    );
+    assert.equal(
+      await readFile(path.join(targetRoot, "Out", "b.mkv"), "utf8"),
+      "b",
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename retry keeps feedback when the model still fails", async () => {
+  const dataPath = await createFixtureRoot("ai17-data");
+  const sourceRoot = await createFixtureRoot("ai17-src");
+  const targetRoot = await createFixtureRoot("ai17-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  await writeFile(sourceA, "a");
+  const model = await startMockModel(() => ({
+    status: "error",
+    message: "upstream exploded",
+  }));
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA)],
+          baseDir: sourceRoot,
+          targetRoot,
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(generated.rows[0].problem, /模型请求失败/);
+    assert.equal(generated.rows[0].retryable, true);
+
+    const retried = (await (
+      await request(server, "/aiRename/retry", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: generated.version,
+          rowIds: ["L001"],
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    // 重试仍失败：保留明确反馈与重试入口，其他状态不变
+    assert.equal(retried.batchId, generated.batchId);
+    assert.match(retried.rows[0].problem, /模型请求失败/);
+    assert.equal(retried.rows[0].retryable, true);
+    assert.ok(retried.version > generated.version);
+
+    const submit = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: retried.version,
+      }),
+    });
+    assert.equal(submit.status, 400);
+    assert.equal(await readFile(sourceA, "utf8"), "a");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename retry result conflicting with existing target blocks submit", async () => {
+  const dataPath = await createFixtureRoot("ai18-data");
+  const sourceRoot = await createFixtureRoot("ai18-src");
+  const targetRoot = await createFixtureRoot("ai18-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  const existing = path.join(targetRoot, "Taken", "b.mkv");
+  await mkdir(path.dirname(existing), { recursive: true });
+  await writeFile(existing, "taken");
+  let calls = 0;
+  const model = await startMockModel(() => {
+    calls += 1;
+    return chatCompletion(
+      JSON.stringify(
+        calls === 1
+          ? [{ id: "L001", target: "Out/a.mkv" }]
+          : [{ id: "L002", target: "Taken/b.mkv" }],
+      ),
+    );
+  });
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(generated.rows[1].problem, /未返回/);
+
+    // 重试生成与已有目标冲突：按路径校验错误标记，整批无法提交
+    const retried = (await (
+      await request(server, "/aiRename/retry", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: generated.version,
+          rowIds: ["L002"],
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(retried.rows[1].problem, /已存在/);
+    assert.equal(retried.rows[0].problem, "");
+
+    const submit = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: retried.version,
+      }),
+    });
+    assert.equal(submit.status, 400);
+    assert.equal(await readFile(existing, "utf8"), "taken");
+    assert.equal(await readFile(sourceA, "utf8"), "a");
+    assert.equal(await readFile(sourceB, "utf8"), "b");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename retry rejects stale versions and non-failed rows", async () => {
+  const dataPath = await createFixtureRoot("ai19-data");
+  const sourceRoot = await createFixtureRoot("ai19-src");
+  const targetRoot = await createFixtureRoot("ai19-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  await writeFile(sourceA, "a");
+  const model = await startMockModel(() =>
+    chatCompletion(JSON.stringify([{ id: "L001", target: "Out/a.mkv" }])),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA)],
+          baseDir: sourceRoot,
+          targetRoot,
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+
+    // 版本过期
+    const stale = await request(server, "/aiRename/retry", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version + 99,
+        rowIds: ["L001"],
+        service: { baseUrl: model.url, model: "m" },
+      }),
+    });
+    assert.equal(stale.status, 400);
+    assert.match(await stale.text(), /预览已变更/);
+
+    // 成功行不是生成失败，不允许重试
+    const notFailed = await request(server, "/aiRename/retry", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version,
+        rowIds: ["L001"],
+        service: { baseUrl: model.url, model: "m" },
+      }),
+    });
+    assert.equal(notFailed.status, 400);
+    assert.match(await notFailed.text(), /只能重试生成失败的条目/);
+
+    // 未知行标识
+    const unknown = await request(server, "/aiRename/retry", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version,
+        rowIds: ["L999"],
+        service: { baseUrl: model.url, model: "m" },
+      }),
+    });
+    assert.equal(unknown.status, 400);
+    assert.equal(model.requests.length, 1, "rejected retries must not call model");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
     await rm(targetRoot, { recursive: true, force: true });
   }
 });
