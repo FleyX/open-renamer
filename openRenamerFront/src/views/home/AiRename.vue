@@ -99,6 +99,38 @@
           </span>
         </div>
       </div>
+      <div v-if="preview.companions && preview.companions.length > 0" class="companion-area">
+        <div class="companion-head">{{ $t('aiRename.companionTitle') }}</div>
+        <div class="preview-table">
+          <div class="preview-row preview-head">
+            <span class="col-source">{{ $t('aiRename.colSource') }}</span>
+            <span class="col-kind">{{ $t('aiRename.colKind') }}</span>
+            <span class="col-target">{{ $t('aiRename.colTarget') }}</span>
+            <span class="col-full">{{ $t('aiRename.colFullTarget') }}</span>
+            <span class="col-problem">{{ $t('aiRename.colProblem') }}</span>
+          </div>
+          <div v-for="comp in preview.companions" :key="comp.id" class="preview-row">
+            <span class="col-source oneLineText" :title="comp.sourcePath">{{ comp.contextPath }}</span>
+            <span class="col-kind">{{ companionKindLabel(comp) }}</span>
+            <span class="col-target">
+              <el-input v-model="comp.targetRel" type="text" size="small" :disabled="retrying"
+                @input="onTargetEdit(comp)" />
+            </span>
+            <span class="col-full oneLineText" :title="comp.targetAbs">{{ comp.targetAbs }}</span>
+            <span class="col-problem companion-problem">
+              <el-select v-if="comp.candidateVideoIds && comp.candidateVideoIds.length"
+                class="owner-select" size="small" :disabled="retrying"
+                :model-value="companionOwnerValue(comp)"
+                :placeholder="$t('aiRename.ownerPlaceholder')"
+                @change="(value) => onCompanionOwnerChange(comp, value)">
+                <el-option v-for="videoId in comp.candidateVideoIds" :key="videoId"
+                  :label="companionOwnerLabel(videoId)" :value="videoId" />
+              </el-select>
+              <span class="problem-text">{{ comp.problem }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
       <div class="generate-line">
         <el-button type="success" :disabled="!canSubmit" @click="submit">{{ $t('aiRename.submit') }}</el-button>
       </div>
@@ -159,6 +191,7 @@ export default {
       seasonDrafts: {},
       episodeDrafts: {},
       editedTargets: {},
+      companionOwnerDrafts: {}, // 附属文件归属确认草稿：附属行 id → 候选视频行 id
       fileDialogVisible: false,
       folderDialogVisible: false,
       targetRootDialogVisible: false,
@@ -190,7 +223,8 @@ export default {
         this.preview.rows.length > 0 &&
         this.revalidateTimer == null &&
         this.revalidateInFlight === 0 &&
-        this.preview.rows.every((row) => row.problem === "")
+        this.preview.rows.every((row) => row.problem === "") &&
+        (this.preview.companions || []).every((comp) => comp.problem === "")
       );
     },
     // 重试要求当前编辑已完成校验且无其他请求进行中
@@ -319,6 +353,31 @@ export default {
       this.seasonDrafts = {};
       this.episodeDrafts = {};
       this.editedTargets = {};
+      this.companionOwnerDrafts = {};
+    },
+    companionKindLabel(comp) {
+      if (comp.kind === "subtitle") {
+        return this.$t('aiRename.companionKindSubtitle');
+      }
+      if (comp.kind === "cover") {
+        return this.$t('aiRename.companionKindCover');
+      }
+      return this.$t('aiRename.companionKindNfo');
+    },
+    // 附属文件归属草稿：显示草稿，无草稿时显示服务端当前归属
+    companionOwnerValue(comp) {
+      if (Object.prototype.hasOwnProperty.call(this.companionOwnerDrafts, comp.id)) {
+        return this.companionOwnerDrafts[comp.id];
+      }
+      return comp.ownerRowId || "";
+    },
+    companionOwnerLabel(videoId) {
+      const row = (this.preview.rows || []).find((item) => item.id === videoId);
+      return row ? row.contextPath : videoId;
+    },
+    onCompanionOwnerChange(comp, value) {
+      this.companionOwnerDrafts[comp.id] = value;
+      this.onRowEdit();
     },
     onTargetEdit(row) {
       this.editedTargets[row.id] = true;
@@ -466,13 +525,29 @@ export default {
           return;
         }
         const editVersion = this.editVersion;
+        const companions = (this.preview && this.preview.companions) || [];
+        const ownershipEdits = companions
+          .filter((comp) =>
+            Object.prototype.hasOwnProperty.call(this.companionOwnerDrafts, comp.id))
+          .map((comp) => ({
+            id: comp.id,
+            ownerRowId: this.companionOwnerDrafts[comp.id],
+          }));
         const updated = await HttpUtil.post("/aiRename/preview/validate", null, {
           batchId,
-          rows: rows.map((row) => ({
-            id: row.id,
-            targetRel: row.targetRel,
-            edited: Boolean(this.editedTargets[row.id]),
-          })),
+          rows: [
+            ...rows.map((row) => ({
+              id: row.id,
+              targetRel: row.targetRel,
+              edited: Boolean(this.editedTargets[row.id]),
+            })),
+            ...companions.map((comp) => ({
+              id: comp.id,
+              targetRel: comp.targetRel,
+              edited: Boolean(this.editedTargets[comp.id]),
+            })),
+          ],
+          ...(ownershipEdits.length > 0 ? { companions: ownershipEdits } : {}),
           ...this.buildSupplements(),
         });
         if (seq !== this.requestSeq || editVersion !== this.editVersion ||
@@ -691,10 +766,34 @@ export default {
     .col-problem {
       width: 15%;
     }
+
+    .col-kind {
+      width: 8%;
+    }
   }
 
   .problem-text {
     color: red;
+  }
+}
+
+.companion-area {
+  text-align: left;
+  margin-top: 0.5em;
+
+  .companion-head {
+    font-weight: bold;
+    margin-bottom: 0.25em;
+  }
+
+  .companion-problem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+
+    .owner-select {
+      width: 100%;
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import type AiRenameRow from "../vo/AiRenameRow.ts";
+import type AiCompanionEditDto from "./AiCompanionEditDto.ts";
 
 /**
  * 作品组补充字段：年份填一次，更新同组所有条目
@@ -46,4 +47,8 @@ export default interface AiPreviewEditDto {
    * 剧集预设的行季号、集号补充
    */
   rowFields?: Array<AiRowSupplement>;
+  /**
+   * 附属文件归属确认：附属行标识 + 候选视频行标识
+   */
+  companions?: Array<AiCompanionEditDto>;
 }

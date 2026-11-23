@@ -112,3 +112,12 @@ ai:
   supplement-invalid:
     en: Supplement fields do not belong to this batch or are invalid
     zh: 补充信息不属于当前批次或格式无效
+  companion-needs-owner:
+    en: Companion file ownership needs confirmation
+    zh: 附属文件归属待确认
+  companion-owner-invalid:
+    en: Companion ownership is not one of its candidate videos in this batch
+    zh: 附属文件归属不在本批次候选视频列表中
+  companion-owner-unavailable:
+    en: Companion owner video has no usable target yet
+    zh: 归属视频尚无可用目标路径

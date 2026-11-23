@@ -19,6 +19,14 @@ import type AiRetryDto from "../entity/dto/AiRetryDto.ts";
 import type AiPreviewEditDto from "../entity/dto/AiPreviewEditDto.ts";
 import type AiSubmitDto from "../entity/dto/AiSubmitDto.ts";
 import type AiRenameRow from "../entity/vo/AiRenameRow.ts";
+import type AiCompanionRow from "../entity/vo/AiCompanionRow.ts";
+import {
+  companionKindOf,
+  companionSuffix,
+  isCompanionFileName,
+  isGenericCoverName,
+  isVideoFileName,
+} from "../media/companionFiles.ts";
 import ErrorHelper from "../util/ErrorHelper.ts";
 
 export type MessageLookup = (key: string) => string;
@@ -39,6 +47,10 @@ interface AiBatch {
    */
   groups: Array<AiWorkGroup>;
   rows: Array<AiRenameRow>;
+  /**
+   * 附属文件行（字幕、NFO、封面），仅媒体预设批次可能非空
+   */
+  companions: Array<AiCompanionRow>;
   version: number;
   consumed: boolean;
   expiresAt: number;
@@ -56,6 +68,17 @@ interface AiWorkGroup {
 
 interface BatchAccess {
   batch: AiBatch;
+}
+
+/**
+ * 参与整批目标校验的最小行结构：视频行与附属行共用同一套
+ * 相对路径、重复、父目录、覆盖源文件、同盘等检查
+ */
+interface TargetValidatable {
+  sourcePath: string;
+  targetRel: string;
+  targetAbs: string;
+  problem: string;
 }
 
 const BATCH_TTL_MS = 30 * 60 * 1000;
@@ -77,6 +100,7 @@ class AiRenameService {
     version: number;
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
+    companions: Array<AiCompanionRow>;
     error?: string;
   }> {
     this.sweepExpired();
@@ -85,6 +109,7 @@ class AiRenameService {
       version: 0,
       rows: [] as Array<AiRenameRow>,
       groups: [] as Array<AiWorkGroup>,
+      companions: [] as Array<AiCompanionRow>,
     };
     const sources = this.normalizeSources(dto);
     if (sources.length === 0) {
@@ -109,7 +134,21 @@ class AiRenameService {
       return { ...empty, error: getMessage("ai.model-config-invalid") };
     }
 
-    const rows: AiRenameRow[] = sources.map((item, index) => ({
+    const preset = dto.preset === "movie" || dto.preset === "series"
+      ? dto.preset
+      : undefined;
+    // 媒体预设：附属扩展名的所选文件识别为附属行，并扫描选中视频所在目录
+    let videos = sources;
+    let explicitlySelected: Array<{ source: string; sourceDir: string }> = [];
+    if (preset) {
+      const partitioned = AiRenameService.partitionCompanions(sources);
+      videos = partitioned.videos;
+      explicitlySelected = partitioned.companions;
+    }
+    if (videos.length === 0) {
+      return { ...empty, error: getMessage("ai.no-files") };
+    }
+    const rows: AiRenameRow[] = videos.map((item, index) => ({
       id: `L${String(index + 1).padStart(3, "0")}`,
       sourcePath: item.source,
       contextPath: AiRenameService.contextPath(
@@ -126,9 +165,9 @@ class AiRenameService {
       episode: null,
       presetManaged: false,
     }));
-    const preset = dto.preset === "movie" || dto.preset === "series"
-      ? dto.preset
-      : undefined;
+    const companionRows = preset
+      ? await this.buildCompanionRows(explicitlySelected, rows, videos, dto, preset)
+      : [];
     const batchId = randomUUID();
     await this.generateTargets(
       rows,
@@ -137,10 +176,19 @@ class AiRenameService {
       getMessage,
       batchId,
       preset,
+      companionRows,
     );
-    const batch = this.createBatch(batchId, rootReal, rows, instruction, preset);
+    const batch = this.createBatch(
+      batchId,
+      rootReal,
+      rows,
+      instruction,
+      preset,
+      companionRows,
+    );
     if (batch.preset) {
       this.applyPresetRows(batch, getMessage);
+      this.recomputeCompanionTargets(batch, getMessage);
     }
     await this.validateBatch(batch, getMessage);
     return {
@@ -148,6 +196,7 @@ class AiRenameService {
       version: batch.version,
       rows: batch.rows,
       groups: batch.groups,
+      companions: batch.companions,
     };
   }
 
@@ -164,6 +213,7 @@ class AiRenameService {
     version: number;
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
+    companions: Array<AiCompanionRow>;
   }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
@@ -173,9 +223,14 @@ class AiRenameService {
     if (batch.consumed) {
       throw ErrorHelper.Error400(getMessage("ai.batch-version-mismatch"));
     }
-    const byId = new Map(batch.rows.map((row) => [row.id, row]));
+    const rowById = new Map(batch.rows.map((row) => [row.id, row]));
+    const companionById = new Map(
+      batch.companions.map((comp) => [comp.id, comp]),
+    );
     const submitted = dto.rows ?? [];
-    if (!Array.isArray(submitted) || submitted.length !== batch.rows.length) {
+    // 视频行与附属行一起提交：数量必须正好覆盖整批，且每个行标识恰好一次
+    if (!Array.isArray(submitted) ||
+      submitted.length !== batch.rows.length + batch.companions.length) {
       throw ErrorHelper.Error400(getMessage("ai.model-response-invalid"));
     }
     const draft: AiBatch = {
@@ -185,26 +240,51 @@ class AiRenameService {
         rowIds: [...group.rowIds],
       })),
       rows: batch.rows.map((row) => ({ ...row })),
+      companions: batch.companions.map((comp) => ({
+        ...comp,
+        candidateVideoIds: [...comp.candidateVideoIds],
+      })),
     };
     const copiesById = new Map(draft.rows.map((row) => [row.id, row]));
+    const companionCopiesById = new Map(
+      draft.companions.map((comp) => [comp.id, comp]),
+    );
     const seen = new Set<string>();
     for (const edited of submitted) {
-      const existing = byId.get(edited?.id);
+      const existing = rowById.get(edited?.id);
       const copy = copiesById.get(edited?.id);
-      if (!existing || !copy || seen.has(edited.id) ||
+      if (existing && copy) {
+        if (seen.has(edited.id) || typeof edited.targetRel !== "string") {
+          throw ErrorHelper.Error400(getMessage("ai.model-response-invalid"));
+        }
+        seen.add(edited.id);
+        const targetWasEdited = edited.edited ??
+          (edited.targetRel !== existing.targetRel);
+        if (targetWasEdited || !existing.presetManaged) {
+          copy.presetManaged = false;
+          copy.targetRel = edited.targetRel;
+        }
+        continue;
+      }
+      const existingCompanion = companionById.get(edited?.id);
+      const companionCopy = companionCopiesById.get(edited?.id);
+      if (!existingCompanion || !companionCopy || seen.has(edited.id) ||
         typeof edited.targetRel !== "string") {
         throw ErrorHelper.Error400(getMessage("ai.model-response-invalid"));
       }
       seen.add(edited.id);
-      const targetWasEdited = edited.edited ?? (edited.targetRel !== existing.targetRel);
-      if (targetWasEdited || !existing.presetManaged) {
-        copy.presetManaged = false;
-        copy.targetRel = edited.targetRel;
+      const targetWasEdited = edited.edited ??
+        (edited.targetRel !== existingCompanion.targetRel);
+      if (targetWasEdited || !existingCompanion.presetManaged) {
+        companionCopy.presetManaged = false;
+        companionCopy.targetRel = edited.targetRel;
       }
     }
     this.applySupplements(draft, dto, getMessage);
+    this.applyCompanionOwnership(draft, dto, getMessage);
     if (draft.preset) {
       this.applyPresetRows(draft, getMessage);
+      this.recomputeCompanionTargets(draft, getMessage);
     }
     await this.validateBatch(draft, getMessage);
     if (this.inFlight.has(batch.id) || batch.version !== draft.version ||
@@ -213,12 +293,14 @@ class AiRenameService {
     }
     batch.rows = draft.rows;
     batch.groups = draft.groups;
+    batch.companions = draft.companions;
     batch.version += 1;
     return {
       batchId: batch.id,
       version: batch.version,
       rows: batch.rows,
       groups: batch.groups,
+      companions: batch.companions,
     };
   }
 
@@ -271,6 +353,37 @@ class AiRenameService {
   }
 
   /**
+   * 应用附属文件归属确认：附属行标识与候选视频标识必须确属该批次，
+   * 且候选视频在该附属行的候选列表中。
+   */
+  private applyCompanionOwnership(
+    draft: AiBatch,
+    dto: AiPreviewEditDto,
+    getMessage: MessageLookup,
+  ): void {
+    const edits = dto.companions ?? [];
+    if (!Array.isArray(edits)) {
+      throw ErrorHelper.Error400(getMessage("ai.companion-owner-invalid"));
+    }
+    if (edits.length === 0) {
+      return;
+    }
+    if (!draft.preset) {
+      throw ErrorHelper.Error400(getMessage("ai.companion-owner-invalid"));
+    }
+    const seen = new Set<string>();
+    for (const edit of edits) {
+      const comp = draft.companions.find((item) => item.id === edit?.id);
+      if (!comp || seen.has(comp.id) || typeof edit?.ownerRowId !== "string" ||
+        !comp.candidateVideoIds.includes(edit.ownerRowId)) {
+        throw ErrorHelper.Error400(getMessage("ai.companion-owner-invalid"));
+      }
+      seen.add(comp.id);
+      comp.ownerRowId = edit.ownerRowId;
+    }
+  }
+
+  /**
    * 提交当前预览版本：只接收批次标识和版本，完全使用服务器当前已校验的映射。
    * 服务器重复整批校验后执行同盘移动，执行遇错停止，返回 completed、failed、pending。
    * 执行结束后（包括部分执行）使预览版本失效。
@@ -279,9 +392,9 @@ class AiRenameService {
     dto: AiSubmitDto,
     getMessage: MessageLookup,
   ): Promise<{
-    completed: Array<AiRenameRow>;
-    failed: Array<{ row: AiRenameRow; error: string }>;
-    pending: Array<AiRenameRow>;
+    completed: Array<AiRenameRow | AiCompanionRow>;
+    failed: Array<{ row: AiRenameRow | AiCompanionRow; error: string }>;
+    pending: Array<AiRenameRow | AiCompanionRow>;
   }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
@@ -295,18 +408,20 @@ class AiRenameService {
     let executionStarted = false;
     try {
       await this.validateBatch(batch, getMessage);
-      const unresolved = batch.rows.filter((row) => row.problem !== "");
-      if (unresolved.length > 0) {
+      // 视频与附属文件同规则：任何一行有问题整批拒绝提交
+      const rows = [...batch.rows, ...batch.companions];
+      const unresolved = rows.find((row) => row.problem !== "");
+      if (unresolved) {
         throw ErrorHelper.Error400(
-          getMessage("ai.batch-has-problems") + unresolved[0].sourcePath,
+          getMessage("ai.batch-has-problems") + unresolved.sourcePath,
         );
       }
 
-      const completed: Array<AiRenameRow> = [];
-      const failed: Array<{ row: AiRenameRow; error: string }> = [];
+      const completed: Array<AiRenameRow | AiCompanionRow> = [];
+      const failed: Array<{ row: AiRenameRow | AiCompanionRow; error: string }> =
+        [];
       executionStarted = true;
-      for (let index = 0; index < batch.rows.length; index++) {
-        const row = batch.rows[index];
+      for (const [index, row] of rows.entries()) {
         try {
           await this.moveRow(row, batch.targetRoot, getMessage);
           completed.push(row);
@@ -318,7 +433,7 @@ class AiRenameService {
           return {
             completed,
             failed,
-            pending: batch.rows.slice(index + 1),
+            pending: rows.slice(index + 1),
           };
         }
       }
@@ -346,6 +461,7 @@ class AiRenameService {
     version: number;
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
+    companions: Array<AiCompanionRow>;
   }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
@@ -362,7 +478,14 @@ class AiRenameService {
       throw ErrorHelper.Error400(getMessage("ai.retry-rows-invalid"));
     }
     const targets = new Map<string, AiRenameRow>();
-    const draft: AiBatch = { ...batch, rows: batch.rows.map((row) => ({ ...row })) };
+    const draft: AiBatch = {
+      ...batch,
+      rows: batch.rows.map((row) => ({ ...row })),
+      companions: batch.companions.map((comp) => ({
+        ...comp,
+        candidateVideoIds: [...comp.candidateVideoIds],
+      })),
+    };
     for (const id of dto.rowIds) {
       const row = draft.rows.find((item) => item.id === id);
       if (!row || targets.has(id) || !row.retryable) {
@@ -376,6 +499,11 @@ class AiRenameService {
 
     this.inFlight.add(batch.id);
     try {
+      // 只发送重试行的上下文及与其归属或候选相关的附属路径
+      const retryCompanions = draft.companions.filter((comp) =>
+        comp.ownerRowId !== null ? targets.has(comp.ownerRowId)
+          : comp.candidateVideoIds.some((id) => targets.has(id))
+      );
       await this.generateTargets(
         [...targets.values()],
         dto.service,
@@ -383,6 +511,7 @@ class AiRenameService {
         getMessage,
         batch.id,
         batch.preset,
+        retryCompanions,
       );
       draft.groups = AiRenameService.buildGroups(draft.rows);
       // 保留作品组的年份补充：重建分组后按组键沿用已填年份
@@ -396,17 +525,20 @@ class AiRenameService {
       }
       if (draft.preset) {
         this.applyPresetRows(draft, getMessage);
+        this.recomputeCompanionTargets(draft, getMessage);
       }
       await this.validateBatch(draft, getMessage);
       this.accessBatch(dto.batchId, getMessage);
       batch.rows = draft.rows;
       batch.groups = draft.groups;
+      batch.companions = draft.companions;
       batch.version += 1;
       return {
         batchId: batch.id,
         version: batch.version,
         rows: batch.rows,
         groups: batch.groups,
+        companions: batch.companions,
       };
     } finally {
       this.inFlight.delete(batch.id);
@@ -420,11 +552,21 @@ class AiRenameService {
     getMessage: MessageLookup,
     batchId: string,
     preset?: "movie" | "series",
+    companions: Array<
+      Pick<AiCompanionRow, "id" | "contextPath" | "ownerRowId">
+    > = [],
   ): Promise<void> {
     let failure = "ai.model-request-failed";
     const results = new Map<string, Record<string, unknown>>();
     try {
-      const parsed = await this.callModel(config, rows, instruction, batchId, preset);
+      const parsed = await this.callModel(
+        config,
+        rows,
+        instruction,
+        batchId,
+        preset,
+        companions,
+      );
       failure = "ai.model-response-invalid";
       const allowed = new Set(rows.map((row) => row.id));
       for (const item of parsed) {
@@ -557,6 +699,161 @@ class AiRenameService {
         row.problem = "";
       }
     }
+  }
+
+  /**
+   * 按归属视频的已校验目标重新计算附属文件目标路径。
+   * 电影附属文件保留原名；剧集附属文件用目标视频基本名加自己的
+   * 语言等后缀和扩展名。归属待确认、归属视频生成失败或待补充时
+   * 标记问题，整批因此无法提交。
+   */
+  private recomputeCompanionTargets(
+    batch: AiBatch,
+    getMessage: MessageLookup,
+  ): void {
+    if (batch.companions.length === 0) {
+      return;
+    }
+    const rowById = new Map(batch.rows.map((row) => [row.id, row]));
+    for (const comp of batch.companions) {
+      if (comp.presetManaged) {
+        comp.targetRel = "";
+      }
+      comp.targetAbs = "";
+      comp.problem = "";
+      const owner = comp.ownerRowId === null
+        ? undefined
+        : rowById.get(comp.ownerRowId);
+      if (!owner) {
+        comp.problem = getMessage("ai.companion-needs-owner");
+        continue;
+      }
+      if (owner.needsSupplement || owner.targetRel.length === 0) {
+        comp.problem = getMessage("ai.companion-owner-unavailable");
+        continue;
+      }
+      if (!comp.presetManaged) {
+        continue;
+      }
+      const ownerTarget = owner.targetRel.replace(/\\/g, "/");
+      const dir = path.posix.dirname(ownerTarget);
+      const fileName = batch.preset === "movie"
+        ? path.basename(comp.sourcePath)
+        : AiRenameService.companionSeriesFileName(owner, ownerTarget, comp);
+      comp.targetRel = dir === "." ? fileName : `${dir}/${fileName}`;
+    }
+  }
+
+  /**
+   * 剧集附属文件名：目标视频基本名 + 附属文件自己的语言等后缀和扩展名。
+   * 附属文件与视频基本名不一致（如通用封面）时只沿用扩展名。
+   */
+  private static companionSeriesFileName(
+    owner: AiRenameRow,
+    ownerTarget: string,
+    comp: AiCompanionRow,
+  ): string {
+    const targetBase = path.posix.basename(
+      ownerTarget,
+      path.posix.extname(ownerTarget),
+    );
+    const sourceName = path.basename(comp.sourcePath);
+    const ownerBase = path.basename(
+      owner.sourcePath,
+      path.extname(owner.sourcePath),
+    );
+    const suffix = companionSuffix(sourceName, ownerBase, comp.kind) ??
+      path.extname(sourceName);
+    return `${targetBase}${suffix}`;
+  }
+
+  /** 所选文件按附属扩展名拆分：视频行与附属行，附属行不参与模型输出 */
+  private static partitionCompanions(
+    sources: Array<{ source: string; sourceDir: string }>,
+  ): {
+    videos: Array<{ source: string; sourceDir: string }>;
+    companions: Array<{ source: string; sourceDir: string }>;
+  } {
+    const videos: Array<{ source: string; sourceDir: string }> = [];
+    const companions: Array<{ source: string; sourceDir: string }> = [];
+    for (const item of sources) {
+      if (isCompanionFileName(path.basename(item.source))) {
+        companions.push(item);
+      } else if (isVideoFileName(item.source)) {
+        videos.push(item);
+      }
+    }
+    return { videos, companions };
+  }
+
+  /**
+   * 扫描选中视频所在目录的附属文件（不递归）。
+   * 扫描只发生在选中视频的目录。
+   */
+  private async buildCompanionRows(
+    files: Array<{ source: string; sourceDir: string }>,
+    rows: Array<AiRenameRow>,
+    videos: Array<{ source: string; sourceDir: string }>,
+    dto: AiGenerateDto,
+    preset: "movie" | "series",
+  ): Promise<Array<AiCompanionRow>> {
+    const videosByDir = new Map<string, Array<{
+      base: string;
+      sourceDir: string;
+      id: string;
+    }>>();
+    const explicitByPath = new Map(files.map((file) => [file.source, file]));
+    for (const [index, video] of videos.entries()) {
+      const dirKey = path.normalize(path.dirname(video.source));
+      const list = videosByDir.get(dirKey) ?? [];
+      const ext = path.extname(video.source);
+      list.push({
+        base: path.basename(video.source, ext),
+        sourceDir: video.sourceDir,
+        id: rows[index].id,
+      });
+      videosByDir.set(dirKey, list);
+    }
+    const companions: Array<AiCompanionRow> = [];
+    for (const [dir, dirVideos] of videosByDir) {
+      const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+      const countVideos = entries.filter((entry) =>
+        entry.isFile() && isVideoFileName(entry.name)).length;
+      for (const entry of entries) {
+        const kind = companionKindOf(entry.name);
+        if (!entry.isFile() || !kind) {
+          continue;
+        }
+        const source = path.join(dir, entry.name);
+        const explicit = explicitByPath.get(source);
+        const matching = dirVideos.filter((video) =>
+          companionSuffix(entry.name, video.base, kind) !== null);
+        const longest = Math.max(...matching.map((video) => video.base.length));
+        const matches = matching.filter((video) => video.base.length === longest);
+        const genericCover = isGenericCoverName(entry.name);
+        if (!explicit && !matches.length && !genericCover) {
+          continue;
+        }
+        const candidates = matches.length ? matches : dirVideos;
+        const unique = matches.length === 1 ||
+          (genericCover && preset === "movie" && dirVideos.length === 1 && countVideos === 1);
+        const sourceDir = explicit?.sourceDir || candidates[0].sourceDir ||
+          dto.baseDir || "";
+        companions.push({
+          id: `C${String(companions.length + 1).padStart(3, "0")}`,
+          sourcePath: source,
+          contextPath: AiRenameService.contextPath(source, sourceDir),
+          targetRel: "",
+          targetAbs: "",
+          problem: "",
+          kind,
+          candidateVideoIds: candidates.map((candidate) => candidate.id),
+          ownerRowId: unique ? candidates[0].id : null,
+          presetManaged: true,
+        });
+      }
+    }
+    return companions;
   }
 
   /** 作品名不能包含会分裂路径的字符 */
@@ -740,6 +1037,9 @@ class AiRenameService {
     instruction: string,
     batchId: string,
     preset?: "movie" | "series",
+    companions: Array<
+      Pick<AiCompanionRow, "id" | "contextPath" | "ownerRowId">
+    > = [],
   ): Promise<Array<Record<string, unknown>>> {
     const seriesFields = '"season":<number or null>,"episode":<number or null>,';
     const messages = [
@@ -754,6 +1054,8 @@ class AiRenameService {
             '{"id":"<line id>","problem":"<short reason>"}. ' +
             "Infer only from the provided relative paths and the naming specification; " +
             "do not fabricate information. Leave any field you cannot infer as null. " +
+            "Companion files of videos may be listed for reference only; " +
+            "never output entries for companion ids. " +
             "Do not output anything outside the JSON array."
           : "You generate target relative paths for files according to a user naming specification. " +
             "Reply with ONLY a JSON array. Each element is either " +
@@ -767,7 +1069,15 @@ class AiRenameService {
           "Naming specification:\n" +
           instruction +
           "\n\nFiles (id and relative path):\n" +
-          lines.map((line) => `${line.id} ${line.contextPath}`).join("\n"),
+          lines.map((line) => `${line.id} ${line.contextPath}`).join("\n") +
+          (companions.length === 0
+            ? ""
+            : "\n\nCompanion files (reference only, output nothing for them):\n" +
+              companions
+                .map((comp) => comp.ownerRowId
+                  ? `${comp.id} ${comp.contextPath} (video ${comp.ownerRowId})`
+                  : `${comp.id} ${comp.contextPath}`)
+                .join("\n")),
       },
     ];
     const controller = new AbortController();
@@ -846,6 +1156,7 @@ class AiRenameService {
     rows: Array<AiRenameRow>,
     instruction: string,
     preset?: "movie" | "series",
+    companions: Array<AiCompanionRow> = [],
   ): AiBatch {
     const now = Date.now();
     const batch: AiBatch = {
@@ -855,6 +1166,7 @@ class AiRenameService {
       preset,
       groups: preset ? AiRenameService.buildGroups(rows) : [],
       rows,
+      companions,
       version: 1,
       consumed: false,
       expiresAt: now + BATCH_TTL_MS,
@@ -912,17 +1224,19 @@ class AiRenameService {
     const rootStat = await AiRenameService.safeStat(root);
     if (!rootStat || !rootStat.isDirectory() ||
       await AiRenameService.realpathOrNull(root) !== root) {
-      for (const row of batch.rows) {
+      for (const row of [...batch.rows, ...batch.companions]) {
         row.problem = getMessage("ai.target-root-invalid");
         row.targetAbs = "";
       }
       return;
     }
     const lowerSources = new Set(
-      batch.rows.map((row) => row.sourcePath.toLowerCase()),
+      [...batch.rows, ...batch.companions].map((row) =>
+        row.sourcePath.toLowerCase()
+      ),
     );
-    const targetSeen = new Map<string, string>();
-    const withTarget: Array<{ row: AiRenameRow; key: string }> = [];
+    const targetSeen = new Set<string>();
+    const withTarget: Array<{ entry: TargetValidatable; key: string }> = [];
     for (const row of batch.rows) {
       if (row.needsSupplement) {
         continue;
@@ -941,77 +1255,122 @@ class AiRenameService {
         continue;
       }
       row.retryable = false;
-      const normalized = AiRenameService.normalizeTarget(root, targetRel);
-      if (normalized === null) {
-        row.problem = getMessage("ai.target-outside-root");
-        row.targetAbs = "";
+      await this.prepareTarget(
+        root,
+        row,
+        targetSeen,
+        withTarget,
+        getMessage,
+      );
+    }
+    // 附属文件与视频行同一套路径校验，目标冲突同样阻塞整批
+    const owners = new Map(batch.rows.map((row) => [row.id, row]));
+    for (const comp of batch.companions) {
+      const owner = comp.ownerRowId ? owners.get(comp.ownerRowId) : undefined;
+      if (!owner || owner.problem || !owner.targetRel) {
+        comp.problem = getMessage(
+          owner ? "ai.companion-owner-unavailable" : "ai.companion-needs-owner",
+        );
+        comp.targetAbs = "";
         continue;
       }
-      row.targetRel = normalized;
-      const targetAbs = path.join(root, ...normalized.split("/"));
-      row.targetAbs = targetAbs;
-      if (targetAbs === row.sourcePath) {
-        if (!await AiRenameService.checkSource(row.sourcePath)) {
-          row.problem = getMessage("ai.source-missing");
-        }
-        continue; // 同源同目标：优雅地作为无操作项
-      }
-      const key = targetAbs.toLowerCase();
-      if (targetSeen.has(key)) {
-        row.problem = getMessage("ai.duplicate-target");
+      comp.problem = "";
+      if (comp.targetRel.length === 0) {
+        comp.problem = getMessage("ai.target-invalid");
+        comp.targetAbs = "";
         continue;
       }
-      targetSeen.set(key, row.id);
-      withTarget.push({ row, key });
+      await this.prepareTarget(
+        root,
+        comp,
+        targetSeen,
+        withTarget,
+        getMessage,
+      );
     }
     // 某目标是另一目标的父目录时，先建目录为文件的目标必然失败
-    for (const { row, key } of withTarget) {
+    for (const { entry, key } of withTarget) {
       for (const other of withTarget) {
-        if (other.row.id === row.id) {
+        if (other.entry === entry) {
           continue;
         }
         if (key.startsWith(other.key + path.sep)) {
-          row.problem = getMessage("ai.target-parent-conflict");
+          entry.problem = getMessage("ai.target-parent-conflict");
           break;
         }
       }
     }
-    for (const { row } of withTarget) {
-      if (row.problem !== "") {
+    for (const { entry } of withTarget) {
+      if (entry.problem !== "") {
         continue;
       }
       // 目标不得覆盖批次内其他条目的源文件
-      if (lowerSources.has(row.targetAbs.toLowerCase())) {
-        row.problem = getMessage("ai.target-overwrites-source");
+      if (lowerSources.has(entry.targetAbs.toLowerCase())) {
+        entry.problem = getMessage("ai.target-overwrites-source");
         continue;
       }
       const parentIssue = await AiRenameService.checkTargetParents(
         root,
-        row.targetAbs,
+        entry.targetAbs,
       );
       if (parentIssue !== null) {
-        row.problem = getMessage(
+        entry.problem = getMessage(
           parentIssue === "not-dir"
             ? "ai.target-parent-not-directory"
             : "ai.target-outside-root",
         );
         continue;
       }
-      if (await AiRenameService.checkTargetExists(row.targetAbs)) {
-        row.problem = getMessage("ai.target-exists");
+      if (await AiRenameService.checkTargetExists(entry.targetAbs)) {
+        entry.problem = getMessage("ai.target-exists");
         continue;
       }
-      const sourceStat = await AiRenameService.checkSource(row.sourcePath);
+      const sourceStat = await AiRenameService.checkSource(entry.sourcePath);
       if (!sourceStat) {
-        row.problem = getMessage("ai.source-missing");
+        entry.problem = getMessage("ai.source-missing");
         continue;
       }
       // 按实际最近已有目录判断同盘
-      const nearest = await AiRenameService.nearestExistingDir(row.targetAbs);
+      const nearest = await AiRenameService.nearestExistingDir(entry.targetAbs);
       if (!nearest || sourceStat.dev !== nearest.dev) {
-        row.problem = getMessage("ai.cross-device");
+        entry.problem = getMessage("ai.cross-device");
       }
     }
+  }
+
+  /**
+   * 校验单条目标相对路径：规范化、与源相同视为无操作、批次内重复。
+   * 通过初步检查的目标进入 withTarget，等待父目录与磁盘检查。
+   */
+  private async prepareTarget(
+    root: string,
+    entry: TargetValidatable,
+    targetSeen: Set<string>,
+    withTarget: Array<{ entry: TargetValidatable; key: string }>,
+    getMessage: MessageLookup,
+  ): Promise<void> {
+    const normalized = AiRenameService.normalizeTarget(root, entry.targetRel);
+    if (normalized === null) {
+      entry.problem = getMessage("ai.target-outside-root");
+      entry.targetAbs = "";
+      return;
+    }
+    entry.targetRel = normalized;
+    const targetAbs = path.join(root, ...normalized.split("/"));
+    entry.targetAbs = targetAbs;
+    if (targetAbs === entry.sourcePath) {
+      if (!await AiRenameService.checkSource(entry.sourcePath)) {
+        entry.problem = getMessage("ai.source-missing");
+      }
+      return; // 同源同目标：优雅地作为无操作项
+    }
+    const key = targetAbs.toLowerCase();
+    if (targetSeen.has(key)) {
+      entry.problem = getMessage("ai.duplicate-target");
+      return;
+    }
+    targetSeen.add(key);
+    withTarget.push({ entry, key });
   }
 
   /**
@@ -1179,7 +1538,7 @@ class AiRenameService {
    * 两步之间失败时只回收本次创建且仍匹配的目标。
    */
   private async moveRow(
-    row: AiRenameRow,
+    row: Pick<AiRenameRow, "sourcePath" | "targetAbs" | "targetRel">,
     targetRoot: string,
     getMessage: MessageLookup,
   ): Promise<void> {

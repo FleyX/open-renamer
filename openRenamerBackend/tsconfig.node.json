@@ -25,6 +25,7 @@
     "dao/**/*.ts",
     "entity/**/*.ts",
     "i18n/nodeI18n.ts",
+    "media/**/*.ts",
     "service/**/*.ts",
     "util/ErrorHelper.ts",
     "util/MediaUtil.ts",
