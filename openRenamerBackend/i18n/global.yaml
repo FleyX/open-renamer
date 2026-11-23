@@ -94,3 +94,21 @@ ai:
   target-parent-not-directory:
     en: A parent of the target path exists and is not a directory
     zh: 目标路径的父级存在但不是目录
+  supplement-required:
+    en: "Needs supplement: "
+    zh: "待补充："
+  field-year:
+    en: year
+    zh: 年份
+  field-season:
+    en: season
+    zh: 季号
+  field-episode:
+    en: episode
+    zh: 集号
+  title-invalid:
+    en: Model returned a title that cannot be used for paths
+    zh: 模型返回的作品名无法用于生成路径
+  supplement-invalid:
+    en: Supplement fields do not belong to this batch or are invalid
+    zh: 补充信息不属于当前批次或格式无效

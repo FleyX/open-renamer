@@ -17,7 +17,10 @@ async function request(url, method, params, body, isForm) {
     baseURL: "/openRenamer/api",
     method,
     params,
-    headers: { token: window.token, lang: localStorage.getItem("lang") }
+    headers: {
+      token: window.token,
+      lang: localStorage.getItem("lang") || (navigator.language || "en").toLowerCase().split("-")[0]
+    }
   };
   if (isForm) {
     options.headers["Content-Type"] = "multipart/form-data";

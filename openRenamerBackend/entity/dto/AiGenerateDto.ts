@@ -26,6 +26,10 @@ export default interface AiGenerateDto {
    */
   targetRoot: string;
   /**
+   * 命名预设；省略或 custom 时按自定义命名规范处理
+   */
+  preset?: "custom" | "movie" | "series";
+  /**
    * 命名规范
    */
   instruction: string;

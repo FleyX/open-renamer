@@ -31,4 +31,26 @@ export default interface AiRenameRow {
    * 路径校验错误不可重试
    */
   retryable: boolean;
+  /**
+   * 模型给出的作品名（电影/剧集预设），无法推断时为 null
+   */
+  title?: string | null;
+  /**
+   * 模型给出的年份（电影/剧集预设），无法推断时为 null，可由作品组补充
+   */
+  year?: number | null;
+  /**
+   * 剧集预设的季号，无法推断时为 null，可按行补充
+   */
+  season?: number | null;
+  /**
+   * 剧集预设的集号，无法推断时为 null，可按行补充
+   */
+  episode?: number | null;
+  /**
+   * 目标路径是否由预设媒体字段派生；用户手工编辑后变为 false，
+   * 补充信息不再重算该行
+   */
+  presetManaged?: boolean;
+  needsSupplement?: boolean;
 }

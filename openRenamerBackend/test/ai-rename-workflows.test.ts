@@ -3,6 +3,7 @@ import { createServer, type Server } from "node:http";
 import {
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
   stat,
@@ -114,6 +115,7 @@ interface PreviewResponse {
   batchId: string;
   version: number;
   rows: Array<AiRenameRow>;
+  groups?: Array<{ key: string; title: string; year: number | null; rowIds: string[] }>;
   error?: string;
 }
 
@@ -1438,6 +1440,581 @@ test("ai rename retry rejects stale versions and non-failed rows", async () => {
     });
     assert.equal(unknown.status, 400);
     assert.equal(model.requests.length, 1, "rejected retries must not call model");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("movie preset builds Title (Year)/original name and groups by work", async () => {
+  const dataPath = await createFixtureRoot("aiM-data");
+  const sourceRoot = await createFixtureRoot("aiM-src");
+  const targetRoot = await createFixtureRoot("aiM-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "aaa.mkv");
+  const sourceB = path.join(sourceRoot, "bbb.mkv");
+  await writeFile(sourceA, "aaa");
+  await writeFile(sourceB, "bbb");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Demo Movie", year: 2020 },
+        { id: "L002", title: "Demo Movie", year: 2020 },
+      ]),
+    ),
+  );
+
+  try {
+    const response = await request(server, "/aiRename/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        files: [fileObj(sourceA), fileObj(sourceB)],
+        baseDir: sourceRoot,
+        targetRoot,
+        preset: "movie",
+        instruction: "电影保存为 片名 (年份)/原文件名",
+        service: { baseUrl: model.url, model: "m" },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const preview = (await response.json()) as PreviewResponse;
+    assert.equal(preview.error, undefined);
+    assert.deepEqual(
+      preview.rows.map((row) => row.targetRel),
+      [
+        "Demo Movie (2020)/aaa.mkv",
+        "Demo Movie (2020)/bbb.mkv",
+      ],
+    );
+    assert.deepEqual(
+      preview.rows.map((row) => row.targetAbs),
+      [
+        path.join(targetRoot, "Demo Movie (2020)", "aaa.mkv"),
+        path.join(targetRoot, "Demo Movie (2020)", "bbb.mkv"),
+      ],
+    );
+    assert.deepEqual(
+      preview.rows.map((row) => row.problem),
+      ["", ""],
+    );
+    // 同一部作品共享一个组与年份
+    assert.equal(preview.groups?.length, 1);
+    assert.equal(preview.groups?.[0].title, "Demo Movie");
+    assert.equal(preview.groups?.[0].year, 2020);
+    assert.deepEqual(preview.groups?.[0].rowIds, ["L001", "L002"]);
+    // 模型提示词要求结构化字段
+    const sent = JSON.stringify(model.requests[0]);
+    assert.match(sent, /title/);
+    assert.match(sent, /year/);
+    // 预览阶段不修改磁盘
+    await assert.rejects(
+      stat(path.join(targetRoot, "Demo Movie (2020)")),
+      /ENOENT/,
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("series preset pads season and episode and keeps extension", async () => {
+  const dataPath = await createFixtureRoot("aiS-data");
+  const sourceRoot = await createFixtureRoot("aiS-src");
+  const targetRoot = await createFixtureRoot("aiS-dst");
+  const server = await start(dataPath);
+  const season1 = path.join(sourceRoot, "show.s01e1.mp4");
+  const season2 = path.join(sourceRoot, "show.s02e13.mp4");
+  await writeFile(season1, "s1");
+  await writeFile(season2, "s2");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Demo Show", year: 2021, season: 1, episode: 1 },
+        { id: "L002", title: "Demo Show", year: 2021, season: 2, episode: 13 },
+      ]),
+    ),
+  );
+
+  try {
+    const preview = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(season1), fileObj(season2)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "series",
+          instruction: "剧集保存为 剧名 (年份)/season 01/剧名.s01e01.ext",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.deepEqual(
+      preview.rows.map((row) => row.targetRel),
+      [
+        "Demo Show (2021)/season 01/Demo Show.s01e01.mp4",
+        "Demo Show (2021)/season 02/Demo Show.s02e13.mp4",
+      ],
+    );
+    // 不同季属于同一部作品，共享年份
+    assert.equal(preview.groups?.length, 1);
+    assert.deepEqual(preview.groups?.[0].rowIds, ["L001", "L002"]);
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("missing year blocks submit until one group supplement updates all rows", async () => {
+  const dataPath = await createFixtureRoot("aiY-data");
+  const sourceRoot = await createFixtureRoot("aiY-src");
+  const targetRoot = await createFixtureRoot("aiY-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Mystery", year: null },
+        { id: "L002", title: "Mystery", year: null },
+      ]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    // 缺年份的有效模型行标为待补充，独立于生成失败
+    assert.match(generated.rows[0].problem, /待补充/);
+    assert.match(generated.rows[0].problem, /年份/);
+    assert.equal(generated.rows[0].retryable, false);
+    assert.equal(generated.groups?.[0].year, null);
+
+    // 待补充时整批无法提交
+    const blocked = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version,
+      }),
+    });
+    assert.equal(blocked.status, 400);
+    assert.match(await blocked.text(), /待补充|未解决/);
+    assert.equal(await readFile(sourceA, "utf8"), "a");
+
+    // 作品组年份填一次，同组所有条目更新，无需再次请求模型
+    const filled = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          rows: generated.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.targetRel,
+          })),
+          groups: [{ key: generated.groups![0].key, year: 1999 }],
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(model.requests.length, 1, "supplement must not call the model");
+    assert.equal(filled.version, generated.version + 1);
+    assert.deepEqual(
+      filled.rows.map((row) => row.targetRel),
+      ["Mystery (1999)/a.mkv", "Mystery (1999)/b.mkv"],
+    );
+    assert.deepEqual(
+      filled.rows.map((row) => row.problem),
+      ["", ""],
+    );
+
+    // 补充确认后提交，文件落到预设路径
+    const submitted = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: filled.batchId,
+          version: filled.version,
+        }),
+      })
+    ).json()) as {
+      completed: Array<AiRenameRow>;
+      failed: Array<{ row: AiRenameRow; error: string }>;
+      pending: Array<AiRenameRow>;
+    };
+    assert.equal(submitted.completed.length, 2);
+    assert.equal(submitted.failed.length, 0);
+    assert.equal(
+      await readFile(path.join(targetRoot, "Mystery (1999)", "a.mkv"), "utf8"),
+      "a",
+    );
+    assert.equal(
+      await readFile(path.join(targetRoot, "Mystery (1999)", "b.mkv"), "utf8"),
+      "b",
+    );
+    await assert.rejects(stat(sourceA), /ENOENT/);
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("series season and episode supplement per row without model call", async () => {
+  const dataPath = await createFixtureRoot("aiE-data");
+  const sourceRoot = await createFixtureRoot("aiE-src");
+  const targetRoot = await createFixtureRoot("aiE-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Show", year: 2020, season: 1, episode: null },
+        { id: "L002", title: "Show", year: 2020, season: 1, episode: 2 },
+      ]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "series",
+          instruction: "剧集保存为 剧名 (年份)/season 01/剧名.s01e01.ext",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(generated.rows[0].problem, /待补充/);
+    assert.match(generated.rows[0].problem, /集号/);
+
+    // 按行补充集号后重算预设路径
+    const filled = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          rows: generated.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.targetRel,
+          })),
+          rowFields: [{ id: "L001", episode: 3 }],
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(model.requests.length, 1, "supplement must not call the model");
+    assert.deepEqual(
+      filled.rows.map((row) => row.targetRel),
+      [
+        "Show (2020)/season 01/Show.s01e03.mkv",
+        "Show (2020)/season 01/Show.s01e02.mkv",
+      ],
+    );
+
+    // 提交后文件落盘
+    const submitted = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: filled.batchId,
+          version: filled.version,
+        }),
+      })
+    ).json()) as { completed: Array<AiRenameRow> };
+    assert.equal(submitted.completed.length, 2);
+    assert.equal(
+      await readFile(
+        path.join(targetRoot, "Show (2020)", "season 01", "Show.s01e03.mkv"),
+        "utf8",
+      ),
+      "a",
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("preset retry regenerates only failed rows and keeps group supplements", async () => {
+  const dataPath = await createFixtureRoot("aiR-data");
+  const sourceRoot = await createFixtureRoot("aiR-src");
+  const targetRoot = await createFixtureRoot("aiR-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  let calls = 0;
+  const model = await startMockModel((body) => {
+    calls += 1;
+    const content = calls === 1
+      ? JSON.stringify([
+        { id: "L001", title: "Back", year: null },
+        { id: "L002", problem: "cannot tell the title" },
+      ])
+      // 重试仍缺年份时沿用作品组已补充的年份
+      : JSON.stringify([{ id: "L002", title: "Back", year: null }]);
+    return chatCompletion(content);
+  });
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(generated.rows[0].problem, /待补充/);
+    assert.match(generated.rows[1].problem, /cannot tell/);
+    assert.equal(generated.rows[1].retryable, true);
+
+    // 先补充组年份，再重试失败行：重试沿用批次预设与规范
+    const filled = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          rows: generated.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.targetRel,
+          })),
+          groups: [{ key: generated.groups![0].key, year: 2018 }],
+        }),
+      })
+    ).json()) as PreviewResponse;
+
+    const retried = (await (
+      await request(server, "/aiRename/retry", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: filled.batchId,
+          version: filled.version,
+          rowIds: ["L002"],
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(calls, 2, "retry must call the model once");
+    const lastRequest = JSON.stringify(model.requests[1]);
+    assert.match(lastRequest, /b\.mkv/);
+    assert.ok(!lastRequest.includes("a.mkv"), "only failed rows are resent");
+    assert.deepEqual(
+      retried.rows.map((row) => row.targetRel),
+      ["Back (2018)/a.mkv", "Back (2018)/b.mkv"],
+    );
+    assert.deepEqual(
+      retried.rows.map((row) => row.problem),
+      ["", ""],
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("conflicting known years of the same title stay in separate groups", async () => {
+  const dataPath = await createFixtureRoot("aiC-data");
+  const sourceRoot = await createFixtureRoot("aiC-src");
+  const targetRoot = await createFixtureRoot("aiC-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Remake", year: 2020 },
+        { id: "L002", title: "Remake", year: 2021 },
+      ]),
+    ),
+  );
+
+  try {
+    const preview = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    // 已知年份冲突的同名作品不合并
+    assert.equal(preview.groups?.length, 2);
+    assert.deepEqual(
+      preview.groups?.map((group) => group.year).sort(),
+      [2020, 2021],
+    );
+    assert.deepEqual(
+      preview.rows.map((row) => row.targetRel),
+      ["Remake (2020)/a.mkv", "Remake (2021)/b.mkv"],
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("manual target override survives group year supplements on other rows", async () => {
+  const dataPath = await createFixtureRoot("aiO-data");
+  const sourceRoot = await createFixtureRoot("aiO-src");
+  const targetRoot = await createFixtureRoot("aiO-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "a");
+  await writeFile(sourceB, "b");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", title: "Mix", year: null },
+        { id: "L002", title: "Mix", year: null },
+      ]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+
+    // 手工覆盖第二行的目标路径
+    const overridden = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          rows: generated.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.id === "L002" ? "Manual/keep.mkv" : row.targetRel,
+          })),
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(overridden.rows[1].targetRel, "Manual/keep.mkv");
+    assert.match(overridden.rows[1].problem, /待补充/);
+
+    // 再填组年份：只有预设派生行重算，手工行保留
+    const filled = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: overridden.batchId,
+          rows: overridden.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.targetRel,
+          })),
+          groups: [{ key: overridden.groups![0].key, year: 2001 }],
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.deepEqual(
+      filled.rows.map((row) => row.targetRel),
+      ["Mix (2001)/a.mkv", "Manual/keep.mkv"],
+    );
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("preset title with path separators is a retryable generation failure", async () => {
+  const dataPath = await createFixtureRoot("aiT-data");
+  const sourceRoot = await createFixtureRoot("aiT-src");
+  const targetRoot = await createFixtureRoot("aiT-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  await writeFile(sourceA, "a");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([{ id: "L001", title: "bad/name", year: 2020 }]),
+    ),
+  );
+
+  try {
+    const preview = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.match(preview.rows[0].problem, /作品名/);
+    assert.equal(preview.rows[0].retryable, true);
+    // 拒绝会分裂路径的作品名，不得写出任何目标
+    assert.equal(preview.rows[0].targetRel, "");
+    const entries = await readdir(targetRoot);
+    assert.deepEqual(entries, []);
   } finally {
     await server.close();
     await model.close();

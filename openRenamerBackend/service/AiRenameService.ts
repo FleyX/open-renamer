@@ -30,10 +30,28 @@ interface AiBatch {
    * 生成时使用的命名规范，重试沿用同一规范
    */
   instruction: string;
+  /**
+   * 命名预设；缺省为自定义命名规范
+   */
+  preset?: "movie" | "series";
+  /**
+   * 作品分组：同组共享一次年份补充
+   */
+  groups: Array<AiWorkGroup>;
   rows: Array<AiRenameRow>;
   version: number;
   consumed: boolean;
   expiresAt: number;
+}
+
+/**
+ * 作品组：同一部作品（相同作品名且不冲突的年份）共享一个年份
+ */
+interface AiWorkGroup {
+  key: string;
+  title: string;
+  year: number | null;
+  rowIds: Array<string>;
 }
 
 interface BatchAccess {
@@ -58,10 +76,16 @@ class AiRenameService {
     batchId: string;
     version: number;
     rows: Array<AiRenameRow>;
+    groups: Array<AiWorkGroup>;
     error?: string;
   }> {
     this.sweepExpired();
-    const empty = { batchId: "", version: 0, rows: [] as Array<AiRenameRow> };
+    const empty = {
+      batchId: "",
+      version: 0,
+      rows: [] as Array<AiRenameRow>,
+      groups: [] as Array<AiWorkGroup>,
+    };
     const sources = this.normalizeSources(dto);
     if (sources.length === 0) {
       return { ...empty, error: getMessage("ai.no-files") };
@@ -96,11 +120,35 @@ class AiRenameService {
       targetAbs: "",
       problem: "",
       retryable: true,
+      title: null,
+      year: null,
+      season: null,
+      episode: null,
+      presetManaged: false,
     }));
-    await this.generateTargets(rows, dto.service, instruction, getMessage);
-    const batch = this.createBatch(rootReal, rows, instruction);
+    const preset = dto.preset === "movie" || dto.preset === "series"
+      ? dto.preset
+      : undefined;
+    const batchId = randomUUID();
+    await this.generateTargets(
+      rows,
+      dto.service,
+      instruction,
+      getMessage,
+      batchId,
+      preset,
+    );
+    const batch = this.createBatch(batchId, rootReal, rows, instruction, preset);
+    if (batch.preset) {
+      this.applyPresetRows(batch, getMessage);
+    }
     await this.validateBatch(batch, getMessage);
-    return { batchId: batch.id, version: batch.version, rows: batch.rows };
+    return {
+      batchId: batch.id,
+      version: batch.version,
+      rows: batch.rows,
+      groups: batch.groups,
+    };
   }
 
   /**
@@ -111,7 +159,12 @@ class AiRenameService {
   async validatePreview(
     dto: AiPreviewEditDto,
     getMessage: MessageLookup,
-  ): Promise<{ batchId: string; version: number; rows: Array<AiRenameRow> }> {
+  ): Promise<{
+    batchId: string;
+    version: number;
+    rows: Array<AiRenameRow>;
+    groups: Array<AiWorkGroup>;
+  }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
     if (this.inFlight.has(batch.id)) {
@@ -122,28 +175,99 @@ class AiRenameService {
     }
     const byId = new Map(batch.rows.map((row) => [row.id, row]));
     const submitted = dto.rows ?? [];
-    if (submitted.length !== batch.rows.length) {
+    if (!Array.isArray(submitted) || submitted.length !== batch.rows.length) {
       throw ErrorHelper.Error400(getMessage("ai.model-response-invalid"));
     }
+    const draft: AiBatch = {
+      ...batch,
+      groups: batch.groups.map((group) => ({
+        ...group,
+        rowIds: [...group.rowIds],
+      })),
+      rows: batch.rows.map((row) => ({ ...row })),
+    };
+    const copiesById = new Map(draft.rows.map((row) => [row.id, row]));
     const seen = new Set<string>();
-    const nextRows: Array<AiRenameRow> = [];
     for (const edited of submitted) {
       const existing = byId.get(edited?.id);
-      if (!existing || seen.has(edited.id) || typeof edited.targetRel !== "string") {
+      const copy = copiesById.get(edited?.id);
+      if (!existing || !copy || seen.has(edited.id) ||
+        typeof edited.targetRel !== "string") {
         throw ErrorHelper.Error400(getMessage("ai.model-response-invalid"));
       }
       seen.add(edited.id);
-      nextRows.push({ ...existing, targetRel: edited.targetRel });
+      const targetWasEdited = edited.edited ?? (edited.targetRel !== existing.targetRel);
+      if (targetWasEdited || !existing.presetManaged) {
+        copy.presetManaged = false;
+        copy.targetRel = edited.targetRel;
+      }
     }
-    const draft: AiBatch = { ...batch, rows: nextRows };
+    this.applySupplements(draft, dto, getMessage);
+    if (draft.preset) {
+      this.applyPresetRows(draft, getMessage);
+    }
     await this.validateBatch(draft, getMessage);
     if (this.inFlight.has(batch.id) || batch.version !== draft.version ||
       this.batches.get(batch.id) !== batch) {
       throw ErrorHelper.Error400(getMessage("ai.batch-version-mismatch"));
     }
     batch.rows = draft.rows;
+    batch.groups = draft.groups;
     batch.version += 1;
-    return { batchId: batch.id, version: batch.version, rows: batch.rows };
+    return {
+      batchId: batch.id,
+      version: batch.version,
+      rows: batch.rows,
+      groups: batch.groups,
+    };
+  }
+
+  /**
+   * 应用作品组年份补充与剧集行季号、集号补充。
+   * 补充字段必须确属该批次，且只允许作用于预设派生的行，否则拒绝。
+   */
+  private applySupplements(
+    draft: AiBatch,
+    dto: AiPreviewEditDto,
+    getMessage: MessageLookup,
+  ): void {
+    const groupFills = dto.groups ?? [];
+    const rowFills = dto.rowFields ?? [];
+    const invalid = getMessage("ai.supplement-invalid");
+    if (!Array.isArray(groupFills) || !Array.isArray(rowFills)) {
+      throw ErrorHelper.Error400(invalid);
+    }
+    if (groupFills.length === 0 && rowFills.length === 0) {
+      return;
+    }
+    if (!draft.preset || (rowFills.length && draft.preset !== "series")) {
+      throw ErrorHelper.Error400(invalid);
+    }
+    const seenGroups = new Set<string>();
+    for (const fill of groupFills) {
+      const group = draft.groups.find((item) => item.key === fill?.key);
+      if (!group || seenGroups.has(group.key)) {
+        throw ErrorHelper.Error400(invalid);
+      }
+      seenGroups.add(group.key);
+      if (fill.year !== undefined) {
+        group.year = AiRenameService.parseYear(fill.year);
+      }
+    }
+    const seenRows = new Set<string>();
+    for (const fill of rowFills) {
+      const row = draft.rows.find((item) => item.id === fill?.id);
+      if (!row || seenRows.has(row.id) || !row.title) {
+        throw ErrorHelper.Error400(invalid);
+      }
+      seenRows.add(row.id);
+      row.season = fill.season === undefined
+        ? row.season
+        : AiRenameService.parseEpisode(fill.season, 0);
+      row.episode = fill.episode === undefined
+        ? row.episode
+        : AiRenameService.parseEpisode(fill.episode);
+    }
   }
 
   /**
@@ -217,7 +341,12 @@ class AiRenameService {
   async retry(
     dto: AiRetryDto,
     getMessage: MessageLookup,
-  ): Promise<{ batchId: string; version: number; rows: Array<AiRenameRow> }> {
+  ): Promise<{
+    batchId: string;
+    version: number;
+    rows: Array<AiRenameRow>;
+    groups: Array<AiWorkGroup>;
+  }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
     if (this.inFlight.has(batch.id)) {
@@ -247,12 +376,38 @@ class AiRenameService {
 
     this.inFlight.add(batch.id);
     try {
-      await this.generateTargets([...targets.values()], dto.service, batch.instruction, getMessage);
+      await this.generateTargets(
+        [...targets.values()],
+        dto.service,
+        batch.instruction,
+        getMessage,
+        batch.id,
+        batch.preset,
+      );
+      draft.groups = AiRenameService.buildGroups(draft.rows);
+      // 保留作品组的年份补充：重建分组后按组键沿用已填年份
+      const previousYears = new Map(
+        batch.groups.map((group) => [group.key, group.year]),
+      );
+      for (const group of draft.groups) {
+        if (previousYears.has(group.key)) {
+          group.year = previousYears.get(group.key) ?? null;
+        }
+      }
+      if (draft.preset) {
+        this.applyPresetRows(draft, getMessage);
+      }
       await this.validateBatch(draft, getMessage);
       this.accessBatch(dto.batchId, getMessage);
       batch.rows = draft.rows;
+      batch.groups = draft.groups;
       batch.version += 1;
-      return { batchId: batch.id, version: batch.version, rows: batch.rows };
+      return {
+        batchId: batch.id,
+        version: batch.version,
+        rows: batch.rows,
+        groups: batch.groups,
+      };
     } finally {
       this.inFlight.delete(batch.id);
     }
@@ -263,11 +418,13 @@ class AiRenameService {
     config: AiServiceConfig,
     instruction: string,
     getMessage: MessageLookup,
+    batchId: string,
+    preset?: "movie" | "series",
   ): Promise<void> {
     let failure = "ai.model-request-failed";
     const results = new Map<string, Record<string, unknown>>();
     try {
-      const parsed = await this.callModel(config, rows, instruction);
+      const parsed = await this.callModel(config, rows, instruction, batchId, preset);
       failure = "ai.model-response-invalid";
       const allowed = new Set(rows.map((row) => row.id));
       for (const item of parsed) {
@@ -285,6 +442,11 @@ class AiRenameService {
     for (const row of rows) {
       const item = results.get(row.id);
       const problem = typeof item?.problem === "string" ? item.problem.trim() : "";
+      if (preset) {
+        const issue = !item ? getMessage(failure) : problem;
+        this.applyModelMediaRow(row, item, issue, apiKey ?? "", preset, getMessage);
+        continue;
+      }
       const target = typeof item?.target === "string" ? item.target.trim() : "";
       if (!problem && target && !(apiKey && target.includes(apiKey))) {
         row.targetRel = target;
@@ -298,6 +460,211 @@ class AiRenameService {
         row.retryable = true;
       }
     }
+  }
+
+  /**
+   * 预设模式：保留模型给出的结构化媒体字段。
+   * 模型报告问题或作品名无法使用时记为生成失败（可重试）；
+   * 字段缺失先记为待补充，由 applyPresetRows 统一判定。
+   */
+  private applyModelMediaRow(
+    row: AiRenameRow,
+    item: Record<string, unknown> | undefined,
+    problem: string,
+    apiKey: string,
+    preset: "movie" | "series",
+    getMessage: MessageLookup,
+  ): void {
+    row.title = null;
+    row.year = null;
+    row.season = null;
+    row.episode = null;
+    row.presetManaged = false;
+    row.targetRel = "";
+    const title = typeof item?.title === "string" ? item.title.trim() : "";
+    const safeProblem = problem && !(apiKey && problem.includes(apiKey))
+      ? problem
+      : "";
+    if (safeProblem || !AiRenameService.validTitle(title) ||
+      (apiKey && title.includes(apiKey))) {
+      row.problem = safeProblem || getMessage("ai.title-invalid");
+      row.retryable = true;
+      return;
+    }
+    row.title = title;
+    row.year = AiRenameService.parseYear(item?.year);
+    if (preset === "series") {
+      row.season = AiRenameService.parseEpisode(item?.season, 0);
+      row.episode = AiRenameService.parseEpisode(item?.episode);
+    }
+    row.problem = "";
+    row.retryable = false;
+    row.presetManaged = true;
+  }
+
+  /**
+   * 按预设本地构建目标相对路径，无需请求模型。
+   * 电影：片名 (年份)/原文件名.ext；剧集：剧名 (年份)/season 01/剧名.s01e01.ext。
+   * 缺年份、季号或集号的有效模型行标为待补充；缺字段信息一并写入问题。
+   */
+  private applyPresetRows(batch: AiBatch, getMessage: MessageLookup): void {
+    const groupOf = new Map<string, AiWorkGroup>();
+    for (const group of batch.groups) {
+      for (const rowId of group.rowIds) {
+        groupOf.set(rowId, group);
+      }
+    }
+    for (const row of batch.rows) {
+      if (!row.title) {
+        continue;
+      }
+      const group = groupOf.get(row.id);
+      const title = group?.title ?? row.title ?? "";
+      const year = group?.year ?? null;
+      const season = batch.preset === "series" ? row.season ?? null : null;
+      const episode = batch.preset === "series" ? row.episode ?? null : null;
+      const target = AiRenameService.presetTarget(
+        batch.preset ?? "movie",
+        title,
+        year,
+        season,
+        episode,
+        row.sourcePath,
+      );
+      if (target === null) {
+        const missing: Array<string> = [];
+        if (year === null) {
+          missing.push(getMessage("ai.field-year"));
+        }
+        if (batch.preset === "series" && season === null) {
+          missing.push(getMessage("ai.field-season"));
+        }
+        if (batch.preset === "series" && episode === null) {
+          missing.push(getMessage("ai.field-episode"));
+        }
+        if (row.presetManaged) {
+          row.targetRel = "";
+        }
+        row.targetAbs = "";
+        row.needsSupplement = true;
+        row.problem = getMessage("ai.supplement-required") + missing.join("、");
+        row.retryable = false;
+      } else {
+        if (row.presetManaged) {
+          row.targetRel = target;
+        }
+        row.needsSupplement = false;
+        row.problem = "";
+      }
+    }
+  }
+
+  /** 作品名不能包含会分裂路径的字符 */
+  private static validTitle(title: string): boolean {
+    return title.length > 0 && !title.includes("/") && !title.includes("\\") &&
+      !title.includes("\0") && title !== "." && title !== "..";
+  }
+
+  /** 解析四位年份，无法解析为 null */
+  private static parseYear(value: unknown): number | null {
+    const num = typeof value === "number" ? value
+      : typeof value === "string" && /^\d{4}$/.test(value.trim())
+        ? Number(value.trim())
+        : Number.NaN;
+    if (!Number.isInteger(num) || num < 1000 || num > 9999) {
+      return null;
+    }
+    return num;
+  }
+
+  /** 季号可为 0（特别篇），集号从 1 开始 */
+  private static parseEpisode(value: unknown, minimum = 1): number | null {
+    const num = typeof value === "number" ? value
+      : typeof value === "string" && /^\d{1,3}$/.test(value.trim())
+        ? Number(value.trim())
+        : Number.NaN;
+    if (!Number.isInteger(num) || num < minimum || num > 999) {
+      return null;
+    }
+    return num;
+  }
+
+  /**
+   * 作品分组：按作品名分组，同组共享年份；
+   * 已知年份明显冲突的同名作品拆分为不同组。
+   */
+  private static buildGroups(rows: Array<AiRenameRow>): Array<AiWorkGroup> {
+    const byTitle = new Map<string, Array<AiRenameRow>>();
+    for (const row of rows) {
+      const title = (row.title ?? "").trim();
+      if (title.length === 0) {
+        continue;
+      }
+      const key = title.normalize("NFC").toLowerCase();
+      const list = byTitle.get(key) ?? [];
+      list.push(row);
+      byTitle.set(key, list);
+    }
+    const groups: Array<AiWorkGroup> = [];
+    for (const [key, list] of byTitle) {
+      const title = list[0].title!;
+      const knownYears = new Set(
+        list.map((row) => row.year).filter((year) => year != null),
+      );
+      const buckets: Array<{ year: number | null; rows: Array<AiRenameRow> }> = [];
+      if (knownYears.size <= 1) {
+        const year = list.find((row) => row.year !== null)?.year ?? null;
+        buckets.push({ year, rows: list });
+      } else {
+        // 同名但已知年份冲突：不合并，按已知年份拆组；年份未知的行单独成组
+        for (const row of list) {
+          const bucket = buckets.find((item) => item.year === row.year);
+          if (bucket) {
+            bucket.rows.push(row);
+          } else {
+            buckets.push({ year: row.year ?? null, rows: [row] });
+          }
+        }
+      }
+      for (const bucket of buckets) {
+        groups.push({
+          key: `${key}\n${bucket.year ?? ""}`,
+          title,
+          year: bucket.year,
+          rowIds: bucket.rows.map((row) => row.id),
+        });
+      }
+    }
+    return groups;
+  }
+
+  /**
+   * 按预设格式构建目标相对路径；任一必需字段缺失或作品名非法时返回 null。
+   * 电影：片名 (年份)/原文件名.ext（保留原文件名与扩展名）
+   * 剧集：剧名 (年份)/season 01/剧名.s01e01.ext（季、集补齐两位，保留扩展名）
+   */
+  private static presetTarget(
+    preset: "movie" | "series",
+    title: string,
+    year: number | null,
+    season: number | null,
+    episode: number | null,
+    sourcePath: string,
+  ): string | null {
+    if (!AiRenameService.validTitle(title) || year === null) {
+      return null;
+    }
+    const fileName = path.basename(sourcePath);
+    if (preset === "movie") {
+      return `${title} (${year})/${fileName}`;
+    }
+    if (season === null || episode === null) {
+      return null;
+    }
+    const pad = (value: number) => String(value).padStart(2, "0");
+    const ext = path.extname(fileName);
+    return `${title} (${year})/season ${pad(season)}/` +
+      `${title}.s${pad(season)}e${pad(episode)}${ext}`;
   }
 
   /** 源文件按绝对路径去重，保留每个文件实际来自的所选目录 */
@@ -371,16 +738,28 @@ class AiRenameService {
     service: AiServiceConfig,
     lines: Array<Pick<AiRenameRow, "id" | "contextPath">>,
     instruction: string,
+    batchId: string,
+    preset?: "movie" | "series",
   ): Promise<Array<Record<string, unknown>>> {
+    const seriesFields = '"season":<number or null>,"episode":<number or null>,';
     const messages = [
       {
         role: "system",
-        content:
-          "You generate target relative paths for files according to a user naming specification. " +
-          "Reply with ONLY a JSON array. Each element is either " +
-          '{"id":"<line id>","target":"<relative path under the target root>"} or ' +
-          '{"id":"<line id>","problem":"<short reason>"}. ' +
-          "Do not use absolute paths and do not output anything outside the JSON array.",
+        content: preset
+          ? "You extract media naming information for files according to a user naming specification. " +
+            "Reply with ONLY a JSON array. Each element is either " +
+            (preset === "series"
+              ? `{"id":"<line id>","title":"<work title>","year":<number or null>,${seriesFields.slice(0, -1)}} or `
+              : '{"id":"<line id>","title":"<work title>","year":<number or null>} or ') +
+            '{"id":"<line id>","problem":"<short reason>"}. ' +
+            "Infer only from the provided relative paths and the naming specification; " +
+            "do not fabricate information. Leave any field you cannot infer as null. " +
+            "Do not output anything outside the JSON array."
+          : "You generate target relative paths for files according to a user naming specification. " +
+            "Reply with ONLY a JSON array. Each element is either " +
+            '{"id":"<line id>","target":"<relative path under the target root>"} or ' +
+            '{"id":"<line id>","problem":"<short reason>"}. ' +
+            "Do not use absolute paths and do not output anything outside the JSON array.",
       },
       {
         role: "user",
@@ -399,11 +778,17 @@ class AiRenameService {
       const headers: Record<string, string> = {
         "content-type": "application/json",
       };
+      const endpoint = new URL(AiRenameService.modelEndpoint(service.baseUrl));
+      if (endpoint.hostname === "opencode.ai" &&
+        /^\/(?:inference|zen)\/go\//.test(endpoint.pathname)) {
+        headers["user-agent"] = "Open-Renamer";
+        headers["x-opencode-session"] = batchId;
+      }
       const apiKey = (service.apiKey ?? "").trim();
       if (apiKey.length > 0) {
         headers.authorization = `Bearer ${apiKey}`;
       }
-      response = await fetch(AiRenameService.modelEndpoint(service.baseUrl), {
+      response = await fetch(endpoint, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -456,15 +841,19 @@ class AiRenameService {
   }
 
   private createBatch(
+    id: string,
     targetRoot: string,
     rows: Array<AiRenameRow>,
     instruction: string,
+    preset?: "movie" | "series",
   ): AiBatch {
     const now = Date.now();
     const batch: AiBatch = {
-      id: randomUUID(),
+      id,
       targetRoot: path.resolve(targetRoot),
       instruction,
+      preset,
+      groups: preset ? AiRenameService.buildGroups(rows) : [],
       rows,
       version: 1,
       consumed: false,
@@ -535,6 +924,9 @@ class AiRenameService {
     const targetSeen = new Map<string, string>();
     const withTarget: Array<{ row: AiRenameRow; key: string }> = [];
     for (const row of batch.rows) {
+      if (row.needsSupplement) {
+        continue;
+      }
       // 生成失败或缺少目标时保留明确反馈，用户补全后才清除该条问题
       const previousProblem = row.problem;
       const hadValidTarget = (row.targetAbs ?? "") !== "";

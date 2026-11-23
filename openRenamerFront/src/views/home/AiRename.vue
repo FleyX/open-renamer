@@ -35,6 +35,14 @@
     <el-divider content-position="left">
       <div class="head-text">{{ $t('aiRename.specTitle') }}</div>
     </el-divider>
+    <div class="preset-line">
+      <span class="preset-label">{{ $t('aiRename.presetLabel') }}</span>
+      <el-radio-group v-model="preset" size="small">
+        <el-radio-button label="custom">{{ $t('aiRename.presetCustom') }}</el-radio-button>
+        <el-radio-button label="movie">{{ $t('aiRename.presetMovie') }}</el-radio-button>
+        <el-radio-button label="series">{{ $t('aiRename.presetSeries') }}</el-radio-button>
+      </el-radio-group>
+    </div>
     <el-input v-model="instruction" type="textarea" :rows="3"
       :placeholder="$t('aiRename.specPlaceholder')" />
 
@@ -47,6 +55,17 @@
         <div class="head-text">{{ $t('aiRename.previewTitle') }}</div>
       </el-divider>
       <div v-if="preview.error" class="preview-error">{{ preview.error }}</div>
+      <div v-if="preview.groups && preview.groups.length" class="supplement-area">
+        <div class="supplement-head">{{ $t('aiRename.supplementTitle') }}</div>
+        <div v-for="group in preview.groups" :key="group.key" class="supplement-group">
+          <span class="group-title oneLineText" :title="group.title">{{ group.title }}</span>
+          <el-input class="year-input" size="small" type="text" :disabled="retrying"
+            :model-value="yearDraftValue(group)"
+            :aria-label="$t('aiRename.yearPlaceholder') + ' ' + group.title"
+            :placeholder="$t('aiRename.yearPlaceholder')"
+            @input="(value) => onGroupYearInput(group, value)" />
+        </div>
+      </div>
       <div class="preview-table" v-if="preview.rows.length > 0">
         <div class="preview-row preview-head">
           <span class="col-source">{{ $t('aiRename.colSource') }}</span>
@@ -57,7 +76,20 @@
         <div v-for="row in preview.rows" :key="row.id" class="preview-row">
           <span class="col-source oneLineText" :title="row.sourcePath">{{ row.contextPath }}</span>
           <span class="col-target">
-            <el-input v-model="row.targetRel" type="text" size="small" :disabled="retrying" @input="onRowEdit" />
+            <template v-if="preset === 'series' && row.title">
+              <el-input class="num-input" size="small" type="text" :disabled="retrying"
+                :model-value="numberDraftValue('season', row)"
+                :aria-label="$t('aiRename.seasonPlaceholder')"
+                :placeholder="$t('aiRename.seasonPlaceholder')"
+                @input="(value) => onNumberInput('season', row, value)" />
+              <el-input class="num-input" size="small" type="text" :disabled="retrying"
+                :model-value="numberDraftValue('episode', row)"
+                :aria-label="$t('aiRename.episodePlaceholder')"
+                :placeholder="$t('aiRename.episodePlaceholder')"
+                @input="(value) => onNumberInput('episode', row, value)" />
+            </template>
+            <el-input v-model="row.targetRel" type="text" size="small" :disabled="retrying"
+              @input="onTargetEdit(row)" />
           </span>
           <span class="col-full oneLineText" :title="row.targetAbs">{{ row.targetAbs }}</span>
           <span class="col-problem">
@@ -120,7 +152,13 @@ export default {
       },
       files: [], // 所选源文件（目录选择的文件带来源目录 sourceDir）
       targetRoot: "",
+      preset: "custom", // 命名预设：custom 自定义，movie 电影，series 剧集
       instruction: "",
+      // 预设补充草稿：作品组年份、剧集行季号集号；提交校验时只发送已填草稿
+      yearDrafts: {},
+      seasonDrafts: {},
+      episodeDrafts: {},
+      editedTargets: {},
       fileDialogVisible: false,
       folderDialogVisible: false,
       targetRootDialogVisible: false,
@@ -170,6 +208,15 @@ export default {
   },
   watch: {
     instruction() {
+      this.invalidatePreview();
+    },
+    // 电影、剧集预设一键带入可编辑的命名规范；切到自定义保留当前文本
+    preset(value) {
+      if (value === "movie") {
+        this.instruction = this.$t('aiRename.presetSpecMovie');
+      } else if (value === "series") {
+        this.instruction = this.$t('aiRename.presetSpecSeries');
+      }
       this.invalidatePreview();
     },
   },
@@ -254,17 +301,101 @@ export default {
       this.files = [];
       this.invalidatePreview();
     },
-    // 修改文件集合或规范使当前预览失效，并忽略过时响应
+    // 修改文件集合、预设或规范使当前预览失效，并忽略过时响应
     invalidatePreview() {
       this.requestSeq += 1;
       this.preview = null;
       this.result = null;
       this.editVersion = 0;
       this.validatedEditVersion = 0;
+      this.clearDrafts();
       if (this.revalidateTimer != null) {
         clearTimeout(this.revalidateTimer);
         this.revalidateTimer = null;
       }
+    },
+    clearDrafts() {
+      this.yearDrafts = {};
+      this.seasonDrafts = {};
+      this.episodeDrafts = {};
+      this.editedTargets = {};
+    },
+    onTargetEdit(row) {
+      this.editedTargets[row.id] = true;
+      this.onRowEdit();
+    },
+    // 作品组年份草稿：显示草稿，无草稿时显示服务端年份
+    yearDraftValue(group) {
+      if (Object.prototype.hasOwnProperty.call(this.yearDrafts, group.key)) {
+        return this.yearDrafts[group.key];
+      }
+      return group.year == null ? "" : String(group.year);
+    },
+    onGroupYearInput(group, value) {
+      this.yearDrafts[group.key] = value;
+      this.onRowEdit();
+    },
+    // 剧集行季号、集号草稿
+    numberDraftValue(field, row) {
+      const drafts = field === "season" ? this.seasonDrafts : this.episodeDrafts;
+      if (Object.prototype.hasOwnProperty.call(drafts, row.id)) {
+        return drafts[row.id];
+      }
+      const value = field === "season" ? row.season : row.episode;
+      return value == null ? "" : String(value);
+    },
+    onNumberInput(field, row, value) {
+      if (field === "season") {
+        this.seasonDrafts[row.id] = value;
+      } else {
+        this.episodeDrafts[row.id] = value;
+      }
+      this.onRowEdit();
+    },
+    parseYearDraft(value) {
+      return /^\d{4}$/.test(value) ? Number(value) : null;
+    },
+    parseNumberDraft(value) {
+      return /^\d{1,3}$/.test(value) ? Number(value) : null;
+    },
+    buildSupplements() {
+      const payload = {};
+      const groups = (this.preview.groups || [])
+        .filter((group) =>
+          Object.prototype.hasOwnProperty.call(this.yearDrafts, group.key))
+        .map((group) => ({
+          key: group.key,
+          year: this.parseYearDraft(this.yearDrafts[group.key]),
+        }));
+      if (groups.length > 0) {
+        payload.groups = groups;
+      }
+      if (this.preset === "series") {
+        const rowFields = [];
+        for (const row of this.preview.rows) {
+          const hasSeason = Object.prototype.hasOwnProperty.call(
+            this.seasonDrafts, row.id);
+          const hasEpisode = Object.prototype.hasOwnProperty.call(
+            this.episodeDrafts, row.id);
+          if (!hasSeason && !hasEpisode) {
+            continue;
+          }
+          const fill = { id: row.id };
+          if (hasSeason) {
+            fill.season = this.parseNumberDraft(this.seasonDrafts[row.id]);
+          }
+          if (hasEpisode) {
+            fill.episode = this.parseNumberDraft(this.episodeDrafts[row.id]);
+          }
+          if (fill.season !== undefined || fill.episode !== undefined) {
+            rowFields.push(fill);
+          }
+        }
+        if (rowFields.length > 0) {
+          payload.rowFields = rowFields;
+        }
+      }
+      return payload;
     },
     async generate() {
       if (this.files.length === 0) {
@@ -286,6 +417,7 @@ export default {
         const preview = await HttpUtil.post("/aiRename/generate", null, {
           files: this.files,
           targetRoot: this.targetRoot,
+          preset: this.preset,
           instruction: this.instruction,
           service: {
             baseUrl: this.service.baseUrl,
@@ -339,13 +471,16 @@ export default {
           rows: rows.map((row) => ({
             id: row.id,
             targetRel: row.targetRel,
+            edited: Boolean(this.editedTargets[row.id]),
           })),
+          ...this.buildSupplements(),
         });
         if (seq !== this.requestSeq || editVersion !== this.editVersion ||
           !this.preview || this.preview.batchId !== batchId) {
           return;
         }
         this.preview = updated;
+        this.clearDrafts();
         this.validatedEditVersion = editVersion;
       } catch (error) {
         // HttpUtil 已提示错误
@@ -474,6 +609,42 @@ export default {
   text-align: left;
 }
 
+.preset-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+  text-align: left;
+}
+
+.supplement-area {
+  text-align: left;
+  margin-bottom: 0.5em;
+
+  .supplement-head {
+    font-weight: bold;
+    margin-bottom: 0.25em;
+  }
+
+  .supplement-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.15em 0;
+
+    .group-title {
+      width: 40%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .year-input {
+      width: 120px;
+    }
+  }
+}
+
 .preview-error {
   color: red;
   text-align: left;
@@ -500,6 +671,14 @@ export default {
 
     .col-target {
       width: 30%;
+      display: flex;
+      align-items: center;
+      gap: 0.25em;
+
+      .num-input {
+        width: 48px;
+        flex: none;
+      }
     }
 
     .col-full {
