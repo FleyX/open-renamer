@@ -1,6 +1,11 @@
 <template>
   <div v-loading="loading" :element-loading-text="$t('homeDialog.loadingText')">
     <br />
+    <el-radio-group v-model="renameMode" class="mode-switch">
+      <el-radio-button label="rule">{{ $t('aiRename.modeRule') }}</el-radio-button>
+      <el-radio-button label="ai">{{ $t('aiRename.modeAi') }}</el-radio-button>
+    </el-radio-group>
+    <div v-show="renameMode === 'rule'">
     <el-button type="success" @click="submit" size="default">{{ $t('home.startRename') }}</el-button>
     <el-divider content-position="left">
       <div class="head-text">{{ $t('home.ruleSetting') }}</div>
@@ -109,6 +114,8 @@
         <el-button type="primary" @click="doEditFile">{{ $t('home.confirm') }}</el-button>
       </div>
     </el-dialog>
+    </div>
+    <ai-rename v-if="renameMode === 'ai'" />
   </div>
 </template>
 
@@ -120,17 +127,19 @@ import FileChose from "@/components/FileChose";
 import RuleBlock from "@/components/rules/RuleBlock.vue";
 import Bus from "../../utils/Bus";
 import Tips from '@/components/Tips';
+import AiRename from "./AiRename.vue";
 
 let numberSet = new Set(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
 export default {
   name: "Home",
   components: {
-    FileChose, RuleBlock, Top, Bottom, Tips, Edit
+    FileChose, RuleBlock, Top, Bottom, Tips, Edit, AiRename
   },
   data() {
     return {
       loading: false, //遮罩
+      renameMode: "rule", //重命名模式：rule普通规则，ai AI命名
       dialogVisible: false, //新增文件弹窗
       ruleList: [], //当前生效的规则
       fileList: [], //选择的文件
@@ -402,6 +411,10 @@ function readChar(a, i, n) {
 </script>
 
 <style lang="less" scoped>
+.mode-switch {
+  margin-bottom: 1em;
+}
+
 .savePath {
   cursor: pointer;
   margin-right: 0.5em;

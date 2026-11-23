@@ -8,6 +8,7 @@ import express, {
   type Router,
 } from "express";
 import ApplicationRuleApi from "../api/ApplicationRuleApi.ts";
+import createAiRenameRoutes from "../api/AiRenameApi.ts";
 import createFileRoutes from "../api/FileApi.ts";
 import GlobalConfigApi from "../api/GlobalConfigApi.ts";
 import createRenamerRoutes from "../api/RenamerApi.ts";
@@ -191,6 +192,7 @@ export async function startNodeServer(
   mountRoutes(apiRouter, GlobalConfigApi);
   mountRoutes(apiRouter, createFileRoutes(() => config.isWindows));
   mountRoutes(apiRouter, createRenamerRoutes(getNodeMessage));
+  mountRoutes(apiRouter, createAiRenameRoutes(getNodeMessage));
   apiRouter.post("/public/checkToken", (request, response) => {
     response.json(request.body?.token === config.token);
   });

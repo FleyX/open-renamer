@@ -21,4 +21,70 @@ rename:
   hardlink-create-failed:
     en: "Failed to create hard link: "
     zh: "创建硬链接失败:"
-  
+ai:
+  no-files:
+    en: No source files selected
+    zh: 未选择源文件
+  instruction-required:
+    en: Naming specification cannot be empty
+    zh: 命名规范不能为空
+  target-root-required:
+    en: Target root folder cannot be empty
+    zh: 目标根目录不能为空
+  model-request-failed:
+    en: Model request failed
+    zh: 模型请求失败
+  model-response-invalid:
+    en: Model returned an unusable response
+    zh: 模型返回结果无法使用
+  missing-result:
+    en: Model did not return a result for this file
+    zh: 模型未返回该文件的结果
+  target-invalid:
+    en: Target path is empty or invalid
+    zh: 目标路径为空或无效
+  target-outside-root:
+    en: Target path must stay under the target root
+    zh: 目标路径必须位于目标根目录内
+  duplicate-target:
+    en: Duplicate target path in this batch
+    zh: 批次内目标路径重复
+  target-exists:
+    en: Target path already exists
+    zh: 目标路径已存在
+  target-root-invalid:
+    en: Target root folder does not exist
+    zh: 目标根目录不存在
+  source-missing:
+    en: Source file is missing or is not a file
+    zh: 源文件缺失或不是文件
+  cross-device:
+    en: Source and target are on different devices
+    zh: 源与目标不在同一磁盘
+  batch-not-found:
+    en: Preview batch not found
+    zh: 预览批次不存在
+  batch-expired:
+    en: Preview batch expired, please regenerate
+    zh: 预览批次已过期，请重新生成
+  batch-version-mismatch:
+    en: Preview has changed, please revalidate
+    zh: 预览已变更，请重新校验
+  batch-in-flight:
+    en: Batch is already being submitted
+    zh: 批次正在提交中
+  batch-has-problems:
+    en: "Batch still has unresolved problems: "
+    zh: "批次仍有未解决的问题: "
+  move-failed:
+    en: "Failed to move file: "
+    zh: "移动文件失败: "
+  target-parent-conflict:
+    en: Target path is the parent directory of another target in this batch
+    zh: 目标路径是批次内其他目标的父目录
+  target-overwrites-source:
+    en: Target path would overwrite another source file in this batch
+    zh: 目标路径会覆盖批次内其他源文件
+  target-parent-not-directory:
+    en: A parent of the target path exists and is not a directory
+    zh: 目标路径的父级存在但不是目录

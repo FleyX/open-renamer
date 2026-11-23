@@ -46,7 +46,7 @@ import Bus from "../utils/Bus";
 export default {
   name: "FileChose",
   //type:folder:选择文件夹。file:选择文件
-  props: ["curChoosePath", "type"],
+  props: ["curChoosePath", "type", "emitSelection"],
   data() {
     return {
       isWindows: false,
@@ -150,8 +150,10 @@ export default {
         return;
       }
       if (this.type === 'file') {
-        let body = await HttpUtil.post("/file/recursionQuery", null, chosenFiles);
-        this.$emit("addData", JSON.parse(JSON.stringify(body)));
+        const files = this.emitSelection
+          ? chosenFiles
+          : await HttpUtil.post("/file/recursionQuery", null, chosenFiles);
+        this.$emit("addData", JSON.parse(JSON.stringify(files)));
         this.fileList.forEach((item) => (item.checked = false));
         this.fileList = [...this.fileList];
       } else if (this.type === 'folder') {
