@@ -2,10 +2,8 @@ name: build
 
 on:
   push:
-    branches:
-      - test
     tags:
-      - '**'
+      - "**"
 
 jobs:
   frontend:
@@ -29,6 +27,12 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: openRenamerFront/dist/
+          retention-days: 1
 
       - name: 拷贝产物到后端 static
         run: |
@@ -63,6 +67,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: 登录阿里云 registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ALIYUN_REGISTRY_USERNAME }}
+          password: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
+
       - name: 计算镜像 tags
         id: meta
         shell: bash
@@ -70,8 +81,10 @@ jobs:
           {
             echo "tags<<EOF"
             echo "fleyx/open-renamer:${GITHUB_REF_NAME}"
+            echo "registry.cn-hangzhou.aliyuncs.com/az3/open-renamer:${GITHUB_REF_NAME}"
             if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
               echo "fleyx/open-renamer:latest"
+              echo "registry.cn-hangzhou.aliyuncs.com/az3/open-renamer:latest"
             fi
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
@@ -84,9 +97,87 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
 
-  release:
-    name: 打包二进制并发布 Release
+  electron:
+    name: Electron ${{ matrix.name }}
     needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            os: ubuntu-24.04
+            platform: linux
+            arch: x64
+            smoke_command: xvfb-run -a node scripts/smoke-test.mjs --platform=linux --arch=x64
+          - name: Windows x64
+            os: windows-2025
+            platform: win32
+            arch: x64
+            smoke_command: node scripts/smoke-test.mjs --platform=win32 --arch=x64
+          - name: macOS ARM64
+            os: macos-15
+            platform: darwin
+            arch: arm64
+            smoke_command: node scripts/smoke-test.mjs --platform=darwin --arch=arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.3
+          cache: pnpm
+          cache-dependency-path: |
+            openRenamerBackend/pnpm-lock.yaml
+            openRenamerDesktop/pnpm-lock.yaml
+
+      - name: 安装后端依赖
+        run: pnpm --dir openRenamerBackend install --frozen-lockfile
+
+      - name: 安装桌面依赖
+        run: pnpm --dir openRenamerDesktop install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: openRenamerFront/dist/
+
+      - name: 安装 Linux 虚拟显示
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: 打包 Electron ZIP
+        run: pnpm --dir openRenamerDesktop exec node scripts/package.mjs --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --skip-frontend
+
+      - name: 验证 Electron ZIP
+        working-directory: openRenamerDesktop
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
+        run: ${{ matrix.smoke_command }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.platform }}-${{ matrix.arch }}
+          path: openRenamerDesktop/dist/open-renamer-${{ matrix.platform }}-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: electron-${{ matrix.platform }}-${{ matrix.arch }}-failure
+          path: openRenamerDesktop/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: 发布 Electron Release
+    needs: electron
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag'
     permissions:
@@ -96,32 +187,24 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: backend-static
-          path: openRenamerBackend/static/
+          pattern: electron-*
+          path: release-assets
+          merge-multiple: true
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: 1.46.3
-
-      - name: 打包 5 平台二进制
-        working-directory: openRenamerBackend
-        run: |
-          mkdir -p desktop/mac-arm desktop/mac-x64 desktop/win-x64 desktop/linux-arm desktop/linux-x64
-          deno task build:mac-arm
-          cd desktop/mac-arm && zip -q ../renamer-mac-arm-desktop.zip renamer-arm-mac && cd ../..
-          deno task build:mac-x64
-          cd desktop/mac-x64 && zip -q ../renamer-mac-x64-desktop.zip renamer-x64-mac && cd ../..
-          deno task build:win-x64
-          cd desktop/win-x64 && zip -q ../renamer-win-x64-desktop.zip renamer-win.exe && cd ../..
-          deno task build:linux-x64
-          cd desktop/linux-x64 && zip -q ../renamer-linux-x64-desktop.zip renamer-x64-linux && cd ../..
-          deno task build:linux-arm
-          cd desktop/linux-arm && zip -q ../renamer-linux-arm-desktop.zip renamer-arm-linux && cd ../..
-
-      - name: 发布 Release 并上传 zip
+      - name: 创建或更新 Release 并上传三个 ZIP
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ github.ref_name }}"
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes
-          gh release upload "$TAG" openRenamerBackend/desktop/renamer-*-desktop.zip --clobber
+          assets=(
+            release-assets/open-renamer-linux-x64.zip
+            release-assets/open-renamer-win32-x64.zip
+            release-assets/open-renamer-darwin-arm64.zip
+          )
+          for asset in "${assets[@]}"; do
+            test -s "$asset"
+          done
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" --verify-tag --generate-notes
+          fi

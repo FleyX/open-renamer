@@ -10,6 +10,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "package:linux-x64": "node scripts/package.mjs --platform=linux --arch=x64",
+    "package:win32-x64": "node scripts/package.mjs --platform=win32 --arch=x64",
+    "package:darwin-arm64": "node scripts/package.mjs --platform=darwin --arch=arm64",
+    "test:package": "node scripts/smoke-test.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
   "devDependencies": {
@@ -17,6 +20,7 @@
     "@types/node": "^24.10.1",
     "electron": "45.4.1",
     "esbuild": "0.28.2",
+    "playwright-core": "1.64.1",
     "typescript": "^5.9.3"
   },
   "pnpm": {
