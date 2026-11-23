@@ -18,7 +18,3 @@ database.db
 
 app
 app.exe
-desktop/**/*.zip
-desktop/**/renamer-*
-desktop/**/*-desktop
-desktop/**/data/**

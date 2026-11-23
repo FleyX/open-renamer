@@ -111,3 +111,6 @@ data
 
 package-lock.json
 .DS_Store
+
+.scratch/
+/local

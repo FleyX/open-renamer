@@ -4,11 +4,10 @@
 
 ![预览图](https://s3.fleyx.com/picbed/2022/11/18386180128d01eb1a59b8eacf652895.png)
 
-renamer 的开源实现版本，BS 应用，支持全平台部署使用
+Open Renamer 是基于 Node.js 24.x 后端与 Vue 的批量重命名应用，桌面客户端和 Docker/NAS 版共用同一套业务逻辑与 SQLite 数据层。
 
-- 服务器部署，支持 docker,已打包镜像到 dockerhub 中:[hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer),可直接使用。
-- 客户端直接启动，github release 页中下载对应平台客户端(mac,linux,windows)，[点击去下载](https://github.com/FleyX/open-renamer/releases)
-  renamer 的开源实现版本，BS 应用，两种使用方式支持全平台部署使用
+- Docker 服务器部署支持 linux/amd64 与 linux/arm64，镜像位于 [hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer)。
+- Electron 桌面客户端首发支持 Linux x64、Windows x64 和 macOS ARM64，可从 [GitHub Releases](https://github.com/FleyX/open-renamer/releases) 下载。
 
 开源地址:[github.com/FleyX/open-renamer](https://github.com/FleyX/open-renamer)
 
@@ -25,7 +24,7 @@ renamer 的开源实现版本，BS 应用，支持全平台部署使用
 
 - 不限制规则数量
 - 支持将规则保存为模板，方便下次使用
-- 全平台(arm,x86)支持，可直接部署在 nas 中，通过浏览器访问;也可直接下载客户端应用本地启动
+- Docker/NAS 版支持 amd64 与 arm64，可通过浏览器访问；桌面版可直接在本机启动
 - 针对 nas 视频文件有特殊优化,智能识别剧集名称，季号，集数，方便 jellyfin、emby 等软件识别
 - 支持创建硬链接方式重命名，bt/pt友好
 
@@ -35,11 +34,27 @@ renamer 的开源实现版本，BS 应用，支持全平台部署使用
 
 非专业人士建议使用客户端直接运行方式，无需部署服务端，直接在本地运行即可。如果需要在 nas 中部署，建议使用服务端部署方式。
 
-### 客户端直接运行
+### Electron 桌面客户端
 
-跳转[github.com/FleyX/open-renamer/releases/latest](https://github.com/FleyX/open-renamer/releases/latest) 下载对应平台的 zip 压缩包，解压后执行
+从 [最新 Release](https://github.com/FleyX/open-renamer/releases/latest) 下载对应平台的首发包：
 
-升级方式：下载最新版本 zip 压缩包，解压后执行即可。
+| 平台 | ZIP |
+| --- | --- |
+| Linux x64 | `open-renamer-linux-x64.zip` |
+| Windows x64 | `open-renamer-win32-x64.zip` |
+| macOS ARM64 | `open-renamer-darwin-arm64.zip` |
+
+- Linux：解压后运行目录内的 `open-renamer`。
+- Windows：解压后运行目录内的 `open-renamer.exe`。
+- macOS：解压后打开 `.app`。首发包只做 ad-hoc 签名、未做公证；如系统拦截，可在“系统设置 -> 隐私与安全性”中允许打开。
+
+桌面版会在 Electron 用户数据目录的 `data` 子目录中保存 SQLite 数据库，不使用旧版桌面数据：
+
+- Linux：`~/.config/Open Renamer/data`
+- Windows：`%APPDATA%\Open Renamer\data`
+- macOS：`~/Library/Application Support/Open Renamer/data`
+
+升级时下载并解压最新 ZIP 即可，用户数据目录不会被覆盖。Linux ARM 与 macOS Intel 不在本次首发范围，可继续从历史 Release 下载旧版客户端。
 
 ### docker部署
 

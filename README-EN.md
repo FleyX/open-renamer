@@ -2,10 +2,10 @@
 
 ![Preview](https://s3.fleyx.com/picbed/2022/11/18386180128d01eb1a59b8eacf652895.png)
 
-Open source implementation of renamer, a browser-based application supporting cross-platform deployment
+Open Renamer is a batch file renamer built with a Node.js 24.x backend and Vue. The Electron desktop client and Docker/NAS version share the same business logic and SQLite data layer.
 
-- Server deployment with Docker support, image packaged and available on Docker Hub: [hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer), ready to use
-- Direct client startup, download corresponding platform client (mac, linux, windows) from GitHub release page, [click to download](https://github.com/FleyX/open-renamer/releases)
+- Docker server deployment supports linux/amd64 and linux/arm64. Images are available at [hub.docker.com](https://hub.docker.com/r/fleyx/open-renamer).
+- The Electron desktop client initially supports Linux x64, Windows x64, and macOS ARM64. Download it from [GitHub Releases](https://github.com/FleyX/open-renamer/releases).
 
 Open source repository: [github.com/FleyX/open-renamer](https://github.com/FleyX/open-renamer)
 
@@ -22,7 +22,7 @@ Features:
 
 - Unlimited number of rules
 - Supports saving rules as templates for future use
-- Full platform (arm, x86) support, can be deployed directly in NAS and accessed via browser; can also download client application for local startup
+- Docker/NAS supports amd64 and arm64 and can be accessed through a browser; the desktop client runs locally
 - Special optimization for NAS video files, intelligently recognizes series name, season number, episode number, convenient for Jellyfin, Emby and other software recognition
 - Supports hard link creation for renaming, BT/PT friendly
 
@@ -30,11 +30,27 @@ Features:
 
 For non-professionals, it is recommended to use the direct client startup method, no need to deploy server, just run locally. If you need to deploy in NAS, it is recommended to use server deployment method.
 
-### Direct Client Startup
+### Electron Desktop Client
 
-Navigate to [github.com/FleyX/open-renamer/releases/latest](https://github.com/FleyX/open-renamer/releases/latest) to download the zip package for your platform, extract and run
+Download the initial package for your platform from the [latest Release](https://github.com/FleyX/open-renamer/releases/latest):
 
-Upgrade method: Download the latest version zip package, extract and run
+| Platform | ZIP |
+| --- | --- |
+| Linux x64 | `open-renamer-linux-x64.zip` |
+| Windows x64 | `open-renamer-win32-x64.zip` |
+| macOS ARM64 | `open-renamer-darwin-arm64.zip` |
+
+- Linux: extract the ZIP and run `open-renamer`.
+- Windows: extract the ZIP and run `open-renamer.exe`.
+- macOS: extract the ZIP and open the `.app`. The initial package is ad-hoc signed but not notarized. If macOS blocks it, allow it under System Settings -> Privacy & Security.
+
+The desktop client stores its SQLite database in the `data` subdirectory of Electron's user-data directory. It does not import or reuse the old desktop data:
+
+- Linux: `~/.config/Open Renamer/data`
+- Windows: `%APPDATA%\Open Renamer\data`
+- macOS: `~/Library/Application Support/Open Renamer/data`
+
+To upgrade, download and extract the latest ZIP. The user-data directory is preserved. Linux ARM and macOS Intel are not included in this initial release; continue using their clients from historical Releases.
 
 ### Docker Deployment
 
