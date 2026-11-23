@@ -30,6 +30,10 @@ export default interface AiGenerateDto {
    */
   preset?: "custom" | "movie" | "series";
   /**
+   * 执行方式：move 移动（默认，跨盘时复制成功后删除源）或 hardlink 创建硬链接并保留源
+   */
+  mode?: "move" | "hardlink";
+  /**
    * 命名规范
    */
   instruction: string;

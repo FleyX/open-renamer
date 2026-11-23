@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import {
+import { syncBuiltinESMExports } from "node:module";
+import fsPromises, {
   mkdir,
   mkdtemp,
   readdir,
@@ -15,6 +16,7 @@ import path from "node:path";
 import test from "node:test";
 import { startNodeServer, type RunningNodeServer } from "../index.node.ts";
 import AiRenameService from "../service/AiRenameService.ts";
+import type AiCompanionRow from "../entity/vo/AiCompanionRow.ts";
 import type AiRenameRow from "../entity/vo/AiRenameRow.ts";
 
 const resourceRootPath = path.resolve(import.meta.dirname, "..");
@@ -116,6 +118,8 @@ interface PreviewResponse {
   version: number;
   rows: Array<AiRenameRow>;
   groups?: Array<{ key: string; title: string; year: number | null; rowIds: string[] }>;
+  companions?: Array<AiCompanionRow>;
+  mode?: "move" | "hardlink";
   error?: string;
 }
 
@@ -2015,6 +2019,421 @@ test("preset title with path separators is a retryable generation failure", asyn
     assert.equal(preview.rows[0].targetRel, "");
     const entries = await readdir(targetRoot);
     assert.deepEqual(entries, []);
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+/**
+ * 第二个可写文件系统上的临时目录（例如 /dev/shm 与默认临时目录不同设备），
+ * 平台确无第二文件系统时返回 null，调用方跳过依赖用例。
+ */
+async function secondDeviceRoot(name: string): Promise<string | null> {
+  const localDev = (await stat(os.tmpdir())).dev;
+  for (const candidate of ["/dev/shm"]) {
+    try {
+      if ((await stat(candidate)).dev !== localDev) {
+        return await mkdtemp(path.join(candidate, `open-renamer-${name}-`));
+      }
+    } catch {
+      // 不存在或无权限，尝试下一个候选
+    }
+  }
+  return null;
+}
+
+interface SubmitResponse {
+  completed: Array<AiRenameRow | AiCompanionRow>;
+  failed: Array<{ row: AiRenameRow | AiCompanionRow; error: string }>;
+  pending: Array<AiRenameRow | AiCompanionRow>;
+}
+
+test("ai rename hardlink mode links same inode and keeps source on same device", async () => {
+  const dataPath = await createFixtureRoot("aihl-data");
+  const sourceRoot = await createFixtureRoot("aihl-src");
+  const targetRoot = await createFixtureRoot("aihl-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "sub", "b.mkv");
+  await mkdir(path.dirname(sourceB), { recursive: true });
+  await writeFile(sourceA, "aaa");
+  await writeFile(sourceB, "bbb");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", target: "Library/a.mkv" },
+        { id: "L002", target: "Library/season 01/b.mkv" },
+      ]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          mode: "hardlink",
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(generated.error, undefined);
+    assert.equal(generated.mode, "hardlink");
+    assert.deepEqual(
+      generated.rows.map((row) => row.problem),
+      ["", ""],
+    );
+
+    // 校验目标路径的客户端可以省略执行方式，批次继续使用已选的硬链接。
+    const edited = await request(server, "/aiRename/preview/validate", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        rows: generated.rows.map(({ id, targetRel }) => ({ id, targetRel })),
+      }),
+    });
+    assert.equal(edited.status, 200);
+    const confirmed = await edited.json() as PreviewResponse;
+    assert.equal(confirmed.mode, "hardlink");
+
+    const submit = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: confirmed.version,
+        }),
+      })
+    ).json()) as SubmitResponse;
+    assert.equal(submit.completed.length, 2);
+    assert.equal(submit.failed.length, 0);
+    assert.equal(submit.pending.length, 0);
+
+    // 源文件保留，且与目标指向同一 inode
+    const targetA = path.join(targetRoot, "Library", "a.mkv");
+    const targetB = path.join(targetRoot, "Library", "season 01", "b.mkv");
+    for (const [source, target] of [[sourceA, targetA], [sourceB, targetB]]) {
+      const sourceInfo = await stat(source);
+      const targetInfo = await stat(target);
+      assert.equal(sourceInfo.dev, targetInfo.dev);
+      assert.equal(sourceInfo.ino, targetInfo.ino);
+    }
+    assert.equal(await readFile(targetA, "utf8"), "aaa");
+    assert.equal(await readFile(targetB, "utf8"), "bbb");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename cross-device hardlink is blocked and switching to move copies without model", async (t) => {
+  const otherRoot = await secondDeviceRoot("aixd-dst");
+  if (!otherRoot) {
+    t.skip("no second writable file system available for cross-device cases");
+    return;
+  }
+  const dataPath = await createFixtureRoot("aixd-data");
+  const sourceRoot = await createFixtureRoot("aixd-src");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  await writeFile(sourceA, "aaa");
+  const model = await startMockModel(() =>
+    chatCompletion(JSON.stringify([{ id: "L001", target: "Library/a.mkv" }])),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA)],
+          baseDir: sourceRoot,
+          targetRoot: otherRoot,
+          mode: "hardlink",
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(generated.error, undefined);
+    // 跨文件系统的硬链接在预览中标出并阻止提交
+    assert.match(generated.rows[0].problem, /不在同一磁盘/);
+    const blocked = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version,
+      }),
+    });
+    assert.equal(blocked.status, 400);
+
+    // 切换为移动：重新校验路径且不请求模型
+    const switched = (await (
+      await request(server, "/aiRename/preview/validate", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: generated.version,
+          mode: "move",
+          rows: generated.rows.map((row) => ({
+            id: row.id,
+            targetRel: row.targetRel,
+          })),
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(switched.error, undefined);
+    assert.equal(switched.mode, "move");
+    assert.equal(switched.version, generated.version + 1);
+    assert.deepEqual(
+      switched.rows.map((row) => row.problem),
+      [""],
+    );
+    assert.equal(
+      model.requests.length,
+      1,
+      "switching transfer mode must not call the model",
+    );
+
+    // 跨盘移动：复制到确认过的目标成功后才删除源文件
+    const submit = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: switched.batchId,
+          version: switched.version,
+        }),
+      })
+    ).json()) as SubmitResponse;
+    assert.equal(submit.completed.length, 1);
+    assert.equal(submit.failed.length, 0);
+    assert.equal(submit.pending.length, 0);
+    assert.equal(
+      await readFile(path.join(otherRoot, "Library", "a.mkv"), "utf8"),
+      "aaa",
+    );
+    await assert.rejects(stat(sourceA), /ENOENT/);
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(otherRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename move keeps source and existing target contents when target appears before submit", async () => {
+  const dataPath = await createFixtureRoot("aico-data");
+  const sourceRoot = await createFixtureRoot("aico-src");
+  const targetRoot = await createFixtureRoot("aico-dst");
+  const server = await start(dataPath);
+  const sourceA = path.join(sourceRoot, "a.mkv");
+  const sourceB = path.join(sourceRoot, "b.mkv");
+  await writeFile(sourceA, "aaa");
+  await writeFile(sourceB, "bbb");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([
+        { id: "L001", target: "Library/a.mkv" },
+        { id: "L002", target: "Library/b.mkv" },
+      ]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(sourceA), fileObj(sourceB)],
+          baseDir: sourceRoot,
+          targetRoot,
+          instruction: "整理",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.deepEqual(
+      generated.rows.map((row) => row.problem),
+      ["", ""],
+    );
+
+    // 预览后目标被占用：提交前沿用整批校验，整批被拒绝，
+    // 源文件与已有目标的内容均保留
+    const occupied = path.join(targetRoot, "Library", "b.mkv");
+    await mkdir(path.dirname(occupied), { recursive: true });
+    await writeFile(occupied, "decoy");
+
+    const submit = await request(server, "/aiRename/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        batchId: generated.batchId,
+        version: generated.version,
+      }),
+    });
+    assert.equal(submit.status, 400);
+    assert.match(await submit.text(), /未解决/);
+    assert.equal(await readFile(sourceA, "utf8"), "aaa");
+    assert.equal(await readFile(sourceB, "utf8"), "bbb");
+    assert.equal(await readFile(occupied, "utf8"), "decoy");
+  } finally {
+    await server.close();
+    await model.close();
+    await rm(dataPath, { recursive: true, force: true });
+    await rm(sourceRoot, { recursive: true, force: true });
+    await rm(targetRoot, { recursive: true, force: true });
+  }
+});
+
+test("ai rename cross-device copy failure preserves source and stops the batch", async (t) => {
+  const targetRoot = await secondDeviceRoot("aicf-dst");
+  if (!targetRoot) {
+    t.skip("no second writable file system available for cross-device cases");
+    return;
+  }
+  const dataPath = await createFixtureRoot("aicf-data");
+  const sourceRoot = await createFixtureRoot("aicf-src");
+  const server = await start(dataPath);
+  const names = ["a.mkv", "b.mkv", "c.mkv"];
+  const sources = names.map((name) => path.join(sourceRoot, name));
+  await Promise.all(sources.map((source, index) => writeFile(source, names[index])));
+  const model = await startMockModel(() =>
+    chatCompletion(JSON.stringify(names.map((name, index) => ({
+      id: `L00${index + 1}`,
+      target: `Library/${name}`,
+    })))),
+  );
+  const originalCopy = fsPromises.copyFile;
+  try {
+    const generation = await request(server, "/aiRename/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        files: sources.map(fileObj),
+        targetRoot,
+        instruction: "Organize videos",
+        service: { baseUrl: model.url, model: "m" },
+      }),
+    });
+    const preview = await generation.json() as PreviewResponse;
+    assert.equal(generation.status, 200);
+    assert.ok(preview.rows.every((row) => !row.problem));
+
+    const copyWithFailure: typeof originalCopy = async (source, dest, mode) => {
+      if (String(source) === sources[1]) {
+        throw Object.assign(new Error("injected copy failure"), { code: "EIO" });
+      }
+      return originalCopy(source, dest, mode);
+    };
+    const mock = t.mock.method(fsPromises, "copyFile", copyWithFailure);
+    syncBuiltinESMExports();
+    try {
+      const response = await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({ batchId: preview.batchId, version: preview.version }),
+      });
+      assert.equal(response.status, 200);
+      const result = await response.json() as SubmitResponse;
+      assert.deepEqual(result.completed.map((row) => row.id), ["L001"]);
+      assert.deepEqual(result.failed.map(({ row }) => row.id), ["L002"]);
+      assert.match(result.failed[0].error, /injected copy failure/);
+      assert.deepEqual(result.pending.map((row) => row.id), ["L003"]);
+    } finally {
+      mock.mock.restore();
+      syncBuiltinESMExports();
+    }
+    assert.equal(await readFile(path.join(targetRoot, "Library", names[0]), "utf8"), names[0]);
+    await assert.rejects(stat(sources[0]), /ENOENT/);
+    for (const index of [1, 2]) {
+      assert.equal(await readFile(sources[index], "utf8"), names[index]);
+      await assert.rejects(stat(path.join(targetRoot, "Library", names[index])), /ENOENT/);
+    }
+  } finally {
+    await server.close();
+    await model.close();
+    await Promise.all([dataPath, sourceRoot, targetRoot].map((dir) =>
+      rm(dir, { recursive: true, force: true })));
+  }
+});
+
+test("ai rename hardlink mode applies to media video and companion rows", async () => {
+  const dataPath = await createFixtureRoot("aihc-data");
+  const sourceRoot = await createFixtureRoot("aihc-src");
+  const targetRoot = await createFixtureRoot("aihc-dst");
+  const server = await start(dataPath);
+  const movieDir = path.join(sourceRoot, "movies");
+  await mkdir(movieDir, { recursive: true });
+  const video = path.join(movieDir, "aaa.It.mkv");
+  const subtitle = path.join(movieDir, "aaa.It.zh.srt");
+  await writeFile(video, "video");
+  await writeFile(subtitle, "zh sub");
+  const model = await startMockModel(() =>
+    chatCompletion(
+      JSON.stringify([{ id: "L001", title: "Demo Movie", year: 2020 }]),
+    ),
+  );
+
+  try {
+    const generated = (await (
+      await request(server, "/aiRename/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          files: [fileObj(video)],
+          baseDir: sourceRoot,
+          targetRoot,
+          preset: "movie",
+          mode: "hardlink",
+          instruction: "电影保存为 片名 (年份)/原文件名",
+          service: { baseUrl: model.url, model: "m" },
+        }),
+      })
+    ).json()) as PreviewResponse;
+    assert.equal(generated.error, undefined);
+    assert.equal(generated.mode, "hardlink");
+    assert.equal(generated.rows.length, 1);
+    assert.equal((generated.companions ?? []).length, 1);
+    assert.deepEqual(
+      [...generated.rows, ...(generated.companions ?? [])].map((row) => row.problem),
+      ["", ""],
+    );
+
+    // 视频与附属文件按同一执行方式（硬链接）落盘，源文件均保留
+    const submit = (await (
+      await request(server, "/aiRename/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          batchId: generated.batchId,
+          version: generated.version,
+        }),
+      })
+    ).json()) as SubmitResponse;
+    assert.equal(submit.completed.length, 2);
+    assert.equal(submit.failed.length, 0);
+    assert.equal(submit.pending.length, 0);
+
+    const targetVideo = path.join(targetRoot, "Demo Movie (2020)", "aaa.It.mkv");
+    const targetSubtitle = path.join(
+      targetRoot,
+      "Demo Movie (2020)",
+      "aaa.It.zh.srt",
+    );
+    for (const [source, target] of [[video, targetVideo], [subtitle, targetSubtitle]]) {
+      const sourceInfo = await stat(source);
+      const targetInfo = await stat(target);
+      assert.equal(sourceInfo.dev, targetInfo.dev);
+      assert.equal(sourceInfo.ino, targetInfo.ino);
+    }
+    assert.equal(await readFile(targetSubtitle, "utf8"), "zh sub");
   } finally {
     await server.close();
     await model.close();

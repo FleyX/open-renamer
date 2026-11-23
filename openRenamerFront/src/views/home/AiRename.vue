@@ -43,6 +43,13 @@
         <el-radio-button label="series">{{ $t('aiRename.presetSeries') }}</el-radio-button>
       </el-radio-group>
     </div>
+    <div class="preset-line">
+      <span class="preset-label">{{ $t('aiRename.modeLabel') }}</span>
+      <el-radio-group v-model="transferMode" size="small" :disabled="loading || retrying">
+        <el-radio-button label="move">{{ $t('aiRename.modeMove') }}</el-radio-button>
+        <el-radio-button label="hardlink">{{ $t('aiRename.modeHardlink') }}</el-radio-button>
+      </el-radio-group>
+    </div>
     <el-input v-model="instruction" type="textarea" :rows="3"
       :placeholder="$t('aiRename.specPlaceholder')" />
 
@@ -185,6 +192,7 @@ export default {
       files: [], // 所选源文件（目录选择的文件带来源目录 sourceDir）
       targetRoot: "",
       preset: "custom", // 命名预设：custom 自定义，movie 电影，series 剧集
+      transferMode: "move", // 执行方式：move 移动，hardlink 创建硬链接并保留源
       instruction: "",
       // 预设补充草稿：作品组年份、剧集行季号集号；提交校验时只发送已填草稿
       yearDrafts: {},
@@ -216,6 +224,7 @@ export default {
     canSubmit() {
       return (
         this.preview &&
+        this.preview.mode === this.transferMode &&
         !this.loading &&
         !this.retrying &&
         !this.preview.error &&
@@ -231,6 +240,7 @@ export default {
     canRetry() {
       return (
         this.preview &&
+        this.preview.mode === this.transferMode &&
         !this.preview.error &&
         !this.loading &&
         !this.retrying &&
@@ -252,6 +262,12 @@ export default {
         this.instruction = this.$t('aiRename.presetSpecSeries');
       }
       this.invalidatePreview();
+    },
+    // 切换执行方式：有预览时只重新校验路径，不请求模型
+    transferMode() {
+      if (this.preview) {
+        this.onRowEdit();
+      }
     },
   },
   beforeUnmount() {
@@ -477,6 +493,7 @@ export default {
           files: this.files,
           targetRoot: this.targetRoot,
           preset: this.preset,
+          mode: this.transferMode,
           instruction: this.instruction,
           service: {
             baseUrl: this.service.baseUrl,
@@ -535,6 +552,7 @@ export default {
           }));
         const updated = await HttpUtil.post("/aiRename/preview/validate", null, {
           batchId,
+          mode: this.transferMode,
           rows: [
             ...rows.map((row) => ({
               id: row.id,

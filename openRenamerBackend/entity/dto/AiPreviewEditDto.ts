@@ -51,4 +51,8 @@ export default interface AiPreviewEditDto {
    * 附属文件归属确认：附属行标识 + 候选视频行标识
    */
   companions?: Array<AiCompanionEditDto>;
+  /**
+   * 切换执行方式（移动/硬链接）：只重新校验路径，不请求模型
+   */
+  mode?: "move" | "hardlink";
 }

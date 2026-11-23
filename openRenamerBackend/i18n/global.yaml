@@ -61,9 +61,21 @@ ai:
   source-missing:
     en: Source file is missing or is not a file
     zh: 源文件缺失或不是文件
-  cross-device:
-    en: Source and target are on different devices
-    zh: 源与目标不在同一磁盘
+  source-changed:
+    en: Source file changed during the move
+    zh: 移动期间源文件已变更
+  target-disappeared:
+    en: Target file disappeared during the move
+    zh: 移动期间目标文件已消失
+  cross-device-hardlink:
+    en: Source and target are on different devices; switch to move or choose another target root
+    zh: 源与目标不在同一磁盘，请改用移动或调整目标根目录
+  mode-invalid:
+    en: Transfer mode must be move or hardlink
+    zh: 执行方式必须为移动或创建硬链接
+  link-failed:
+    en: "Failed to create hard link: "
+    zh: "创建硬链接失败: "
   batch-not-found:
     en: Preview batch not found
     zh: 预览批次不存在

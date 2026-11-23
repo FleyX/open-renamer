@@ -7,7 +7,6 @@ import {
   mkdir,
   readdir,
   realpath,
-  rm,
   stat,
   unlink,
 } from "node:fs/promises";
@@ -42,6 +41,11 @@ interface AiBatch {
    * 命名预设；缺省为自定义命名规范
    */
   preset?: "movie" | "series";
+  /**
+   * 执行方式：move 移动（默认）或 hardlink 创建硬链接并保留源；
+   * 由生成或编辑校验确认并绑定到预览版本，提交与重试沿用
+   */
+  mode: "move" | "hardlink";
   /**
    * 作品分组：同组共享一次年份补充
    */
@@ -101,6 +105,7 @@ class AiRenameService {
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
     companions: Array<AiCompanionRow>;
+    mode: "move" | "hardlink";
     error?: string;
   }> {
     this.sweepExpired();
@@ -110,6 +115,7 @@ class AiRenameService {
       rows: [] as Array<AiRenameRow>,
       groups: [] as Array<AiWorkGroup>,
       companions: [] as Array<AiCompanionRow>,
+      mode: "move" as const,
     };
     const sources = this.normalizeSources(dto);
     if (sources.length === 0) {
@@ -132,6 +138,10 @@ class AiRenameService {
     }
     if (!AiRenameService.validService(dto.service)) {
       return { ...empty, error: getMessage("ai.model-config-invalid") };
+    }
+    const mode = AiRenameService.parseMode(dto.mode === undefined ? "move" : dto.mode);
+    if (!mode) {
+      return { ...empty, error: getMessage("ai.mode-invalid") };
     }
 
     const preset = dto.preset === "movie" || dto.preset === "series"
@@ -183,6 +193,7 @@ class AiRenameService {
       rootReal,
       rows,
       instruction,
+      mode,
       preset,
       companionRows,
     );
@@ -197,6 +208,7 @@ class AiRenameService {
       rows: batch.rows,
       groups: batch.groups,
       companions: batch.companions,
+      mode: batch.mode,
     };
   }
 
@@ -214,6 +226,7 @@ class AiRenameService {
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
     companions: Array<AiCompanionRow>;
+    mode: "move" | "hardlink";
   }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
@@ -222,6 +235,11 @@ class AiRenameService {
     }
     if (batch.consumed) {
       throw ErrorHelper.Error400(getMessage("ai.batch-version-mismatch"));
+    }
+    // 切换执行方式只重新校验路径，不请求模型
+    const mode = dto.mode === undefined ? batch.mode : AiRenameService.parseMode(dto.mode);
+    if (!mode) {
+      throw ErrorHelper.Error400(getMessage("ai.mode-invalid"));
     }
     const rowById = new Map(batch.rows.map((row) => [row.id, row]));
     const companionById = new Map(
@@ -245,6 +263,7 @@ class AiRenameService {
         candidateVideoIds: [...comp.candidateVideoIds],
       })),
     };
+    draft.mode = mode;
     const copiesById = new Map(draft.rows.map((row) => [row.id, row]));
     const companionCopiesById = new Map(
       draft.companions.map((comp) => [comp.id, comp]),
@@ -294,6 +313,7 @@ class AiRenameService {
     batch.rows = draft.rows;
     batch.groups = draft.groups;
     batch.companions = draft.companions;
+    batch.mode = draft.mode;
     batch.version += 1;
     return {
       batchId: batch.id,
@@ -301,6 +321,7 @@ class AiRenameService {
       rows: batch.rows,
       groups: batch.groups,
       companions: batch.companions,
+      mode: batch.mode,
     };
   }
 
@@ -423,7 +444,7 @@ class AiRenameService {
       executionStarted = true;
       for (const [index, row] of rows.entries()) {
         try {
-          await this.moveRow(row, batch.targetRoot, getMessage);
+          await this.executeRow(row, batch.targetRoot, batch.mode, getMessage);
           completed.push(row);
         } catch (error) {
           failed.push({
@@ -462,6 +483,7 @@ class AiRenameService {
     rows: Array<AiRenameRow>;
     groups: Array<AiWorkGroup>;
     companions: Array<AiCompanionRow>;
+    mode: "move" | "hardlink";
   }> {
     const { batch } = this.accessBatch(dto.batchId, getMessage);
     this.sweepExpired();
@@ -539,6 +561,7 @@ class AiRenameService {
         rows: batch.rows,
         groups: batch.groups,
         companions: batch.companions,
+        mode: batch.mode,
       };
     } finally {
       this.inFlight.delete(batch.id);
@@ -1008,6 +1031,11 @@ class AiRenameService {
       .slice(-3).join("/");
   }
 
+  /** 执行方式：仅允许 move 或 hardlink */
+  private static parseMode(value: unknown): "move" | "hardlink" | null {
+    return value === "move" || value === "hardlink" ? value : null;
+  }
+
   private static modelEndpoint(baseUrl: string): string {
     const trimmed = baseUrl.trim().replace(/\/+$/, "");
     if (trimmed.endsWith("/chat/completions")) {
@@ -1155,6 +1183,7 @@ class AiRenameService {
     targetRoot: string,
     rows: Array<AiRenameRow>,
     instruction: string,
+    mode: "move" | "hardlink",
     preset?: "movie" | "series",
     companions: Array<AiCompanionRow> = [],
   ): AiBatch {
@@ -1163,6 +1192,7 @@ class AiRenameService {
       id,
       targetRoot: path.resolve(targetRoot),
       instruction,
+      mode,
       preset,
       groups: preset ? AiRenameService.buildGroups(rows) : [],
       rows,
@@ -1330,10 +1360,13 @@ class AiRenameService {
         entry.problem = getMessage("ai.source-missing");
         continue;
       }
-      // 按实际最近已有目录判断同盘
-      const nearest = await AiRenameService.nearestExistingDir(entry.targetAbs);
-      if (!nearest || sourceStat.dev !== nearest.dev) {
-        entry.problem = getMessage("ai.cross-device");
+      // 按实际最近已有目录判断同盘；仅硬链接模式阻止跨设备，
+      // 移动模式允许跨盘并在执行期复制成功后删除源
+      if (batch.mode === "hardlink") {
+        const nearest = await AiRenameService.nearestExistingDir(entry.targetAbs);
+        if (!nearest || sourceStat.dev !== nearest.dev) {
+          entry.problem = getMessage("ai.cross-device-hardlink");
+        }
       }
     }
   }
@@ -1532,72 +1565,77 @@ class AiRenameService {
     }
   }
 
-  /**
-   * 同盘移动且不覆盖目标：先排他创建硬链接再删除源文件；
-   * 文件系统不支持硬链接时退化为排他复制再删除（跨盘移动由票据 05 提供）。
-   * 两步之间失败时只回收本次创建且仍匹配的目标。
-   */
-  private async moveRow(
-    row: Pick<AiRenameRow, "sourcePath" | "targetAbs" | "targetRel">,
+  /** 执行预览确认的单条路径。目标创建始终使用排他操作。 */
+  private async executeRow(
+    row: Pick<AiRenameRow, "sourcePath" | "targetAbs">,
     targetRoot: string,
+    mode: "move" | "hardlink",
     getMessage: MessageLookup,
   ): Promise<void> {
-    const source = row.sourcePath;
-    const target =
-      row.targetAbs || path.join(targetRoot, ...row.targetRel.split("/"));
+    const { sourcePath: source, targetAbs: target } = row;
     if (source === target) {
-      return; // 同源同目标的无操作项
+      return;
     }
-    let createdIdentity: { dev: number; ino: number } | null = null;
-    const cleanupCreated = async (): Promise<void> => {
-      if (!createdIdentity) {
-        return;
-      }
-      try {
-        const info = await lstat(target);
-        if (
-          info.dev === createdIdentity.dev &&
-          info.ino === createdIdentity.ino
-        ) {
-          await rm(target);
-        }
-      } catch {
-        // 目标已不存在或已被替换，保持真实磁盘状态
-      }
-    };
     try {
       if (await AiRenameService.realpathOrNull(targetRoot) !== targetRoot ||
         await AiRenameService.checkTargetParents(targetRoot, target)) {
         throw new Error(getMessage("ai.target-outside-root"));
       }
-      await mkdir(path.dirname(target), { recursive: true });
-      if (await AiRenameService.realpathOrNull(path.dirname(target)) !==
-        path.dirname(target)) {
+      const targetParent = path.dirname(target);
+      await mkdir(targetParent, { recursive: true });
+      if (await AiRenameService.realpathOrNull(targetParent) !== targetParent) {
         throw new Error(getMessage("ai.target-outside-root"));
       }
-      try {
-        await link(source, target);
-      } catch (error) {
-        const code = (error as NodeJS.ErrnoException).code;
-        if (
-          code === "EPERM" ||
-          code === "ENOSYS" ||
-          code === "EOPNOTSUPP" ||
-          code === "ENOTSUP"
-        ) {
-          await copyFile(source, target, constants.COPYFILE_EXCL);
-        } else {
-          throw error;
-        }
+      const sourceInfo = await lstat(source);
+      if (!sourceInfo.isFile()) {
+        throw new Error(getMessage("ai.source-missing"));
       }
-      createdIdentity = await this.identityOf(target);
-      await unlink(source);
+      if (mode === "hardlink") {
+        await link(source, target);
+      } else {
+        await this.moveFile(source, target, sourceInfo, getMessage);
+      }
     } catch (error) {
-      await cleanupCreated();
       throw new Error(
-        getMessage("ai.move-failed") +
+        getMessage(mode === "hardlink" ? "ai.link-failed" : "ai.move-failed") +
           (error instanceof Error ? error.message : String(error)),
       );
+    }
+  }
+
+  private async moveFile(
+    source: string,
+    target: string,
+    sourceInfo: { dev: number; ino: number },
+    getMessage: MessageLookup,
+  ): Promise<void> {
+    try {
+      await link(source, target);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EPERM" && code !== "ENOSYS" && code !== "EOPNOTSUPP" &&
+        code !== "ENOTSUP" && code !== "EXDEV") {
+        throw error;
+      }
+      await copyFile(source, target, constants.COPYFILE_EXCL);
+    }
+    const created = await this.identityOf(target);
+    if (!created) {
+      throw new Error(getMessage("ai.target-disappeared"));
+    }
+    try {
+      const currentSource = await this.identityOf(source);
+      if (!currentSource || sourceInfo.dev !== currentSource.dev ||
+        sourceInfo.ino !== currentSource.ino) {
+        throw new Error(getMessage("ai.source-changed"));
+      }
+      await unlink(source);
+    } catch (error) {
+      const current = await this.identityOf(target);
+      if (current && created.dev === current.dev && created.ino === current.ino) {
+        await unlink(target).catch(() => {});
+      }
+      throw error;
     }
   }
 
