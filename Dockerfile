@@ -17,16 +17,6 @@ ENV PORT=80
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --chmod=0777 --from=dependencies /app/data ./data
 
-COPY openRenamerBackend/package.json ./
-COPY openRenamerBackend/index.node.ts ./
-COPY openRenamerBackend/server ./server
-COPY openRenamerBackend/api ./api
-COPY openRenamerBackend/dao ./dao
-COPY openRenamerBackend/entity ./entity
-COPY openRenamerBackend/i18n ./i18n
-COPY openRenamerBackend/service ./service
-COPY openRenamerBackend/util ./util
-COPY openRenamerBackend/sqls ./sqls
-COPY openRenamerBackend/static ./static
+COPY openRenamerBackend/ ./
 
 CMD ["node", "index.node.ts"]
